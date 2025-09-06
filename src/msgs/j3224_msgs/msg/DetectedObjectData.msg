@@ -1,0 +1,1 @@
+ObjectCommonData detObjCommon

@@ -1,0 +1,13 @@
+<launch>
+  <node  name="model_publisher"  type="model_publisher"  pkg="model_publisher"  output="screen"               >
+  <param name="base_frame"       type="string"           value="ego_frame"                                  />
+  <param name="topic_name"       type="string"           value="vehicle_model"                              />
+  
+  <param name="model_path"       type="string"           value="package://model_publisher/model/genesis.dae" />
+  <param name="offset_x"         type="double"           value="1.3"                                         />
+  <param name="offset_y"         type="double"           value="0"                                           />
+  <param name="offset_z"         type="double"           value="0"                                           />
+  <param name="offset_roll"      type="double"           value="90"                                          />
+  <param name="offset_yaw"       type="double"           value="90"                                          />
+  <param name="offset_pitch"     type="double"           value="0"                                           /></node>
+</launch>

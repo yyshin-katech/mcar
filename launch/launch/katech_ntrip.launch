@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+    <arg name="sweet_home" default="$(optenv HOME)" />
+
+    <!-- local node -->
+    <param name="EPSG" value="5179" />
+  
+    <node pkg="ntripclient"             type="ntrip_node.py"            name="ntripclient"         respawn="true" output="screen"/>
+    <param name="ntrip_directory"       type="string"  value="$(find ntripclient)" />
+ 
+
+   <!--kvaser interface -->  
+</launch>

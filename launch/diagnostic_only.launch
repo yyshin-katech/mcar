@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+    <arg name="sweet_home" default="$(optenv HOME)" />
+    <arg name="stp" default="static_transform_publisher" />
+
+    <param name="EPSG" value="5179" />
+
+    <include file="$(find model_publisher)/launch/genesis.launch" />
+<!--                                                                     x           y          z         yaw       pitch       roll       parent      child      -->
+    <node pkg="tf2_ros" type="$(arg stp)" name="base2ego" args=" 0        0.0        0.0        0.0         0.0         0.0        base_link   ego_frame    "  />
+    
+    <node pkg="rviz_filter"                     type="rviz_filter_node"                 name="rviz_filter_node"             respawn="true" />
+    <!-- 시스템 Diagnostic 정보 -->
+    <node pkg="cpt7_gps_diagnostic"             type="cpt7_gps_diagnostic_node"           name="cpt7_gps_diagnostic_node"               respawn="true" />
+    <node pkg="lidar_diagnostic"             type="lidar_diagnostic_node"           name="lidar_diagnostic_node"               respawn="true" />
+    <node pkg="radar_diagnostic"             type="radar_diagnostic_node"           name="radar_diagnostic_node"               respawn="true" />
+    <node pkg="v2x_diagnostic"             type="v2x_diagnostic_node"           name="v2x_diagnostic_node"               respawn="true" />
+    <node pkg="hmi_diagnostic"             type="hmi_diagnostic_node"           name="hmi_diagnostic_node"               respawn="true" />
+    <node pkg="vcu_diagnostic"             type="vcu_diagnostic_node"           name="vcu_diagnostic_node"               respawn="true" />
+    <node pkg="cam_diagnostic"             type="cam_diagnostic_node"           name="cam_diagnostic_node"               respawn="true" />
+    <node pkg="ipc_diagnostic"             type="ipc_diagnostic_node"           name="ipc_diagnostic_node"               respawn="true" />
+
+    <node pkg="stat_display"                    type="stat_display_node"            name="stat_display_node"                respawn="true" />
+
+    <node pkg="sound_play"                    type="soundplay_node.py"            name="soundplay_node"                respawn="true" />
+
+    <!-- <node pkg="can"                    type="diagnostic_CAN_writer"            name="diagnostic_CAN_writer_node"                respawn="true" />     -->
+
+
+</launch>

@@ -1,0 +1,633 @@
+VERSION ""
+
+
+NS_ : 
+	NS_DESC_
+	CM_
+	BA_DEF_
+	BA_
+	VAL_
+	CAT_DEF_
+	CAT_
+	FILTER
+	BA_DEF_DEF_
+	EV_DATA_
+	ENVVAR_DATA_
+	SGTYPE_
+	SGTYPE_VAL_
+	BA_DEF_SGTYPE_
+	BA_SGTYPE_
+	SIG_TYPE_REF_
+	VAL_TABLE_
+	SIG_GROUP_
+	SIG_VALTYPE_
+	SIGTYPE_VALTYPE_
+	BO_TX_BU_
+	BA_DEF_REL_
+	BA_REL_
+	BA_DEF_DEF_REL_
+	BU_SG_REL_
+	BU_EV_REL_
+	BU_BO_REL_
+	SG_MUL_VAL_
+
+BS_:
+
+BU_: BCM IAP HUD MDPS _4WD CUBIS EPB TMU EVP CGW TPMS LPI SPAS LKAS EMS TCU IBOX LCA AFLS AEB AVM SCC SNV PGS SAS Dummy LDWS_LKAS ESC PPCU AMP FCS CLU ECS ACU LDWS
+
+
+BO_ 3221225472 VECTOR__INDEPENDENT_SIG_MSG: 0 Vector__XXX
+ SG_ CF_Yrs_YrStat : 0|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ CF_Yrs_SnsStat2 : 0|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ YRS_Temp : 0|8@1+ (1,-68) [-68|187] "б╔" Vector__XXX
+ SG_ YRS_Temp_Stat : 0|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ YRS_SERIALNO : 0|48@1+ (1,0) [0|281474976710655] "" Vector__XXX
+ SG_ CF_Yrs_McuStat : 0|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ CF_Yrs_AxStat : 0|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ CR_Yrs_Ax : 0|16@1+ (0.000127465,-4.17677312) [-4.17677312|4.17651819] "g" Vector__XXX
+ SG_ CF_Yrs_ExtSysStat : 0|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ CR_Yrs_Diag : 0|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ CF_Yrs_LatAcStat1 : 0|4@1+ (1,0) [0|15] "" Vector__XXX
+
+BO_ 688 SAS11: 5 SAS
+ SG_ SAS_Angle : 0|16@1- (0.1,0) [-3276.9|3276.8] "Deg"  AFLS,AVM,CGW,CLU,ECS,ESC,LCA,LDWS_LKAS,MDPS,PGS,SCC,SPAS
+ SG_ SAS_Speed : 16|8@1+ (4,0) [0|1020] ""  AFLS,CGW,ECS,ESC,LDWS_LKAS,MDPS,SCC,SPAS
+ SG_ SAS_Stat : 24|8@1+ (1,0) [0|255] ""  CGW,ECS,ESC,LDWS_LKAS,MDPS,SCC,SPAS
+ SG_ MsgCount : 32|4@1+ (1,0) [0|15] ""  CGW,ECS,ESC,LDWS_LKAS,MDPS,SCC,SPAS
+ SG_ CheckSum : 36|4@1+ (1,0) [0|15] ""  CGW,ECS,ESC,LDWS_LKAS,MDPS,SCC,SPAS
+
+BO_ 902 WHL_SPD11: 8 ESC
+ SG_ WHL_SPD_FL : 0|14@1+ (0.03125,0) [0|511.96875] "km/h"  LCA,AFLS,AVM,CGW,CLU,ECS,EPB,LDWS_LKAS,MDPS,PGS,SCC,SPAS,TPMS
+ SG_ WHL_SPD_FR : 16|14@1+ (0.03125,0) [0|511.96875] "km/h"  LCA,AFLS,AVM,CGW,CLU,ECS,EPB,LDWS_LKAS,MDPS,PGS,SCC,SPAS,TPMS
+ SG_ WHL_SPD_RL : 32|14@1+ (0.03125,0) [0|511.96875] "km/h"  LCA,AFLS,AVM,CGW,CLU,ECS,EPB,LDWS_LKAS,MDPS,PGS,SCC,SPAS,TPMS
+ SG_ WHL_SPD_RR : 48|14@1+ (0.03125,0) [0|511.96875] "km/h"  LCA,AFLS,AVM,CGW,CLU,ECS,EPB,LDWS_LKAS,MDPS,PGS,SCC,SPAS,TPMS
+ SG_ WHL_SPD_AliveCounter_LSB : 14|2@1+ (1,0) [0|3] ""  _4WD,EMS,LPI,TCU,TMU
+ SG_ WHL_SPD_AliveCounter_MSB : 30|2@1+ (1,0) [0|3] ""  _4WD,EMS,LPI,TCU,TMU
+ SG_ WHL_SPD_Checksum_LSB : 46|2@1+ (1,0) [0|3] ""  _4WD,EMS,LPI,TCU,TMU
+ SG_ WHL_SPD_Checksum_MSB : 62|2@1+ (1,0) [0|3] ""  _4WD,EMS,LPI,TCU,TMU
+
+BO_ 870 CGW_PC4: 7 CGW
+ SG_ TQI_ACOR : 0|8@1+ (0.390625,0) [0|99.6094] "%"  EPB
+ SG_ N : 8|16@1+ (0.25,0) [0|16383.75] "rpm"  AFLS,AMP,CLU,ECS,EPB,MDPS,SCC
+ SG_ TQI : 24|8@1+ (0.390625,0) [0|99.6094] "%"  AMP,ECS,EPB
+ SG_ TQFR : 32|8@1+ (0.390625,0) [0|99.6094] "%"  EPB
+ SG_ VS : 40|8@1+ (1,0) [0|255] "km/h"  AMP,AVM,CLU,ECS,EPB,LCA,LDWS_LKAS,MDPS,SCC,SPAS,TPMS
+ SG_ SWI_IGK : 48|1@1+ (1,0) [0|1] ""  ECS,EPB,LDWS_LKAS,MDPS,SAS,SCC
+ SG_ F_N_ENG : 49|1@1+ (1,0) [0|1] ""  AFLS,CLU,ECS,EPB,MDPS,SCC
+ SG_ F_SUB_TQI : 50|1@1+ (1,0) [0|1] ""  ECS,EPB
+ SG_ PUC_STAT : 51|1@1+ (1,0) [0|1] ""  CLU
+
+BO_ 544 ESP12: 8 ESC
+ SG_ LAT_ACCEL : 0|11@1+ (0.01,-10.23) [-10.23|10.24] "m/s^2"  CGW,ECS,LDWS_LKAS,MDPS,SCC
+ SG_ LAT_ACCEL_STAT : 11|1@1+ (1,0) [0|1] ""  CGW,LDWS_LKAS,MDPS,SCC
+ SG_ LAT_ACCEL_DIAG : 12|1@1+ (1,0) [0|1] ""  CGW,LDWS_LKAS,MDPS,SCC
+ SG_ LONG_ACCEL : 13|11@1+ (0.01,-10.23) [-10.23|10.24] "m/s^2"  CGW,ECS,EPB,LDWS_LKAS,SCC,SPAS
+ SG_ LONG_ACCEL_STAT : 24|1@1+ (1,0) [0|1] ""  CGW,EPB,LDWS_LKAS,SCC,SPAS
+ SG_ LONG_ACCEL_DIAG : 25|1@1+ (1,0) [0|1] ""  CGW,EPB,LDWS_LKAS,SCC,SPAS
+ SG_ CYL_PRES : 26|12@1+ (0.1,0) [0|409.5] "Bar"  CGW,ECS,EPB,LDWS_LKAS,SCC
+ SG_ CYL_PRES_STAT : 38|1@1+ (1,0) [0|1] ""  CGW,ECS,EPB,LDWS_LKAS,SCC
+ SG_ CYL_PRESS_DIAG : 39|1@1+ (1,0) [0|1] ""  CGW,ECS,EPB,LDWS_LKAS,SCC
+ SG_ YAW_RATE : 40|13@1+ (0.01,-40.95) [-40.95|40.96] "вк/s"  AFLS,CGW,LCA,LDWS_LKAS,MDPS,SCC,SPAS
+ SG_ YAW_RATE_STAT : 53|1@1+ (1,0) [0|1] ""  AFLS,CGW,LCA,LDWS_LKAS,MDPS,SCC,SPAS
+ SG_ YAW_RATE_DIAG : 54|1@1+ (1,0) [0|1] ""  AFLS,CGW,LCA,LDWS_LKAS,MDPS,SCC,SPAS
+ SG_ CYL_PRES_FLAG : 55|1@1+ (1,0) [0|1] ""  CGW
+ SG_ ESP12_Checksum : 56|4@1+ (1,0) [0|15] ""  _4WD,EMS,LPI,TCU,TMU
+ SG_ ESP12_AliveCounter : 60|4@1+ (1,0) [0|15] ""  _4WD,EMS,LPI,TCU,TMU
+
+
+
+CM_ BO_ 3221225472 "This is a message for not used signals, created by Vector CANdb++ DBC OLE DB Provider.";
+CM_ SG_ 3221225472 CF_Yrs_SnsStat2 "CAN bus line  is connected directly between YRS and ESC (local) in case only one of high speed main CAN bus is applied";
+CM_ SG_ 3221225472 YRS_Temp "regarding the min/max range, individual drawings of each project take precedence over this specification.however, 
+the min/max range which specified on the individual drawing of each project should be within the range of this specification.
+
+CAN bus line  is connected directly between YRS and ESC (local) in case only one of high speed main CAN bus is applied";
+CM_ SG_ 3221225472 YRS_Temp_Stat "CAN bus line  is connected directly between YRS and ESC (local) in case only one of high speed main CAN bus is applied";
+CM_ SG_ 3221225472 YRS_SERIALNO "CAN bus line  is connected directly between YRS and ESC (local) in case only one of high speed main CAN bus is applied";
+CM_ SG_ 3221225472 CF_Yrs_McuStat "CAN bus line  is connected directly between YRS and ESC (local) in case only one of high speed main CAN bus is applied";
+CM_ SG_ 3221225472 CF_Yrs_AxStat "CAN bus line  is connected directly between YRS and ESC (local) in case only one of high speed main CAN bus is applied
+
+1) 'Signal in specification' is defined by the individual drawing of each project";
+CM_ SG_ 3221225472 CR_Yrs_Ax "regarding the min/max range, individual drawings of each project take precedence over this specification.however, 
+the min/max range which specified on the individual drawing of each project should be within the range of this specification.
+
+CAN bus line  is connected directly between YRS and ESC (local) in case only one of high speed main CAN bus is applied";
+CM_ SG_ 3221225472 CF_Yrs_ExtSysStat "CAN bus line  is connected directly between YRS and ESC (local) in case only one of high speed main CAN bus is applied";
+CM_ SG_ 3221225472 CR_Yrs_Diag "CAN bus line  is connected directly between YRS and ESC (local) in case only one of high speed main CAN bus is applied";
+CM_ SG_ 3221225472 CF_Yrs_LatAcStat1 "CAN bus line  is connected directly between YRS and ESC (local) in case only one of high speed main CAN bus is applied
+
+1) 'Signal in specification' is defined by the individual drawing of each project";
+CM_ BO_ 688 "[P] Periodic";
+CM_ SG_ 688 SAS_Angle "When MDPS ECU sends this message, this message value is valid 1.5 sec later from IG-ON.";
+CM_ SG_ 688 SAS_Speed "When MDPS ECU sends this message, this message value is valid 1.5 sec later from IG-ON.";
+CM_ SG_ 688 SAS_Stat "When MDPS ECU sends this message, this message value is valid 1.5 sec later from IG-ON.";
+CM_ SG_ 688 MsgCount "When MDPS ECU sends this message, this message value is valid 1.5 sec later from IG-ON.";
+CM_ SG_ 688 CheckSum "When MDPS ECU sends this message, this message value is valid 1.5 sec later from IG-ON.";
+CM_ BO_ 902 "[P] Periodic";
+CM_ SG_ 902 WHL_SPD_AliveCounter_LSB "After IGN status is changed from ON to OFF, It is necessary to maintain transmitting this message for 3 minutes.";
+CM_ SG_ 902 WHL_SPD_AliveCounter_MSB "After IGN status is changed from ON to OFF, It is necessary to maintain transmitting this message for 3 minutes.";
+CM_ SG_ 902 WHL_SPD_Checksum_LSB "After IGN status is changed from ON to OFF, It is necessary to maintain transmitting this message for 3 minutes.";
+CM_ SG_ 902 WHL_SPD_Checksum_MSB "After IGN status is changed from ON to OFF, It is necessary to maintain transmitting this message for 3 minutes.";
+CM_ BO_ 870 "[P] Periodic";
+CM_ SG_ 870 TQI_ACOR "PT-CAN EMS11 Indirect routing message. In case of Delphi ECU, Output period tolerance(+1ms) will be applied to Engine Lamda3.";
+CM_ SG_ 870 N "PT-CAN EMS11 Indirect routing message. In case of Delphi ECU, Output period tolerance(+1ms) will be applied to Engine Lamda3.";
+CM_ SG_ 870 TQI "PT-CAN EMS11 Indirect routing message. In case of Delphi ECU, Output period tolerance(+1ms) will be applied to Engine Lamda3.";
+CM_ SG_ 870 TQFR "PT-CAN EMS11 Indirect routing message. In case of Delphi ECU, Output period tolerance(+1ms) will be applied to Engine Lamda3.";
+CM_ SG_ 870 VS "PT-CAN EMS11 Indirect routing message. In case of Delphi ECU, Output period tolerance(+1ms) will be applied to Engine Lamda3.";
+CM_ SG_ 870 SWI_IGK "PT-CAN EMS11 Indirect routing message. In case of Delphi ECU, Output period tolerance(+1ms) will be applied to Engine Lamda3.";
+CM_ SG_ 870 F_N_ENG "PT-CAN EMS11 Indirect routing message. In case of Delphi ECU, Output period tolerance(+1ms) will be applied to Engine Lamda3.";
+CM_ SG_ 870 F_SUB_TQI "PT-CAN EMS11 Indirect routing message. In case of Delphi ECU, Output period tolerance(+1ms) will be applied to Engine Lamda3.";
+CM_ SG_ 870 PUC_STAT "PT-CAN EMS11 Indirect routing message. In case of Delphi ECU, Output period tolerance(+1ms) will be applied to Engine Lamda3.";
+CM_ BO_ 544 "[P] Periodic";
+BA_DEF_ SG_  "GenSigEnvVarType" ENUM  "Int","Float","Undef";
+BA_DEF_ SG_  "GenSigEVName" STRING ;
+BA_DEF_ SG_  "GenSigInactiveValue" INT 0 65535;
+BA_DEF_ SG_  "GenSigSendType" ENUM  "Cyclic","OnWrite","OnWriteWithRepetition","OnChange","OnChangeWithRepetition","IfActive","IfActiveWithRepetition","NoSigSendType";
+BA_DEF_ SG_  "GenSigStartValue" INT 0 1215752192;
+BA_DEF_ SG_  "GwSigLatencyTime" INT 0 65535;
+BA_DEF_ SG_  "GwSigMissingSourceType" ENUM  "Undef","OldValue","DefaultValue","InitialValue";
+BA_DEF_ SG_  "SignalCategory" HEX 10 15;
+BA_DEF_ BO_  "GenMsgCycleTime" INT 0 2000;
+BA_DEF_ BO_  "GenMsgCycleTimeFast" INT 0 500;
+BA_DEF_ BO_  "GenMsgDelayTime" INT 0 20;
+BA_DEF_ BO_  "GenMsgFastOnStart" INT 0 0;
+BA_DEF_ BO_  "GenMsgILSupport" ENUM  "No","Yes";
+BA_DEF_ BO_  "GenMsgNrOfRepetition" INT 0 3;
+BA_DEF_ BO_  "GenMsgSendType" ENUM  "Cyclic","not_used","not_used","not_used","not_used","not_used","not_used","not_used","NoMsgSendType";
+BA_DEF_ BO_  "GenMsgStartDelayTime" INT 0 2000;
+BA_DEF_ BO_  "NmMessage" ENUM  "No","Yes";
+BA_DEF_ BU_  "ECU" STRING ;
+BA_DEF_ BU_  "GenNodSleepTime" INT 1375 1650;
+BA_DEF_ BU_  "ILUsed" ENUM  "No","Yes";
+BA_DEF_ BU_  "NmCAN" INT 1 2;
+BA_DEF_ BU_  "NmNode" ENUM  "No","Yes";
+BA_DEF_ BU_  "NmStationAddress" HEX 0 255;
+BA_DEF_ BU_  "NodeLayerModules" STRING ;
+BA_DEF_  "Baudrate" INT 50000 1000000;
+BA_DEF_  "BusType" STRING ;
+BA_DEF_  "GenEnvVarEndingDsp" STRING ;
+BA_DEF_  "GenEnvVarEndingSnd" STRING ;
+BA_DEF_  "GenEnvVarPrefix" STRING ;
+BA_DEF_  "GenNWMApBusSleep" STRING ;
+BA_DEF_  "GenNWMApCanNormal" STRING ;
+BA_DEF_  "GenNWMApCanOff" STRING ;
+BA_DEF_  "GenNWMApCanOn" STRING ;
+BA_DEF_  "GenNWMApCanSleep" STRING ;
+BA_DEF_  "GenNWMApCanWakeUp" STRING ;
+BA_DEF_  "GenNWMGotoMode_Awake" STRING ;
+BA_DEF_  "GenNWMGotoMode_BusSleep" STRING ;
+BA_DEF_  "GenNWMSleepTime" INT 1375 1650;
+BA_DEF_  "GenNWMTalkNM" STRING ;
+BA_DEF_  "Manufacturer" STRING ;
+BA_DEF_  "NmBaseAddress" HEX 0 2047;
+BA_DEF_  "NmMessageCount" INT 0 128;
+BA_DEF_  "NmType" STRING ;
+BA_DEF_  "SamplePointMax" INT 50 85;
+BA_DEF_  "SamplePointMin" INT 55 85;
+BA_DEF_  "SyncJumpWidthMax" INT 1 8;
+BA_DEF_  "SyncJumpWidthMin" INT 1 4;
+BA_DEF_  "VersionDay" INT 1 31;
+BA_DEF_  "VersionMonth" INT 1 12;
+BA_DEF_  "VersionNumber" INT 0 9999;
+BA_DEF_  "VersionNumberInternal" INT 0 9999;
+BA_DEF_  "VersionWeek" INT 1 53;
+BA_DEF_  "VersionYear" INT 0 9999;
+BA_DEF_REL_ BU_SG_REL_  "GenSigTimeoutMsg" HEX 0 2047;
+BA_DEF_REL_ BU_SG_REL_  "GenSigTimeoutTime" INT 0 7000;
+BA_DEF_DEF_  "GenSigEnvVarType" "Undef";
+BA_DEF_DEF_  "GenSigEVName" "@Signame";
+BA_DEF_DEF_  "GenSigInactiveValue" 0;
+BA_DEF_DEF_  "GenSigSendType" "NoSigSendType";
+BA_DEF_DEF_  "GenSigStartValue" 0;
+BA_DEF_DEF_  "GwSigLatencyTime" 40;
+BA_DEF_DEF_  "GwSigMissingSourceType" "Undef";
+BA_DEF_DEF_  "SignalCategory" 12;
+BA_DEF_DEF_  "GenMsgCycleTime" 10;
+BA_DEF_DEF_  "GenMsgCycleTimeFast" 40;
+BA_DEF_DEF_  "GenMsgDelayTime" 20;
+BA_DEF_DEF_  "GenMsgFastOnStart" 0;
+BA_DEF_DEF_  "GenMsgILSupport" "Yes";
+BA_DEF_DEF_  "GenMsgNrOfRepetition" 0;
+BA_DEF_DEF_  "GenMsgSendType" "Cyclic";
+BA_DEF_DEF_  "GenMsgStartDelayTime" 0;
+BA_DEF_DEF_  "NmMessage" "No";
+BA_DEF_DEF_  "ECU" "";
+BA_DEF_DEF_  "GenNodSleepTime" 1500;
+BA_DEF_DEF_  "ILUsed" "Yes";
+BA_DEF_DEF_  "NmCAN" 1;
+BA_DEF_DEF_  "NmNode" "No";
+BA_DEF_DEF_  "NmStationAddress" 0;
+BA_DEF_DEF_  "NodeLayerModules" "oseknm01.dll";
+BA_DEF_DEF_  "Baudrate" 500000;
+BA_DEF_DEF_  "BusType" "CAN";
+BA_DEF_DEF_  "GenEnvVarEndingDsp" "Dsp_";
+BA_DEF_DEF_  "GenEnvVarEndingSnd" "_";
+BA_DEF_DEF_  "GenEnvVarPrefix" "Env";
+BA_DEF_DEF_  "GenNWMApBusSleep" "ApplNmCanBusSleep()";
+BA_DEF_DEF_  "GenNWMApCanNormal" "ApplNmCanNormal()";
+BA_DEF_DEF_  "GenNWMApCanOff" "ApplCanOffline()";
+BA_DEF_DEF_  "GenNWMApCanOn" "ApplCanOnline()";
+BA_DEF_DEF_  "GenNWMApCanSleep" "ApplNmCanSleep()";
+BA_DEF_DEF_  "GenNWMApCanWakeUp" "ApplCanWakeUp()";
+BA_DEF_DEF_  "GenNWMGotoMode_Awake" "GotoMode_Awake()";
+BA_DEF_DEF_  "GenNWMGotoMode_BusSleep" "GotoMode_BusSleep()";
+BA_DEF_DEF_  "GenNWMSleepTime" 1500;
+BA_DEF_DEF_  "GenNWMTalkNM" "TalkNM()";
+BA_DEF_DEF_  "Manufacturer" "HMC";
+BA_DEF_DEF_  "NmBaseAddress" 1024;
+BA_DEF_DEF_  "NmMessageCount" 128;
+BA_DEF_DEF_  "NmType" "Vector";
+BA_DEF_DEF_  "SamplePointMax" 82;
+BA_DEF_DEF_  "SamplePointMin" 75;
+BA_DEF_DEF_  "SyncJumpWidthMax" 3;
+BA_DEF_DEF_  "SyncJumpWidthMin" 2;
+BA_DEF_DEF_  "VersionDay" 1;
+BA_DEF_DEF_  "VersionMonth" 1;
+BA_DEF_DEF_  "VersionNumber" 0;
+BA_DEF_DEF_  "VersionNumberInternal" 0;
+BA_DEF_DEF_  "VersionWeek" 1;
+BA_DEF_DEF_  "VersionYear" 2010;
+BA_DEF_DEF_REL_ "GenSigTimeoutMsg" 0;
+BA_DEF_DEF_REL_ "GenSigTimeoutTime" 500;
+BA_ "NmStationAddress" BU_ AFLS 0;
+BA_ "NmStationAddress" BU_ AVM 0;
+BA_ "NmStationAddress" BU_ ACU 0;
+BA_ "GenMsgCycleTime" BO_ 688 10;
+BA_ "GenMsgStartDelayTime" BO_ 688 0;
+BA_ "GenMsgCycleTime" BO_ 902 20;
+BA_ "GenMsgStartDelayTime" BO_ 902 0;
+BA_ "GenMsgCycleTime" BO_ 870 10;
+BA_ "GenMsgStartDelayTime" BO_ 870 0;
+BA_ "GenMsgCycleTime" BO_ 544 10;
+BA_ "GenMsgStartDelayTime" BO_ 544 0;
+BA_ "GenSigInactiveValue" SG_ 3221225472 CF_Yrs_YrStat 0;
+BA_ "GenSigStartValue" SG_ 3221225472 CF_Yrs_YrStat 2;
+BA_ "SignalCategory" SG_ 3221225472 CF_Yrs_YrStat 12;
+BA_ "GenSigInactiveValue" SG_ 3221225472 CF_Yrs_SnsStat2 0;
+BA_ "GenSigStartValue" SG_ 3221225472 CF_Yrs_SnsStat2 0;
+BA_ "SignalCategory" SG_ 3221225472 CF_Yrs_SnsStat2 12;
+BA_ "GenSigInactiveValue" SG_ 3221225472 YRS_Temp 0;
+BA_ "GenSigStartValue" SG_ 3221225472 YRS_Temp 0;
+BA_ "SignalCategory" SG_ 3221225472 YRS_Temp 12;
+BA_ "GenSigInactiveValue" SG_ 3221225472 YRS_Temp_Stat 0;
+BA_ "GenSigStartValue" SG_ 3221225472 YRS_Temp_Stat 1;
+BA_ "SignalCategory" SG_ 3221225472 YRS_Temp_Stat 12;
+BA_ "GenSigInactiveValue" SG_ 3221225472 YRS_SERIALNO 0;
+BA_ "GenSigStartValue" SG_ 3221225472 YRS_SERIALNO 0;
+BA_ "SignalCategory" SG_ 3221225472 YRS_SERIALNO 12;
+BA_ "GenSigInactiveValue" SG_ 3221225472 CF_Yrs_McuStat 0;
+BA_ "GenSigStartValue" SG_ 3221225472 CF_Yrs_McuStat 0;
+BA_ "SignalCategory" SG_ 3221225472 CF_Yrs_McuStat 12;
+BA_ "GenSigInactiveValue" SG_ 3221225472 CF_Yrs_AxStat 0;
+BA_ "GenSigStartValue" SG_ 3221225472 CF_Yrs_AxStat 4;
+BA_ "SignalCategory" SG_ 3221225472 CF_Yrs_AxStat 12;
+BA_ "GenSigInactiveValue" SG_ 3221225472 CR_Yrs_Ax 0;
+BA_ "GenSigStartValue" SG_ 3221225472 CR_Yrs_Ax 0;
+BA_ "SignalCategory" SG_ 3221225472 CR_Yrs_Ax 12;
+BA_ "GenSigInactiveValue" SG_ 3221225472 CF_Yrs_ExtSysStat 0;
+BA_ "GenSigStartValue" SG_ 3221225472 CF_Yrs_ExtSysStat 0;
+BA_ "SignalCategory" SG_ 3221225472 CF_Yrs_ExtSysStat 12;
+BA_ "GenSigInactiveValue" SG_ 3221225472 CR_Yrs_Diag 0;
+BA_ "GenSigStartValue" SG_ 3221225472 CR_Yrs_Diag 0;
+BA_ "SignalCategory" SG_ 3221225472 CR_Yrs_Diag 12;
+BA_ "GenSigInactiveValue" SG_ 3221225472 CF_Yrs_LatAcStat1 0;
+BA_ "GenSigStartValue" SG_ 3221225472 CF_Yrs_LatAcStat1 4;
+BA_ "SignalCategory" SG_ 3221225472 CF_Yrs_LatAcStat1 12;
+BA_ "GenSigInactiveValue" SG_ 688 SAS_Angle 0;
+BA_ "GenSigStartValue" SG_ 688 SAS_Angle 0;
+BA_ "SignalCategory" SG_ 688 SAS_Angle 12;
+BA_ "GenSigInactiveValue" SG_ 688 SAS_Speed 0;
+BA_ "GenSigStartValue" SG_ 688 SAS_Speed 0;
+BA_ "SignalCategory" SG_ 688 SAS_Speed 12;
+BA_ "GenSigInactiveValue" SG_ 688 SAS_Stat 0;
+BA_ "GenSigStartValue" SG_ 688 SAS_Stat 7;
+BA_ "SignalCategory" SG_ 688 SAS_Stat 12;
+BA_ "GenSigInactiveValue" SG_ 688 MsgCount 0;
+BA_ "GenSigStartValue" SG_ 688 MsgCount 0;
+BA_ "SignalCategory" SG_ 688 MsgCount 12;
+BA_ "GenSigInactiveValue" SG_ 688 CheckSum 0;
+BA_ "GenSigStartValue" SG_ 688 CheckSum 0;
+BA_ "SignalCategory" SG_ 688 CheckSum 12;
+BA_ "GenSigInactiveValue" SG_ 902 WHL_SPD_FL 0;
+BA_ "GenSigStartValue" SG_ 902 WHL_SPD_FL 0;
+BA_ "SignalCategory" SG_ 902 WHL_SPD_FL 12;
+BA_ "GenSigInactiveValue" SG_ 902 WHL_SPD_FR 0;
+BA_ "GenSigStartValue" SG_ 902 WHL_SPD_FR 0;
+BA_ "SignalCategory" SG_ 902 WHL_SPD_FR 12;
+BA_ "GenSigInactiveValue" SG_ 902 WHL_SPD_RL 0;
+BA_ "GenSigStartValue" SG_ 902 WHL_SPD_RL 0;
+BA_ "SignalCategory" SG_ 902 WHL_SPD_RL 12;
+BA_ "GenSigInactiveValue" SG_ 902 WHL_SPD_RR 0;
+BA_ "GenSigStartValue" SG_ 902 WHL_SPD_RR 0;
+BA_ "SignalCategory" SG_ 902 WHL_SPD_RR 12;
+BA_ "GenSigInactiveValue" SG_ 902 WHL_SPD_AliveCounter_LSB 0;
+BA_ "GenSigStartValue" SG_ 902 WHL_SPD_AliveCounter_LSB 0;
+BA_ "SignalCategory" SG_ 902 WHL_SPD_AliveCounter_LSB 12;
+BA_ "GenSigInactiveValue" SG_ 902 WHL_SPD_AliveCounter_MSB 0;
+BA_ "GenSigStartValue" SG_ 902 WHL_SPD_AliveCounter_MSB 0;
+BA_ "SignalCategory" SG_ 902 WHL_SPD_AliveCounter_MSB 12;
+BA_ "GenSigInactiveValue" SG_ 902 WHL_SPD_Checksum_LSB 0;
+BA_ "GenSigStartValue" SG_ 902 WHL_SPD_Checksum_LSB 0;
+BA_ "SignalCategory" SG_ 902 WHL_SPD_Checksum_LSB 12;
+BA_ "GenSigInactiveValue" SG_ 902 WHL_SPD_Checksum_MSB 0;
+BA_ "GenSigStartValue" SG_ 902 WHL_SPD_Checksum_MSB 0;
+BA_ "SignalCategory" SG_ 902 WHL_SPD_Checksum_MSB 12;
+BA_ "GenSigInactiveValue" SG_ 870 TQI_ACOR 0;
+BA_ "GenSigStartValue" SG_ 870 TQI_ACOR 0;
+BA_ "SignalCategory" SG_ 870 TQI_ACOR 12;
+BA_ "GenSigInactiveValue" SG_ 870 N 0;
+BA_ "GenSigStartValue" SG_ 870 N 0;
+BA_ "SignalCategory" SG_ 870 N 12;
+BA_ "GenSigInactiveValue" SG_ 870 TQI 0;
+BA_ "GenSigStartValue" SG_ 870 TQI 0;
+BA_ "SignalCategory" SG_ 870 TQI 12;
+BA_ "GenSigInactiveValue" SG_ 870 TQFR 0;
+BA_ "GenSigStartValue" SG_ 870 TQFR 0;
+BA_ "SignalCategory" SG_ 870 TQFR 12;
+BA_ "GenSigInactiveValue" SG_ 870 VS 0;
+BA_ "GenSigStartValue" SG_ 870 VS 0;
+BA_ "SignalCategory" SG_ 870 VS 12;
+BA_ "GenSigInactiveValue" SG_ 870 SWI_IGK 0;
+BA_ "GenSigStartValue" SG_ 870 SWI_IGK 0;
+BA_ "SignalCategory" SG_ 870 SWI_IGK 12;
+BA_ "GenSigInactiveValue" SG_ 870 F_N_ENG 0;
+BA_ "GenSigStartValue" SG_ 870 F_N_ENG 0;
+BA_ "SignalCategory" SG_ 870 F_N_ENG 12;
+BA_ "GenSigInactiveValue" SG_ 870 F_SUB_TQI 0;
+BA_ "GenSigStartValue" SG_ 870 F_SUB_TQI 0;
+BA_ "SignalCategory" SG_ 870 F_SUB_TQI 12;
+BA_ "GenSigInactiveValue" SG_ 870 PUC_STAT 0;
+BA_ "GenSigStartValue" SG_ 870 PUC_STAT 0;
+BA_ "SignalCategory" SG_ 870 PUC_STAT 12;
+BA_ "GenSigInactiveValue" SG_ 544 LAT_ACCEL 0;
+BA_ "GenSigStartValue" SG_ 544 LAT_ACCEL 0;
+BA_ "SignalCategory" SG_ 544 LAT_ACCEL 12;
+BA_ "GenSigInactiveValue" SG_ 544 LAT_ACCEL_STAT 0;
+BA_ "GenSigStartValue" SG_ 544 LAT_ACCEL_STAT 0;
+BA_ "SignalCategory" SG_ 544 LAT_ACCEL_STAT 12;
+BA_ "GenSigInactiveValue" SG_ 544 LAT_ACCEL_DIAG 0;
+BA_ "GenSigStartValue" SG_ 544 LAT_ACCEL_DIAG 0;
+BA_ "SignalCategory" SG_ 544 LAT_ACCEL_DIAG 12;
+BA_ "GenSigInactiveValue" SG_ 544 LONG_ACCEL 0;
+BA_ "GenSigStartValue" SG_ 544 LONG_ACCEL 0;
+BA_ "SignalCategory" SG_ 544 LONG_ACCEL 12;
+BA_ "GenSigInactiveValue" SG_ 544 LONG_ACCEL_STAT 0;
+BA_ "GenSigStartValue" SG_ 544 LONG_ACCEL_STAT 0;
+BA_ "SignalCategory" SG_ 544 LONG_ACCEL_STAT 12;
+BA_ "GenSigInactiveValue" SG_ 544 LONG_ACCEL_DIAG 0;
+BA_ "GenSigStartValue" SG_ 544 LONG_ACCEL_DIAG 0;
+BA_ "SignalCategory" SG_ 544 LONG_ACCEL_DIAG 12;
+BA_ "GenSigInactiveValue" SG_ 544 CYL_PRES 0;
+BA_ "GenSigStartValue" SG_ 544 CYL_PRES 0;
+BA_ "SignalCategory" SG_ 544 CYL_PRES 12;
+BA_ "GenSigInactiveValue" SG_ 544 CYL_PRES_STAT 0;
+BA_ "GenSigStartValue" SG_ 544 CYL_PRES_STAT 0;
+BA_ "SignalCategory" SG_ 544 CYL_PRES_STAT 12;
+BA_ "GenSigInactiveValue" SG_ 544 CYL_PRESS_DIAG 0;
+BA_ "GenSigStartValue" SG_ 544 CYL_PRESS_DIAG 0;
+BA_ "SignalCategory" SG_ 544 CYL_PRESS_DIAG 12;
+BA_ "GenSigInactiveValue" SG_ 544 YAW_RATE 0;
+BA_ "GenSigStartValue" SG_ 544 YAW_RATE 0;
+BA_ "SignalCategory" SG_ 544 YAW_RATE 12;
+BA_ "GenSigInactiveValue" SG_ 544 YAW_RATE_STAT 0;
+BA_ "GenSigStartValue" SG_ 544 YAW_RATE_STAT 0;
+BA_ "SignalCategory" SG_ 544 YAW_RATE_STAT 12;
+BA_ "GenSigInactiveValue" SG_ 544 YAW_RATE_DIAG 0;
+BA_ "GenSigStartValue" SG_ 544 YAW_RATE_DIAG 0;
+BA_ "SignalCategory" SG_ 544 YAW_RATE_DIAG 12;
+BA_ "GenSigInactiveValue" SG_ 544 CYL_PRES_FLAG 0;
+BA_ "GenSigStartValue" SG_ 544 CYL_PRES_FLAG 0;
+BA_ "SignalCategory" SG_ 544 CYL_PRES_FLAG 12;
+BA_ "GenSigInactiveValue" SG_ 544 ESP12_Checksum 0;
+BA_ "GenSigStartValue" SG_ 544 ESP12_Checksum 0;
+BA_ "SignalCategory" SG_ 544 ESP12_Checksum 12;
+BA_ "GenSigInactiveValue" SG_ 544 ESP12_AliveCounter 0;
+BA_ "GenSigStartValue" SG_ 544 ESP12_AliveCounter 0;
+BA_ "SignalCategory" SG_ 544 ESP12_AliveCounter 12;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ AFLS SG_ 688 SAS_Angle 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ AVM SG_ 688 SAS_Angle 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CGW SG_ 688 SAS_Angle 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CLU SG_ 688 SAS_Angle 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ ECS SG_ 688 SAS_Angle 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ ESC SG_ 688 SAS_Angle 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LDWS_LKAS SG_ 688 SAS_Angle 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ PGS SG_ 688 SAS_Angle 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SCC SG_ 688 SAS_Angle 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SPAS SG_ 688 SAS_Angle 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ AFLS SG_ 688 SAS_Speed 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CGW SG_ 688 SAS_Speed 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ ECS SG_ 688 SAS_Speed 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ ESC SG_ 688 SAS_Speed 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LDWS_LKAS SG_ 688 SAS_Speed 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SCC SG_ 688 SAS_Speed 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SPAS SG_ 688 SAS_Speed 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CGW SG_ 688 SAS_Stat 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ ECS SG_ 688 SAS_Stat 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ ESC SG_ 688 SAS_Stat 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LDWS_LKAS SG_ 688 SAS_Stat 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SCC SG_ 688 SAS_Stat 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SPAS SG_ 688 SAS_Stat 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CGW SG_ 688 MsgCount 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ ECS SG_ 688 MsgCount 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ ESC SG_ 688 MsgCount 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LDWS_LKAS SG_ 688 MsgCount 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SCC SG_ 688 MsgCount 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SPAS SG_ 688 MsgCount 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CGW SG_ 688 CheckSum 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ ECS SG_ 688 CheckSum 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ ESC SG_ 688 CheckSum 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LDWS_LKAS SG_ 688 CheckSum 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SCC SG_ 688 CheckSum 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SPAS SG_ 688 CheckSum 100;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LCA SG_ 902 WHL_SPD_FL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ AFLS SG_ 902 WHL_SPD_FL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ AVM SG_ 902 WHL_SPD_FL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CLU SG_ 902 WHL_SPD_FL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ ECS SG_ 902 WHL_SPD_FL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ EPB SG_ 902 WHL_SPD_FL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LDWS_LKAS SG_ 902 WHL_SPD_FL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ PGS SG_ 902 WHL_SPD_FL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SCC SG_ 902 WHL_SPD_FL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SPAS SG_ 902 WHL_SPD_FL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ TPMS SG_ 902 WHL_SPD_FL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LCA SG_ 902 WHL_SPD_FR 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ AFLS SG_ 902 WHL_SPD_FR 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ AVM SG_ 902 WHL_SPD_FR 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CLU SG_ 902 WHL_SPD_FR 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ ECS SG_ 902 WHL_SPD_FR 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ EPB SG_ 902 WHL_SPD_FR 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LDWS_LKAS SG_ 902 WHL_SPD_FR 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ PGS SG_ 902 WHL_SPD_FR 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SCC SG_ 902 WHL_SPD_FR 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SPAS SG_ 902 WHL_SPD_FR 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ TPMS SG_ 902 WHL_SPD_FR 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LCA SG_ 902 WHL_SPD_RL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ AFLS SG_ 902 WHL_SPD_RL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ AVM SG_ 902 WHL_SPD_RL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CLU SG_ 902 WHL_SPD_RL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ ECS SG_ 902 WHL_SPD_RL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ EPB SG_ 902 WHL_SPD_RL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LDWS_LKAS SG_ 902 WHL_SPD_RL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ PGS SG_ 902 WHL_SPD_RL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SCC SG_ 902 WHL_SPD_RL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SPAS SG_ 902 WHL_SPD_RL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ TPMS SG_ 902 WHL_SPD_RL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LCA SG_ 902 WHL_SPD_RR 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ AFLS SG_ 902 WHL_SPD_RR 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ AVM SG_ 902 WHL_SPD_RR 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CLU SG_ 902 WHL_SPD_RR 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ ECS SG_ 902 WHL_SPD_RR 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ EPB SG_ 902 WHL_SPD_RR 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LDWS_LKAS SG_ 902 WHL_SPD_RR 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ PGS SG_ 902 WHL_SPD_RR 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SCC SG_ 902 WHL_SPD_RR 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SPAS SG_ 902 WHL_SPD_RR 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ TPMS SG_ 902 WHL_SPD_RR 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ _4WD SG_ 902 WHL_SPD_AliveCounter_LSB 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ EMS SG_ 902 WHL_SPD_AliveCounter_LSB 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LPI SG_ 902 WHL_SPD_AliveCounter_LSB 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ TCU SG_ 902 WHL_SPD_AliveCounter_LSB 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ TMU SG_ 902 WHL_SPD_AliveCounter_LSB 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ _4WD SG_ 902 WHL_SPD_AliveCounter_MSB 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ EMS SG_ 902 WHL_SPD_AliveCounter_MSB 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LPI SG_ 902 WHL_SPD_AliveCounter_MSB 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ TCU SG_ 902 WHL_SPD_AliveCounter_MSB 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ TMU SG_ 902 WHL_SPD_AliveCounter_MSB 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ _4WD SG_ 902 WHL_SPD_Checksum_LSB 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ EMS SG_ 902 WHL_SPD_Checksum_LSB 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LPI SG_ 902 WHL_SPD_Checksum_LSB 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ TCU SG_ 902 WHL_SPD_Checksum_LSB 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ TMU SG_ 902 WHL_SPD_Checksum_LSB 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ _4WD SG_ 902 WHL_SPD_Checksum_MSB 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ EMS SG_ 902 WHL_SPD_Checksum_MSB 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LPI SG_ 902 WHL_SPD_Checksum_MSB 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ TCU SG_ 902 WHL_SPD_Checksum_MSB 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ TMU SG_ 902 WHL_SPD_Checksum_MSB 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ EPB SG_ 870 TQI_ACOR 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ AFLS SG_ 870 N 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ AMP SG_ 870 N 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CLU SG_ 870 N 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ ECS SG_ 870 N 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ EPB SG_ 870 N 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ MDPS SG_ 870 N 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SCC SG_ 870 N 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ AMP SG_ 870 TQI 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ ECS SG_ 870 TQI 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ EPB SG_ 870 TQI 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ EPB SG_ 870 TQFR 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ AMP SG_ 870 VS 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ AVM SG_ 870 VS 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CLU SG_ 870 VS 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ ECS SG_ 870 VS 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ EPB SG_ 870 VS 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LCA SG_ 870 VS 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LDWS_LKAS SG_ 870 VS 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ MDPS SG_ 870 VS 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SCC SG_ 870 VS 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SPAS SG_ 870 VS 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ TPMS SG_ 870 VS 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ ECS SG_ 870 SWI_IGK 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ EPB SG_ 870 SWI_IGK 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LDWS_LKAS SG_ 870 SWI_IGK 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ MDPS SG_ 870 SWI_IGK 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SAS SG_ 870 SWI_IGK 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SCC SG_ 870 SWI_IGK 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ AFLS SG_ 870 F_N_ENG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CLU SG_ 870 F_N_ENG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ ECS SG_ 870 F_N_ENG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ EPB SG_ 870 F_N_ENG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ MDPS SG_ 870 F_N_ENG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SCC SG_ 870 F_N_ENG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ ECS SG_ 870 F_SUB_TQI 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ EPB SG_ 870 F_SUB_TQI 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CLU SG_ 870 PUC_STAT 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CGW SG_ 544 LAT_ACCEL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ ECS SG_ 544 LAT_ACCEL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LDWS_LKAS SG_ 544 LAT_ACCEL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ MDPS SG_ 544 LAT_ACCEL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SCC SG_ 544 LAT_ACCEL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CGW SG_ 544 LAT_ACCEL_STAT 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LDWS_LKAS SG_ 544 LAT_ACCEL_STAT 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ MDPS SG_ 544 LAT_ACCEL_STAT 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SCC SG_ 544 LAT_ACCEL_STAT 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CGW SG_ 544 LAT_ACCEL_DIAG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LDWS_LKAS SG_ 544 LAT_ACCEL_DIAG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ MDPS SG_ 544 LAT_ACCEL_DIAG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SCC SG_ 544 LAT_ACCEL_DIAG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CGW SG_ 544 LONG_ACCEL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ ECS SG_ 544 LONG_ACCEL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ EPB SG_ 544 LONG_ACCEL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LDWS_LKAS SG_ 544 LONG_ACCEL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SCC SG_ 544 LONG_ACCEL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SPAS SG_ 544 LONG_ACCEL 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CGW SG_ 544 LONG_ACCEL_STAT 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ EPB SG_ 544 LONG_ACCEL_STAT 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LDWS_LKAS SG_ 544 LONG_ACCEL_STAT 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SCC SG_ 544 LONG_ACCEL_STAT 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SPAS SG_ 544 LONG_ACCEL_STAT 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CGW SG_ 544 LONG_ACCEL_DIAG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ EPB SG_ 544 LONG_ACCEL_DIAG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LDWS_LKAS SG_ 544 LONG_ACCEL_DIAG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SCC SG_ 544 LONG_ACCEL_DIAG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SPAS SG_ 544 LONG_ACCEL_DIAG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CGW SG_ 544 CYL_PRES 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ ECS SG_ 544 CYL_PRES 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ EPB SG_ 544 CYL_PRES 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LDWS_LKAS SG_ 544 CYL_PRES 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SCC SG_ 544 CYL_PRES 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CGW SG_ 544 CYL_PRES_STAT 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ ECS SG_ 544 CYL_PRES_STAT 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ EPB SG_ 544 CYL_PRES_STAT 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LDWS_LKAS SG_ 544 CYL_PRES_STAT 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SCC SG_ 544 CYL_PRES_STAT 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CGW SG_ 544 CYL_PRESS_DIAG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ ECS SG_ 544 CYL_PRESS_DIAG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ EPB SG_ 544 CYL_PRESS_DIAG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LDWS_LKAS SG_ 544 CYL_PRESS_DIAG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SCC SG_ 544 CYL_PRESS_DIAG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ AFLS SG_ 544 YAW_RATE 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CGW SG_ 544 YAW_RATE 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LCA SG_ 544 YAW_RATE 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LDWS_LKAS SG_ 544 YAW_RATE 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ MDPS SG_ 544 YAW_RATE 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SCC SG_ 544 YAW_RATE 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SPAS SG_ 544 YAW_RATE 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ AFLS SG_ 544 YAW_RATE_STAT 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CGW SG_ 544 YAW_RATE_STAT 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LCA SG_ 544 YAW_RATE_STAT 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LDWS_LKAS SG_ 544 YAW_RATE_STAT 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ MDPS SG_ 544 YAW_RATE_STAT 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SCC SG_ 544 YAW_RATE_STAT 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SPAS SG_ 544 YAW_RATE_STAT 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ AFLS SG_ 544 YAW_RATE_DIAG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CGW SG_ 544 YAW_RATE_DIAG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LCA SG_ 544 YAW_RATE_DIAG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LDWS_LKAS SG_ 544 YAW_RATE_DIAG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ MDPS SG_ 544 YAW_RATE_DIAG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SCC SG_ 544 YAW_RATE_DIAG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ SPAS SG_ 544 YAW_RATE_DIAG 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ CGW SG_ 544 CYL_PRES_FLAG 0;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ _4WD SG_ 544 ESP12_Checksum 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ EMS SG_ 544 ESP12_Checksum 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LPI SG_ 544 ESP12_Checksum 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ TCU SG_ 544 ESP12_Checksum 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ TMU SG_ 544 ESP12_Checksum 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ _4WD SG_ 544 ESP12_AliveCounter 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ EMS SG_ 544 ESP12_AliveCounter 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ LPI SG_ 544 ESP12_AliveCounter 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ TCU SG_ 544 ESP12_AliveCounter 500;
+BA_REL_ "GenSigTimeoutTime" BU_SG_REL_ TMU SG_ 544 ESP12_AliveCounter 500;
+VAL_ 870 SWI_IGK 0 "KEY OFF, control unit in self-holding phase" 1 "KEY ON" ;
+VAL_ 870 F_N_ENG 0 "No error" 1 "Engine speed sensor defective" ;
+VAL_ 870 F_SUB_TQI 0 "No error" 1 "Error on Torque Measurement" ;
+VAL_ 870 PUC_STAT 0 "Engine not in fuel cut off" 1 "Engine in fuel cut off" ;
+VAL_ 544 LAT_ACCEL_STAT 0 "Lateral acceleration signal is valid" 1 "Lateral acceleration signal is invalid" ;
+VAL_ 544 LAT_ACCEL_DIAG 0 "Lateral acceleration signal is available" 1 "Lateral acceleration signal is not available temporarily" ;
+VAL_ 544 LONG_ACCEL_STAT 0 "Longitudinal acceleration signal is valid" 1 "Longitudinal acceleration signal is invalid" ;
+VAL_ 544 LONG_ACCEL_DIAG 0 "Longitudinal acceleration signal is available" 1 "Longitudinal acceleration signal is not available temporarily" ;
+VAL_ 544 CYL_PRES_STAT 0 "Master cylinder pressure signal is valid" 1 "Master cylinder pressure signal is invalid" ;
+VAL_ 544 CYL_PRESS_DIAG 0 "Master cylinder pressure signal is available" 1 "Master cylinder pressure is not available temporarily" ;
+VAL_ 544 YAW_RATE_STAT 0 "Yaw rate sensor signal is valid" 1 "Yaw rate sensor signal is invalid" ;
+VAL_ 544 YAW_RATE_DIAG 0 "Yaw rate signal is available" 1 "Yaw rate signal is not available temporarily" ;
+VAL_ 544 CYL_PRES_FLAG 0 "Off" 1 "On" ;
+

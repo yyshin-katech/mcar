@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <arg name="sweet_home" default="$(optenv HOME)" />
+
+
+  <arg   name="bag_name"     default="$(arg sweet_home)/2024-11-06-10-59-42.bag"/>
+
+  <node  name="player"       type="play"       pkg="rosbag"   args="--clock --hz=1000 -r 1 -s 0 $(arg bag_name) -l" />
+  
+
+ <!--객체 추적 데이터 매칭 -->
+ 
+  <node name="percept_topic_matcher"       type="percept_topic_matcher"     pkg="can"  respawn="true" />
+  <node name="track_CAN_writer_no_grid"       type="track_CAN_writer_no_grid"     pkg="can"  respawn="true" />
+
+</launch>

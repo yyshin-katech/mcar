@@ -1,0 +1,9 @@
+uint16 RoadRegulatorID
+uint16 IntersectionID
+uint8 MsgCount
+bool[16] IntersectionStatusObject
+int32 MinuteOfTheYear
+int32 DSecond
+uint8 FlagOfRegional
+uint8 NumOfMovementState
+movement_msg[] Movements

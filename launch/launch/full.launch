@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+    <arg name="sweet_home" default="$(optenv HOME)" />
+
+
+    <!-- localization -->
+    <param name="EPSG" value="5179" />
+    <!-- <param name="MAPFILE_PATH" value="$(find gps_system_localizer)/mapfiles/KIAPI_CONTROL_DEMO" /> -->
+    <!-- <include file="$(find nmea_navsat_driver)/launch/gps_device.launch" /> -->
+  <group ns="sensors/gps">
+    <include file="$(find novatel_gps_driver)/launch/tester_for_usb_eq.launch">
+    </include>
+  </group>
+    
+
+    
+    <param name="gps_moving_average_window_size"    type="int"     value="5"  />   
+    <param name="gps_localizing_method_EQ"          type="string"  value="KF_CTRA" />
+    <!-- Choose One Below (parameter gps_localizing_method) -->
+    <!-- KF_CTRA / KF_CV_yaw / KF_CV / Moving_Average -->
+
+    <!-- <param name="gps_localizing_method_TUCSON"      type="string"  value="Moving_Average" /> -->
+    <param name="gps_localizing_method_TUCSON"      type="string"  value="Kyusang_CTRA" />
+    <!-- Kyusang / Moving_Average -->
+
+    <!-- <node  pkg="gps_system_localizer"             type="gps_to_tf"  name="gps_to_tf_cpp" respawn="true" /> -->
+    <!-- <node pkg="gps_system_localizer" type="lanelet_marker.py" name="lanelet_marker" /> -->
+    <!-- <node pkg="gps_system_localizer" type="to_control_team_demo.py" name="control_team_msg_pub" /> -->
+    <node pkg="ntripclient"             type="ntrip_node.py"            name="ntripclient"         respawn="true" output="screen"/>
+    <param name="ntrip_directory"      type="string"  value="$(find ntripclient)" />
+    <node pkg="tf2_ros" type="static_transform_publisher" name="gps2base_link" args="0.0 0.0 -1.5 0.0 0.0 0.0 gps base_link" />
+    <node pkg="gps_world_tf"             type="gps_world_tf_node"            name="gps_world_tf_node"         respawn="true" output="screen"/>  
+    <param name="offline"                value="true" />
+    <node pkg="gps_world_tf"             type="lanelet_marker.py"            name="lanelet_marker"            respawn="true"/>
+    <!-- <node pkg="gps_world_tf"             type="sat_to_rviz"                  name="sat_pub"                   respawn="true" output="screen"/> -->
+    <!-- <node pkg="eskf_localization"         type="eskf_localization_node"        name="eskf_localization"          respawn="true" output="screen"/> -->
+    <!-- <node pkg="ukf_localization"         type="lane_extraction_node.py"      name="lane_extraction"          respawn="true" output="screen"/> -->
+    <param name="MAPFILE_PATH" value="$(find gps_world_tf)/map_data/kiapi_5179" />
+
+
+    <!-- <node name="planned_path_CAN_reader"  type="planned_path_CAN_reader"  pkg="can" respawn="true" /> -->
+    <!-- localization end -->
+
+ 
+    <!-- Perception -->
+    <!-- Ibeo LUX -->
+    <!-- Front -->
+    <include file="$(find ibeo_lux_front)/launch/ibeo_lux.launch">
+      <arg name="lux_frame_id" default="ibeo_lux"/>
+      <arg name="is_fusion" default="false"/>
+      <arg name="name" default="ibeo_lux"/>
+      <arg name="ip_address" default="192.168.1.100"/>
+      <arg name="port" default="12002"/>
+    </include>
+
+    <!-- Rear -->
+    <include file="$(find ibeo_lux_rear)/launch/ibeo_lux.launch">
+      <arg name="lux_frame_id" default="rear_lux"/>
+      <arg name="is_fusion" default="true"/>
+      <arg name="name" default="rear_lux"/>
+      <arg name="ip_address" default="192.168.0.100"/>
+      <arg name="port" default="12002"/>
+    </include>
+
+    <!-- velodyne -->
+    <group ns="vlp_left">
+      <include file="$(find velodyne_pointcloud)/launch/VLP16_points.launch">
+        <arg name="frame_id" value="vlp_left"/>
+        <arg name="device_ip" default="192.168.5.202" />
+        <arg name="rpm" default="600.0" />
+        <arg name="port" default="8000" />
+      </include>
+    </group>
+
+    <group ns="vlp_right">
+      <include file="$(find velodyne_pointcloud)/launch/VLP16_points.launch">
+        <arg name="frame_id" value="vlp_right"/>
+        <arg name="device_ip" default="192.168.5.203" />
+        <arg name="rpm" default="600.0" />
+        <arg name="port" default="9000" />
+      </include>
+    </group>
+
+    <group ns="vlp_center">
+      <include file="$(find velodyne_pointcloud)/launch/VLP-32C_points.launch">
+        <arg name="frame_id" value="vlp_center"/>
+        <arg name="device_ip" default="192.168.5.201" />
+        <arg name="rpm" default="600.0" />
+        <arg name="port" default="7000" />
+      </include>
+    </group>
+
+
+  <arg name="stp" default="static_transform_publisher" />
+  <!--                                                             x           y          z           yaw         pitch       roll       parent      child      -->
+  <node pkg="tf2_ros" type="$(arg stp)" name="center2left"  args="-0.0275381   0.571249  -0.0762897  -0.0131452  -0.0285941  -0.512061   vlp_center  vlp_left"  />
+  <node pkg="tf2_ros" type="$(arg stp)" name="center2right" args=" 0.0323728  -0.561785  -0.128748   -0.0176275  +0.0139212   0.500493   vlp_center  vlp_right"  />
+  <node pkg="tf2_ros" type="$(arg stp)" name="lux2center"   args="-2.739       0.212      1.117      -0.01311     0.04009    -0.0073478  ibeo_lux    vlp_center"  />
+  <node pkg="tf2_ros" type="$(arg stp)" name="sensor2lux"   args=" 0.0        -0.21       0.0         0.0        -0.025       0.0        sensors     ibeo_lux  "  />
+  <node pkg="tf2_ros" type="$(arg stp)" name="base2sensors" args=" 3.85        0.0        0.65        0.0         0.0         0.0        base_link   sensors   "  />
+  <node pkg="tf2_ros" type="$(arg stp)" name="base2rear"    args=" 0.0         0.0        0.0         0.0         0.0         0.0        base_link   rear_lux  "  />
+
+
+  <!-- <node pkg="udp_listener" type="udp_listener_node" name="udp_listener" output="screen"/>
+  <node pkg="udp_listener" type="rviz_node_infra" name="rviz_node_infra" respawn="true" output="screen"/> -->
+
+
+
+  <param name="param_radar_fault_input"           type="bool"    value="false" />
+  <param name="param_lidar_fault_input"           type="bool"    value="false" />
+  <param name="param_vision_fault_input"          type="bool"    value="false" />
+  <param name="param_V2V_fault_input"             type="bool"    value="false" />
+  <param name="gps_moving_average_window_size"    type="int"     value="5" /> 
+
+  <node name="CAN_channel_initializer"       type="CAN_channel_initializer"       pkg="can" />
+  <node name="front_radar_CAN_reader"        type="front_RADAR_CAN_reader"        pkg="can"  respawn="true" />
+  <node name="front_lidar_CAN_reader"        type="front_LIDAR_CAN_reader"        pkg="can"  respawn="true" />
+  <node name="vision_CAN_reader"             type="vision_CAN_reader"             pkg="can"  respawn="true" /> 
+  <node name="chassis_CAN_reader"            type="chassis_CAN_reader"            pkg="can"  respawn="true" />
+  <node name="from_control_team_CAN_reader"  type="from_control_team_CAN_reader"  pkg="can"  respawn="true" />
+
+  <!-- <node  name="lateral_velocity_estimator"  type="lateral_velocity_estimator" pkg="sensor_fusion"    respawn="true" /> -->
+
+  <!-- <node name="HMI_CAN_writer"                 type="HMI_CAN_writer"               pkg="can"  respawn="true" /> -->
+  <!-- <node name="V2V_CAN_writer_to_ctrl"         type="V2V_CAN_writer_to_ctrl"       pkg="can"  respawn="true" /> -->
+  <!-- <node name="track_CAN_writer"               type="track_CAN_writer"             pkg="can"  respawn="true" /> -->
+  <node name="track_CAN_writer_no_grid"       type="track_CAN_writer_no_grid"     pkg="can"  respawn="true" />
+  <node name="local_CAN_writer"               type="local_CAN_writer" pkg="can" respawn="true"/>
+
+  <node name="ground_extracion" type="ground_fitting_node" pkg="ground_fitting" respawn="true" />
+
+  <node  name="point_cloud_process" type="lidar_process" pkg="object_detection" respawn="true" >
+   <param name="vel_cal"             type="bool"          value="true"                          />
+  </node>
+
+  <node name="outlier_remover" type="outlier_remover" pkg="sensor_fusion" respawn="true" />
+  
+
+
+  <!-- CTRA model -->
+  <node  name="association_front_radar_CTRA" type="association_front_radar_CTRA" pkg="sensor_fusion"    respawn="true"  >
+  <param name="temporal_alignment"           type="bool"                         value="false"                          /> </node>
+ 
+  <node  name="association_front_lidar_CTRA" type="association_front_lidar_CTRA" pkg="sensor_fusion"    respawn="true"  > 
+  <param name="temporal_alignment"           type="bool"                         value="false"                          /> </node>
+ 
+  <node  name="association_vision_CTRA"      type="association_vision_CTRA"      pkg="sensor_fusion"    respawn="true"  >
+  <param name="temporal_alignment"           type="bool"                         value="false"                          /> </node>
+ 
+  <node  name="association_point_cloud_CTRA" type="association_point_cloud_CTRA" pkg="sensor_fusion"    respawn="true"  >
+  <param name="temporal_alignment"           type="bool"                         value="false"                          /> </node>
+
+  <node  name="association_rear_lidar_CTRA"  type="association_rear_lidar_CTRA"  pkg="sensor_fusion"    respawn="true"  >
+  <param name="temporal_alignment"           type="bool"                         value="false"                          /> </node>
+
+  <node  name="association_V2V_CTRA"         type="association_V2V_CTRA"         pkg="sensor_fusion"    respawn="true"  >
+  <param name="temporal_alignment"           type="bool"                         value="false"                          /> </node>
+ 
+  <node  name="track_manager_CTRA"           type="track_manager_CTRA"           pkg="sensor_fusion"    respawn="true"  />
+
+  <!-- <node name="V2V_coordinate_transformer"    type="V2V_coordinate_transformer"   pkg="sensor_fusion"    respawn="true"  output="screen" /> -->
+  <!-- <node name="V2V_listener"             type="tcp_listener_node"           pkg="ethernet_communication" respawn="true" /> -->
+
+
+  <include file="$(find model_publisher)/launch/genesis.launch" />
+  <node name="visualizer" type="rviz_node" pkg="sensor_fusion" respawn="true"/>
+  <!-- <node pkg="rviz" type="rviz" name="my_rviz" args="-d $(arg sweet_home)/mcar_ws/workspace_config/jaeho.rviz" /> -->
+  <node pkg="rviz" type="rviz" name="my_rviz" args="-d $(arg sweet_home)/mcar_ws/workspace_config/base_link.rviz" />
+
+  <!-- <node pkg="rviz" type="rviz" name="my_rviz" args="-d $(arg sweet_home)/mcar_ws/workspace_config/KIAPI" /> -->
+
+  <!-- <include file="$(find usb_cam)/launch/usb_cam-test.launch"/> -->
+
+  <include file="$(find spinnaker_camera_driver)/launch/camera.launch">
+    <arg name="camera_name"              default="BFS"/>
+  </include>
+
+  <!-- <include file="$(find pointgrey_camera_driver)/launch/camera.launch">
+    <arg name="camera_name"              default="BFS"/>
+  </include> -->
+  <!-- Perception end -->
+
+  <!-- <node name="rqtrqt1" pkg="rqt_plot" type="rqt_plot" args="/localization/pose_2d/yaw
+                                                            /localization/pose_2d_raw/yaw" /> -->
+
+</launch>

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <arg   name="sweet_home"    default="$(optenv HOME)" />
+  
+  <arg   name="bag_name"     default="/home/ads/ioniqev_ws/1.bag"/>
+
+  <node  name="player"       type="play"       pkg="rosbag"   args="--clock --hz=1000 -r 1 -s 0 $(arg bag_name) -l" />
+  
+
+  <!-- ROS parameters for sensor fault scenarios -->
+  <param name="param_radar_fault_input"           type="bool"    value="false" />
+  <param name="param_lidar_fault_input"           type="bool"    value="false" />
+  <param name="param_vision_fault_input"          type="bool"    value="false" />
+  <param name="param_V2V_fault_input"             type="bool"    value="false" />
+
+  
+  <!-- Choose One Below (parameter gps_localizing_method) -->
+  <!-- KF_CTRA / KF_CV_yaw / KF_CV / Moving_Average -->
+  <param name="gps_moving_average_window_size"    type="int"     value="5"  />   
+  <param name="gps_localizing_method_EQ"          type="string"  value="KF_CTRA" />
+
+
+  <!-- Kyusang_CV / Kyusang_CTRA / Kyusang_IMM / Moving_Average -->
+  <param name="gps_localizing_method_TUCSON"      type="string"  value="Kyusang_CTRA" />
+
+
+  <!-- For map visualization -->
+  <param name="EPSG"         value="5179" />
+  <!-- <param name="MAPFILE_PATH_kiapi" value="$(find gps_system_localizer)/mapfiles/KIAPI_CONTROL_DEMO" /> -->
+  <node pkg="tf2_ros"                       type="static_transform_publisher"   name="gps2base_link"         args="-0.5  0  -1.5  0  0  0  gps base_link " />
+  <!-- <node pkg="tf2_ros"                       type="static_transform_publisher"   name="gps2base_link"         args="-0.5  0  -1.5  0  0  0  pose_est base_link " /> -->
+
+  <!-- Old localization nodes -->
+  <node pkg="gps_system_localizer"     type="gps_to_tf"                    name="gps_to_tf_cpp"         respawn="true" />
+ 
+  <!-- New localization nodes -->
+  <!-- <node pkg="gps_world_tf"             type="gps_world_tf_node"            name="gps_world_tf_node"         respawn="true" />   -->
+  <param name="offline"                value="true" />
+
+  <node pkg="gps_world_tf"             type="sat_to_rviz"                  name="sat_pub"                   respawn="true"/>
+
+  <!-- <param name="MAPFILE_PATH" value="$(find gps_world_tf)/map_data/kiapi_5179" /> -->
+
+   
+  <!-- Ground points extraction from LiDARs --> 
+  <node  name="ground_extraction"          type="ground_fitting_node"         pkg="ground_fitting"   respawn="true" />
+    
+  <!-- Rule-based point cloud processing with non-ground points --> 
+  <node  name="point_cloud_process"        type="lidar_process"               pkg="object_detection" respawn="true" >
+  <param name="vel_cal"                    type="bool"                        value="true"                          /> </node>
+   
+  <!-- Object tracking algorithms below -->
+  <node  name="outlier_remover"            type="outlier_remover"             pkg="sensor_fusion"    respawn="true"  />
+    
+  <node name="track_CAN_writer_no_grid"       type="track_CAN_writer_no_grid"     pkg="can"  respawn="true" />
+ 
+  <!-- CTRA AHCUKF model -->
+  <node  name="association_front_radar_CTRA_cukf" type="association_front_radar_CTRA_cukf" pkg="sensor_fusion"    respawn="true"  >
+  <param name="temporal_alignment"           type="bool"                         value="true"                          /> </node>
+ 
+  <node  name="association_front_lidar_CTRA_cukf" type="association_front_lidar_CTRA_cukf" pkg="sensor_fusion"    respawn="true"  > 
+  <param name="temporal_alignment"           type="bool"                         value="true"                          /> </node>
+ 
+  <node  name="association_vision_CTRA_cukf"      type="association_vision_CTRA_cukf"      pkg="sensor_fusion"    respawn="true"  >
+  <param name="temporal_alignment"           type="bool"                         value="true"                          /> </node>
+ 
+  <node  name="association_rear_lidar_CTRA_cukf"  type="association_rear_lidar_CTRA_cukf"  pkg="sensor_fusion"    respawn="true"  >
+  <param name="temporal_alignment"           type="bool"                         value="true"                          /> </node>
+
+  <node  name="association_point_cloud_CTRA_cukf" type="association_point_cloud_CTRA_cukf" pkg="sensor_fusion"    respawn="true"  >
+  <param name="temporal_alignment"           type="bool"                         value="true"                          /> </node>
+
+
+  <node  name="track_manager_CTRA_cukf_WLS"           type="track_manager_CTRA_cukf_WLS"           pkg="sensor_fusion"    respawn="true"  />
+
+
+
+  <node  name="visualizer"              type="rviz_node"                   pkg="sensor_fusion"    respawn="true" />
+  <node  name="my_rviz"  type="rviz"  pkg="rviz"  args="-d $(arg sweet_home)/mcar/workspace_config/base_link.rviz"/>
+  
+  <include file="$(find model_publisher)/launch/genesis.launch" />
+
+  
+  <param name="use_sim_time" value="true"/>
+
+
+  <arg name="stp" default="static_transform_publisher" />
+  <!--                                                                     x           y          z         yaw       pitch       roll       parent      child      -->
+  <node pkg="tf2_ros" type="$(arg stp)" name="center2left"  args="-0.0275381   0.571249  -0.0762897  -0.0131452  -0.0285941  -0.512061   vlp_center  vlp_left   "  />
+  <node pkg="tf2_ros" type="$(arg stp)" name="center2right" args=" 0.0323728  -0.561785  -0.128748   -0.0176275  +0.0219212   0.500493   vlp_center  vlp_right  "  />
+  <node pkg="tf2_ros" type="$(arg stp)" name="lux2center"   args="-2.739       0.212      1.117      -0.01311     0.04009    -0.0073478  ibeo_lux    vlp_center "  />
+  <node pkg="tf2_ros" type="$(arg stp)" name="sensor2lux"   args=" 0.0        -0.21       0.0         0.0        -0.025       0.0        sensors     ibeo_lux   "  />
+  <node pkg="tf2_ros" type="$(arg stp)" name="base2sensors" args=" 3.85        0.0        0.65        0.0         0.0         0.0        base_link   sensors    "  />
+  <node pkg="tf2_ros" type="$(arg stp)" name="base2rear"    args=" 0.0         0.0        0.0         0.0         0.0         0.0        base_link   rear_lux   "  />
+
+
+</launch>

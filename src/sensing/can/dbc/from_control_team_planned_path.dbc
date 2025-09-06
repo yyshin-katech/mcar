@@ -1,0 +1,134 @@
+VERSION "10.8"
+
+
+NS_ : 
+	NS_DESC_
+	CM_
+	BA_DEF_
+	BA_
+	VAL_
+	CAT_DEF_
+	CAT_
+	FILTER
+	BA_DEF_DEF_
+	EV_DATA_
+	ENVVAR_DATA_
+	SGTYPE_
+	SGTYPE_VAL_
+	BA_DEF_SGTYPE_
+	BA_SGTYPE_
+	SIG_TYPE_REF_
+	VAL_TABLE_
+	SIG_GROUP_
+	SIG_VALTYPE_
+	SIGTYPE_VALTYPE_
+	BO_TX_BU_
+	BA_DEF_REL_
+	BA_REL_
+	BA_DEF_DEF_REL_
+	BU_SG_REL_
+	BU_EV_REL_
+	BU_BO_REL_
+	SG_MUL_VAL_
+
+BS_:
+
+BU_:
+VAL_TABLE_ TRACK_STATUS 1 "Valid" 0 "Invalid" ;
+VAL_TABLE_ Value_Table_Track_Status 7 "New Coasting Target" 6 "Invalid Coasting Target" 5 "Merged Target" 4 "Coasting Target" 3 "Updated Target" 2 "New Updated Target" 1 "New Target" 0 "No Target" ;
+
+
+BO_ 1590 EGO_TRAJ_PRED_Y03: 8 Vector__XXX
+ SG_ EGO_TRAJ_Y_20 : 45|9@1- (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_Y_19 : 36|9@1- (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_Y_18 : 27|9@1- (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_Y_17 : 18|9@1- (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_Y_16 : 9|9@1- (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_Y_15 : 0|9@1- (0.1,0) [0|0] "m" Vector__XXX
+
+BO_ 1589 EGO_TRAJ_PRED_Y02: 8 Vector__XXX
+ SG_ EGO_TRAJ_Y_9 : 9|9@1- (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_Y_8 : 0|9@1- (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_Y_14 : 54|9@1- (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_Y_13 : 45|9@1- (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_Y_12 : 36|9@1- (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_Y_11 : 27|9@1- (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_Y_10 : 18|9@1- (0.1,0) [0|0] "m" Vector__XXX
+
+BO_ 1588 EGO_TRAJ_PRED_Y01: 8 Vector__XXX
+ SG_ EGO_TRAJ_Y_7 : 54|9@1- (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_Y_6 : 45|9@1- (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_Y_5 : 36|9@1- (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_Y_4 : 27|9@1- (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_Y_3 : 18|9@1- (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_Y_2 : 9|9@1- (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_Y_1 : 0|9@1- (0.1,0) [0|0] "m" Vector__XXX
+
+BO_ 1587 EGO_TRAJ_PRED_X04: 8 Vector__XXX
+ SG_ EGO_TRAJ_X_20 : 10|10@1+ (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_X_19 : 0|10@1+ (0.1,0) [0|0] "m" Vector__XXX
+
+BO_ 1585 EGO_TRAJ_PRED_X02: 8 Vector__XXX
+ SG_ EGO_TRAJ_X_9 : 20|10@1+ (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_X_8 : 10|10@1+ (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_X_7 : 0|10@1+ (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_X_12 : 50|10@1+ (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_X_11 : 40|10@1+ (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_X_10 : 30|10@1+ (0.1,0) [0|0] "m" Vector__XXX
+
+BO_ 1584 EGO_TRAJ_PRED_X01: 8 Vector__XXX
+ SG_ EGO_TRAJ_X_6 : 50|10@1+ (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_X_5 : 40|10@1+ (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_X_4 : 30|10@1+ (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_X_3 : 20|10@1+ (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_X_2 : 10|10@1+ (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_X_1 : 0|10@1+ (0.1,0) [0|0] "m" Vector__XXX
+
+BO_ 1586 EGO_TRAJ_PRED_X03: 8 Vector__XXX
+ SG_ EGO_TRAJ_X_18 : 50|10@1+ (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_X_17 : 40|10@1+ (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_X_16 : 30|10@1+ (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_X_15 : 20|10@1+ (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_X_14 : 10|10@1+ (0.1,0) [0|0] "m" Vector__XXX
+ SG_ EGO_TRAJ_X_13 : 0|10@1+ (0.1,0) [0|0] "m" Vector__XXX
+
+
+BA_DEF_ SG_  "GenSigSendType" ENUM  "Cyclic","OnWrite","OnWriteWithRepetition","OnChange","OnChangeWithRepetition","IfActive","IfActiveWithRepetition","NoSigSendType";
+BA_DEF_ SG_  "GenSigInactiveValue" INT 0 100000;
+BA_DEF_ SG_  "GenSigStartValue" FLOAT 0 1215752192;
+BA_DEF_ BO_  "GenMsgILSupport" ENUM  "No","Yes";
+BA_DEF_ BO_  "GenMsgCycleTime" INT 2 50000;
+BA_DEF_ BO_  "GenMsgDelayTime" INT 1 1000;
+BA_DEF_ BO_  "GenMsgNrOfRepetitions" INT 1 999999;
+BA_DEF_ BO_  "GenMsgSendType" ENUM  "Cyclic","not_used","not_used","not_used","not_used","not_used","not_used","IfActive","NoMsgSendType";
+BA_DEF_ BO_  "DiagRequest" ENUM  "No","Yes";
+BA_DEF_ BO_  "DiagResponse" ENUM  "No","Yes";
+BA_DEF_ BO_  "DiagState" ENUM  "No","Yes";
+BA_DEF_ BU_  "NmStationAddress" HEX 0 0;
+BA_DEF_ BU_  "ILUsed" ENUM  "No","Yes";
+BA_DEF_  "DBName" STRING ;
+BA_DEF_  "Baudrate" INT 50000 1000000;
+BA_DEF_  "BusType" STRING ;
+BA_DEF_  "Manufacturer" STRING ;
+BA_DEF_REL_ BU_SG_REL_  "GenSigTimeoutTime" INT 0 5000;
+BA_DEF_DEF_  "GenSigSendType" "Cyclic";
+BA_DEF_DEF_  "GenSigInactiveValue" 0;
+BA_DEF_DEF_  "GenSigStartValue" 0;
+BA_DEF_DEF_  "GenMsgILSupport" "Yes";
+BA_DEF_DEF_  "GenMsgCycleTime" 50;
+BA_DEF_DEF_  "GenMsgDelayTime" 10;
+BA_DEF_DEF_  "GenMsgNrOfRepetitions" 3;
+BA_DEF_DEF_  "GenMsgSendType" "Cyclic";
+BA_DEF_DEF_  "DiagRequest" "No";
+BA_DEF_DEF_  "DiagResponse" "No";
+BA_DEF_DEF_  "DiagState" "No";
+BA_DEF_DEF_  "NmStationAddress" 0;
+BA_DEF_DEF_  "ILUsed" "Yes";
+BA_DEF_DEF_  "DBName" "";
+BA_DEF_DEF_  "Baudrate" 500000;
+BA_DEF_DEF_  "BusType" "CAN";
+BA_DEF_DEF_  "Manufacturer" "Geely";
+BA_DEF_DEF_REL_ "GenSigTimeoutTime" 500;
+BA_ "DBName" "SENSOR_FUSION";
+
+

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<launch>
+
+  <node pkg="nmea_navsat_driver" name="gps_to_world" type="gps_to_world.py"  output="screen"/>
+
+</launch>

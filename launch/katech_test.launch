@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+    <arg name="sweet_home" default="$(optenv HOME)" />
+
+    <param name="EPSG" value="5179" />
+    
+    <param name="MAPFILE_PATH" value="$(find gps_system_localizer)/mapfiles/K_CITY_20250902" />
+    
+    
+   <group ns="sensors/gps">
+        <include file="$(find novatel_gps_driver)/launch/tester_for_usb_eq.launch">
+        </include>
+    </group>
+
+    <node pkg="tf2_ros"                 type="static_transform_publisher" name="gps2base_link" args="0.0 0.0 -1.5 0.0 0.0 0.0 gps base_link" />
+
+    <!-- for gps/ins 50hz -->
+    <node name="gps_to_pose_2d_node"               type="gps_world_tf_node_send_host_gps" pkg="gps_world_tf" respawn="true"/>
+    <node pkg="gps_world_tf"            type="sat_to_rviz"                  name="sat_pub"                   respawn="true"/>
+    <node pkg="gps_system_localizer"            type="to_control_team_demo.py"            name="to_control_team_node"         respawn="true" output="screen"/> 
+
+<!--차량 모션 기반 경로 생성기 -->
+
+  <node name="CAN_channel_initializer"       type="CAN_channel_initializer"       pkg="can" />
+
+  <node name="chassis_CAN_reader"            type="chassis_CAN_reader"            pkg="can"  respawn="true" />
+  <node name="front_RADAR_CAN_reader"            type="front_RADAR_CAN_reader"            pkg="can"  respawn="true" />
+  <node name="percept_topic_matcher"       type="percept_topic_matcher"     pkg="can"  respawn="true" />
+  <node name="local_CAN_writer"       type="local_CAN_writer" pkg="can" respawn="true"/>
+  <node name="vision_CAN_reader"             type="vision_CAN_reader"             pkg="can"  respawn="true" /> 
+
+  <node name="cpt7_topic_matcher"       type="cpt7_topic_matcher"     pkg="can"  respawn="true" />
+  <node name="cpt7_CAN_writer"       type="cpt7_CAN_writer"     pkg="can"  respawn="true" />
+
+  <node name="track_CAN_writer_no_grid"       type="track_CAN_writer_no_grid"     pkg="can"  respawn="true" />
+
+  <node name="katri_obu_interface_node"       type="katri_obu_interface_node"     pkg="katri_obu_interface"  respawn="true" />
+  <node name="spat_CAN_writer"       type="spat_CAN_writer"     pkg="can"  respawn="true" />
+
+  <node name="j2735_decode_node"       type="j2735_decode_node"     pkg="j2735_decode"  respawn="true" />
+  <!-- <node  name="my_rviz"  type="rviz"  pkg="rviz"  args="-d $(arg sweet_home)/mcar_v9/workspace_config/perception.rviz"/> -->
+
+</launch>
