@@ -51,8 +51,9 @@ void FRONT_RADAR_CAN_READER(){
 
   vector<double> empty_vec(signal_list.size());
   vector<vector<double>> RADAR;
-  int temp_substring, idx;
-
+  int temp_substring, idx, pur;
+  int ret = 0;
+  
   for(int i=0; i!=msg_num; i++){
     RADAR.push_back(empty_vec);
   }
@@ -68,19 +69,29 @@ void FRONT_RADAR_CAN_READER(){
       if(kvaDb_status == kvaDbOK){
         kvaDbGetMsgName(mh, buff, sizeof(buff));
         sscanf(buff, "Track%2d", &temp_substring);
-        // idx = temp_substring - 1;
+        // if(temp_substring == 0)
+        // {
+
+        // }
+        // else
+        // {
+        //   idx = temp_substring - 1;
+        // } 
+        idx = temp_substring;
 
         for(int i=0; i!=signal_list.size(); i++){
           kvaDbGetSignalByName(mh, signal_list[i], &sh);
-          kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
+          ret = kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
           // ROS_INFO("WHERE %s   %d", buff, idx);
+          
           RADAR[idx][i] = value;
           
         }
-      } 
+      }
+      pur = temp_substring;
     }
 
-    // if(temp_substring == msg_num)
+    if((pur == msg_num - 1) && (ret == 0))
     {
       mmc_msgs::object_array_msg msg;
       msg.time = ros::Time::now();
@@ -105,7 +116,6 @@ void FRONT_RADAR_CAN_READER(){
       radar_pub.publish(msg);
       temp_substring = 0;
       RADAR.clear();
-
       for(int i=0; i!=msg_num; i++){
         RADAR.push_back(empty_vec);
       }

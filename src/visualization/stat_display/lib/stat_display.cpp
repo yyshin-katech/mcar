@@ -48,19 +48,26 @@ STAT_DISPLAY::~STAT_DISPLAY()
 void STAT_DISPLAY::POPUP_Text_Gen(const std::string& message)
 {
     POPUP_text.text = message;
-
     std_msgs::ColorRGBA state_color;
-
-    int32_t width = 600;
+    int32_t msg_len = POPUP_text.text.length();
+    int32_t width = 20;
     int32_t height = 80;
 
     POPUP_text.action = POPUP_text.ADD;
     POPUP_text.font = "DejaVu Sans Mono";
-    POPUP_text.text_size = 20;
-    POPUP_text.width = width;
+    POPUP_text.text_size = 40;
+    POPUP_text.width = width*POPUP_text.text.length();
     POPUP_text.height = height;
-    POPUP_text.left = 400;
-    POPUP_text.top = 400;
+    if(msg_len > 30)
+    {
+        POPUP_text.left = 1280 - 23*POPUP_text.text.length();
+    }
+    else
+    {
+        POPUP_text.left = 1280 - 35*POPUP_text.text.length();
+    }
+    
+    POPUP_text.top = 300;
 
     state_color.r = 1;
     state_color.g = 0;
