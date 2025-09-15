@@ -196,8 +196,6 @@ class DistanceCalculator(object):
         #     p.distance_to_lane_end = self.target_roads[current_lane_id]['station'][0][-1] + \
         #                              self.target_roads[25]['station'][0][-1] - current_s
         # else:
-        if current_lane_id == 7:
-            p.NEXT_LINK_ID = 11
 
         p.distance_to_lane_end = self.target_roads[current_lane_id]['station'][0][-1] - current_s
 
@@ -227,6 +225,11 @@ class DistanceCalculator(object):
 
         if p.NEXT_LINK_ID == 31:
             p.Road_State = 1
+            p.distance_out_of_ODD = p.distance_to_lane_end
+        elif p.LINK_ID == 52:
+            p.Road_State = 1
+            p.distance_out_of_ODD = p.distance_to_lane_end
+
 
         ## 현재 영역에 주행할 경로가 없거나, ODD 이탈 영역에 들어올 때 계속 수동모드 플래그 송출 ##
         if p.lane_id == 0 or p.lane_id in ODD_id_list:

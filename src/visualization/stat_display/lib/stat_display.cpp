@@ -784,7 +784,7 @@ void STAT_DISPLAY::CAM_AliveCnt_Check(uint8_t current_cnt)
         last_cam_cnt = current_cam_cnt;
     }
 
-    if(unchanged_cam_cnt > 5)
+    if(unchanged_cam_cnt > 10)
     {
         cam_status = 2;
     }
@@ -882,7 +882,7 @@ void STAT_DISPLAY::system_status_check()
         {"Radar", radar_status},
         {"V2X", v2x_status},
         {"HMI", hmi_status},
-        {"cam", cam_status},        
+        {"CAM", cam_status},        
         {"VCU", vcu_status},
         {"IPC", ipc_status}
     };

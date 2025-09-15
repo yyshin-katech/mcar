@@ -159,7 +159,7 @@ void DIAGNOSTIC_CAN_WRITER::lidar_callback(const katech_diagnostic_msgs::lidar_d
         kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[j], &sh);
         kvaDbStoreSignalValuePhys(sh, &can_data, sizeof(can_data), temp_data[j]);
     }
-    re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
+    // re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
     memset(can_data, 0, sizeof(can_data));
 }
 
@@ -185,7 +185,7 @@ void DIAGNOSTIC_CAN_WRITER::v2x_callback(const katech_diagnostic_msgs::v2x_diagn
         kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[j], &sh);
         kvaDbStoreSignalValuePhys(sh, &can_data, sizeof(can_data), temp_data[j]);
     }
-    re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
+    // re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
     memset(can_data, 0, sizeof(can_data));
 }
 
@@ -211,7 +211,7 @@ void DIAGNOSTIC_CAN_WRITER::hmi_callback(const katech_diagnostic_msgs::hmi_diagn
         kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[j], &sh);
         kvaDbStoreSignalValuePhys(sh, &can_data, sizeof(can_data), temp_data[j]);
     }
-    re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
+    // re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
     memset(can_data, 0, sizeof(can_data));
 }
 
@@ -237,7 +237,7 @@ void DIAGNOSTIC_CAN_WRITER::radar_callback(const katech_diagnostic_msgs::radar_d
         kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[j], &sh);
         kvaDbStoreSignalValuePhys(sh, &can_data, sizeof(can_data), temp_data[j]);
     }
-    re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
+    // re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
     memset(can_data, 0, sizeof(can_data));
 }
 
@@ -263,7 +263,7 @@ void DIAGNOSTIC_CAN_WRITER::ipc_callback(const katech_diagnostic_msgs::ipc_diagn
         kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[j], &sh);
         kvaDbStoreSignalValuePhys(sh, &can_data, sizeof(can_data), temp_data[j]);
     }
-    re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
+    // re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
     memset(can_data, 0, sizeof(can_data));
 }
 

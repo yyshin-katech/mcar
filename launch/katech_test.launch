@@ -4,7 +4,7 @@
 
     <param name="EPSG" value="5179" />
     
-    <param name="MAPFILE_PATH" value="$(find gps_system_localizer)/mapfiles/K_CITY_20250902" />
+    <param name="MAPFILE_PATH" value="$(find gps_system_localizer)/mapfiles/K_CITY_20250909" />
     
     
    <group ns="sensors/gps">
