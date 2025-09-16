@@ -105,6 +105,9 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
         double curr_y = coreinfo.center.y.data;
         double vx = coreinfo.velocity.x.data;
         double vy = coreinfo.velocity.y.data;
+        double direction_x = coreinfo.direction.x.data;
+        double direction_y = coreinfo.direction.y.data;       
+
         ros::Time curr_time = ros::Time::now();
 
         // 메시지 채우기
@@ -126,15 +129,8 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
         ads_obj.size_x = coreinfo.size.x.data;
         ads_obj.size_y = coreinfo.size.y.data;
 
-        // 자세는 속도 벡터 기준(정지에 가까우면 0)
-        if (std::abs(vx) > 1e-3 || std::abs(vy) > 1e-3) {
-            ads_obj.orientation   = std::atan2(vy, vx);
-            ads_obj.orientation_v = ads_obj.orientation; // 호환성 유지
-        } else {
-            ads_obj.orientation   = 0.0;
-            ads_obj.orientation_v = 0.0;
-        }
-
+        ads_obj.orientation = atan2(direction_y, direction_x);
+        ads_obj.orientation_v = ads_obj.orientation;
         ads_obj.confidence = coreinfo.exist_confidence.data;
 
         // 기존 코드에 있던 최근접점 정보도 그대로 매핑
