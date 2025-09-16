@@ -127,7 +127,8 @@ class ROSCrosswalkDetector:
             return
         
         # status가 1인 오브젝트만 처리
-        active_objects = [obj for obj in msg.data if obj.status == 1]
+        # active_objects = [obj for obj in msg.data if obj.status == 1]
+        active_objects = [obj for obj in msg.data if obj.status in [1, 2]]
         
         if not active_objects:
             return
@@ -168,6 +169,8 @@ class ROSCrosswalkDetector:
                 ped_msg.id = obj.id
                 ped_msg.status = obj.status
                 ped_msg.on_crosswalk = 1
+                ped_msg.rel_pos_x = obj.x
+                ped_msg.rel_pos_y = obj.y
 
                 pub_msg_ar.data.append(ped_msg)
 

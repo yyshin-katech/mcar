@@ -46,30 +46,6 @@ VAL_TABLE_ VtSIg_eventState_1 9 "caution-Conflicting-Traffic" 8 "protected-clear
 VAL_TABLE_ Value_Table_Track_Status 7 "New Coasting Target" 6 "Invalid Coasting Target" 5 "Merged Target" 4 "Coasting Target" 3 "Updated Target" 2 "New Updated Target" 1 "New Target" 0 "No Target" ;
 
 
-BO_ 529 Pedestrian_Stat_1: 8 NUC
- SG_ rel_pos_y_3 : 53|10@1- (0.01,0) [-5.12|5.11] "m" Vector__XXX
- SG_ rel_pos_x_3 : 41|12@1- (0.01,10.24) [-10.24|30.71] "m" Vector__XXX
- SG_ on_crosswalk_3 : 40|1@1+ (1,0) [0|1] "" Vector__XXX
- SG_ obj_type_3 : 36|4@1+ (1,0) [0|7] "" Vector__XXX
- SG_ ped_obj_id_3 : 32|4@1+ (1,0) [0|15] "" Vector__XXX
- SG_ rel_pos_y_2 : 21|10@1- (0.01,0) [-5.12|5.11] "m" Vector__XXX
- SG_ rel_pos_x_2 : 9|12@1- (0.01,10.24) [-10.24|30.71] "m" Vector__XXX
- SG_ on_crosswalk_2 : 8|1@1+ (1,0) [0|1] "" Vector__XXX
- SG_ obj_type_2 : 4|4@1+ (1,0) [0|7] "" Vector__XXX
- SG_ ped_obj_id_2 : 0|4@1+ (1,0) [0|15] "" Vector__XXX
-
-BO_ 528 Pedestrian_Stat: 8 NUC
- SG_ rel_pos_y_1 : 53|10@1- (0.01,0) [-5.12|5.11] "m" Vector__XXX
- SG_ rel_pos_x_1 : 41|12@1- (0.01,10.24) [-10.24|30.71] "m" Vector__XXX
- SG_ on_crosswalk_1 : 40|1@1+ (1,0) [0|1] "" Vector__XXX
- SG_ obj_type_1 : 36|4@1+ (1,0) [0|7] "" Vector__XXX
- SG_ ped_obj_id_1 : 32|4@1+ (1,0) [0|15] "" Vector__XXX
- SG_ rel_pos_y : 21|10@1- (0.01,0) [-5.12|5.11] "m" Vector__XXX
- SG_ rel_pos_x : 9|12@1- (0.01,10.24) [-10.24|30.71] "m" Vector__XXX
- SG_ on_crosswalk : 8|1@1+ (1,0) [0|1] "" Vector__XXX
- SG_ obj_type : 4|4@1+ (1,0) [0|7] "" Vector__XXX
- SG_ ped_obj_id : 0|4@1+ (1,0) [0|15] "" Vector__XXX
-
 BO_ 280 CPT7_Position_RPRate: 8 NUC
  SG_ cpt7_rollrate : 32|32@1- (1,0) [-3.4E+038|3.4E+038] "" Vector__XXX
  SG_ cpt7_pitchrate : 0|32@1- (1,0) [-3.4E+038|3.4E+038] "" Vector__XXX
@@ -84,8 +60,7 @@ BO_ 278 CPT7_Vertical_Acc: 8 NUC
 BO_ 277 CPT7_Lateral_Acc: 8 NUC
  SG_ cpt7_latAcc : 0|64@1- (1,0) [-1.7E+308|1.7E+308] "m/s^2" Vector__XXX
 
-BO_ 513 Mornitoring: 4 ADCU
- SG_ Logging_sig : 16|16@1+ (0.01,-10.23) [-10.23|10.24] "" Vector__XXX
+BO_ 513 Mornitoring: 8 ADCU
  SG_ Chasis_VS_KF : 0|16@1- (0.01,0) [-327.68|327.67] "km/h" Vector__XXX
 
 BO_ 1831 LOCAL_POS_SIGMA: 8 NUC
@@ -1690,8 +1665,6 @@ BA_DEF_DEF_  "BusType" "CAN";
 BA_DEF_DEF_  "GenMsgCycleTime" 0;
 BA_DEF_DEF_  "SigType" "Default";
 BA_ "BusType" "CAN";
-BA_ "GenMsgCycleTime" BO_ 529 100;
-BA_ "GenMsgCycleTime" BO_ 528 100;
 BA_ "GenMsgCycleTime" BO_ 280 200;
 BA_ "GenMsgCycleTime" BO_ 279 20;
 BA_ "GenMsgCycleTime" BO_ 278 200;
