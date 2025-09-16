@@ -65,9 +65,10 @@ class ROSCrosswalkDetector:
         
         # ROS1 구독자 생성
         self.host_subscriber = rospy.Subscriber('/localization/to_control_team', to_control_team_from_local_msg, self.host_status_callback, queue_size=10)
-        
         self.object_subscriber = rospy.Subscriber('/track_Multi_RS', object_array_msg, self.object_array_callback, queue_size=10)
-        
+
+        self.target_pub = rospy.Publisher('/katech_msg/crosswalk_detection', ped_crosswalk_check_array_msg, queue_size=10)
+
         # 결과 발행자
         # self.result_publisher = rospy.Publisher(
         #     '/crosswalk_detection_result',
@@ -144,15 +145,15 @@ class ROSCrosswalkDetector:
             )
             
             # 결과 기록
-            result = {
-                'timestamp': rospy.Time.now().to_sec(),
-                'object_id': obj.id,
-                'object_type': obj.status,
-                'relative_position': [obj.x, obj.y],
-                'absolute_position': abs_pos,
-                'crosswalk_ids': crosswalk_ids,
-                'confidence': obj.confidence
-            }
+            # result = {
+            #     'timestamp': rospy.Time.now().to_sec(),
+            #     'object_id': obj.id,
+            #     'object_type': obj.status,
+            #     'relative_position': [obj.x, obj.y],
+            #     'absolute_position': abs_pos,
+            #     'crosswalk_ids': crosswalk_ids,
+            #     'confidence': obj.confidence
+            # }
             
             # ped_msg.id = obj.id
             # ped_msg.status = obj.status
@@ -180,15 +181,21 @@ class ROSCrosswalkDetector:
                     obj.x, obj.y
                 )
                 
-                rospy.logdebug(
-                    '오브젝트 %d: 횡단보도 밖 (가장 가까운: %d번, 거리: %.1fm)',
-                    obj.id, nearest_id, distance
-                )
+                # rospy.logdebug(
+                #     '오브젝트 %d: 횡단보도 밖 (가장 가까운: %d번, 거리: %.1fm)',
+                #     obj.id, nearest_id, distance
+                # )
         
         # 결과 발행
+        pub_msg_ar.time = rospy.Time.now()
+        self.target_pub.publish(pub_msg_ar)
+        
+
         # if detection_results:
             # self.publish_detection_results(detection_results)
-        rospy.loginfo(pub_msg_ar)
+        # rospy.loginfo(pub_msg_ar)
+
+        pub_msg_ar.data.clear()
 
     def rotate_point(self, x, y, yaw_rad):
         """점을 yaw각도만큼 회전"""
