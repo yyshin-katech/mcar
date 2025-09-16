@@ -435,7 +435,25 @@ install(TARGETS ${PROJECT_NAME} diagnostic_CAN_writer
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
+############################################################################################## ped_detector_can_writer
+add_executable(ped_detector_can_writer src/katech_ped_detector_can_writer.cpp)
+target_compile_options(ped_detector_can_writer PRIVATE)
+add_dependencies(ped_detector_can_writer ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(ped_detector_can_writer 
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES} 
+  # ${catkin_LIBRARY_DIRS}
 
+  ##### Linking External Library
+  ${CANLIB_LIBRARY}
+  ${KVADBLIB_LIBRARY}
+  ##############################
+)
+install(TARGETS ${PROJECT_NAME} ped_detector_can_writer
+   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 # Mark cpp header files for installation
 install(DIRECTORY include
