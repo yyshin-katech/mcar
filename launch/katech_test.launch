@@ -37,7 +37,8 @@
   <node name="katri_obu_interface_node"       type="katri_obu_interface_node"     pkg="katri_obu_interface"  respawn="true" />
   <node name="spat_CAN_writer"       type="spat_CAN_writer"     pkg="can"  respawn="true" />
 
-  <node name="j2735_decode_node"       type="j2735_decode_node"     pkg="j2735_decode"  respawn="true" />
+  <!-- KATRI에서는 OFF-->
+  <!-- <node name="j2735_decode_node"       type="j2735_decode_node"     pkg="j2735_decode"  respawn="true" /> -->
 
   <node name="katecH_ped_detector_node"       type="katech_ped_detector.py"     pkg="can"  respawn="true" />
   <node name="katech_ped_detector_can_writer_node"       type="ped_detector_can_writer"     pkg="can"  respawn="true" />
