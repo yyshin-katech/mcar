@@ -4,8 +4,10 @@
 
     <param name="EPSG" value="5179" />
     
-    <param name="MAPFILE_PATH" value="$(find gps_system_localizer)/mapfiles/K_CITY_20250909" />
-    
+    <param name="MAPFILE_PATH" value="$(find gps_system_localizer)/mapfiles/K_CITY_20250912" />
+    <!--K CITY 입체교차로 전용-->
+    <!-- <param name="MAPFILE_PATH" value="$(find gps_system_localizer)/mapfiles/K_CITY_SLOPE" /> -->
+
     
    <group ns="sensors/gps">
         <include file="$(find novatel_gps_driver)/launch/tester_for_usb_eq.launch">

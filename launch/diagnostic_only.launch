@@ -24,7 +24,7 @@
 
     <node pkg="sound_play"                    type="soundplay_node.py"            name="soundplay_node"                respawn="true" />
 
-    <!-- <node pkg="can"                    type="diagnostic_CAN_writer"            name="diagnostic_CAN_writer_node"                respawn="true" />     -->
+    <node pkg="can"                    type="diagnostic_CAN_writer"            name="diagnostic_CAN_writer_node"                respawn="true" />    
 
 
 </launch>
