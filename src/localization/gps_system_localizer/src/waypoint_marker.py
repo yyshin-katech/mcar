@@ -263,7 +263,7 @@ from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import Point
 
 # MAPFILE_PATH = rospy.get_param("MAPFILE_PATH")
-MAPFILE_PATH = '/home/katech/mcar_v11/src/localization/gps_system_localizer/mapfiles/K_CITY_20250902'
+MAPFILE_PATH = '/home/ads/mcar_v13/src/localization/gps_system_localizer/mapfiles/K_CITY_20250902'
 
 def waypoint_data_initialize(pattern):
     """Load waypoint data from multiple mat files matching the pattern"""

@@ -34,8 +34,3 @@ float32 yaw_error_size # [radian]
 int8 On_ODD
 int8 Road_State
 float32 distance_out_of_ODD # [m]
-
-
-
-
-
