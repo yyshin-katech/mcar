@@ -5,11 +5,7 @@ import numpy as np
 import shapefile
 import math
 from scipy.spatial import cKDTree
-from geometry_msgs.msg import PoseStamped, Point
-from std_msgs.msg import Header
-from nav_msgs.msg import Path
-from visualization_msgs.msg import Marker, MarkerArray
-
+from geometry_msgs.msg import PoseStamped
 from mmc_msgs.msg import to_control_team_from_local_msg
 
 class FrenetCoordinateCalculator:
@@ -18,10 +14,10 @@ class FrenetCoordinateCalculator:
         
         # Parameters
         self.mapfile_path = rospy.get_param('~mapfile_path', 
-                                          '/home/ads/mcar_v13/src/localization/gps_system_localizer/src')
+                                          '/home/katech/mcar_v11/src/localization/gps_system_localizer/src')
         self.shp_filename = rospy.get_param('~shp_filename', 'A2_LINK_epsg5179.shp')
         
-        # Reference coordinates (adjust these to your area)
+        # Reference coordinates
         self.ref_east = rospy.get_param('~ref_east', 935586.94)
         self.ref_north = rospy.get_param('~ref_north', 1916201.0)
         
@@ -30,18 +26,13 @@ class FrenetCoordinateCalculator:
         self.kdtree = None
         self.load_road_centerlines()
         
-        # Publishers
+        # Publisher for Frenet coordinates only
         self.frenet_pub = rospy.Publisher('/frenet_coordinates', PoseStamped, queue_size=10)
-        self.closest_point_pub = rospy.Publisher('/closest_road_point', Marker, queue_size=10)
-        self.road_path_pub = rospy.Publisher('/road_centerlines', Path, queue_size=1, latch=True)
         
         # Subscriber for vehicle position
         # self.vehicle_pos_sub = rospy.Subscriber('/vehicle_position', PoseStamped, self.vehicle_position_callback)
         self.vehicle_pos_sub = rospy.Subscriber('/localization/to_control_team', to_control_team_from_local_msg, self.vehicle_position_callback)
-        
-        # Publish road centerlines for visualization
-        self.publish_road_centerlines()
-        
+
         rospy.loginfo("Frenet Coordinate Calculator initialized")
         rospy.loginfo(f"Loaded {len(self.road_segments)} road segments")
     
@@ -55,6 +46,7 @@ class FrenetCoordinateCalculator:
             
             rospy.loginfo(f"Loading road centerlines from {shp_path}")
             rospy.loginfo(f"Found {len(shapes)} road segments")
+            rospy.loginfo(f"Reference point: East={self.ref_east:.2f}, North={self.ref_north:.2f}")
             
             all_points = []
             
@@ -63,12 +55,17 @@ class FrenetCoordinateCalculator:
                     continue
                 
                 # Convert coordinates to local frame
+                # 표준 좌표계: East → X, North → Y
                 local_points = []
                 for point in shape.points:
                     east, north = point
-                    x = north - self.ref_north
-                    y = (east - self.ref_east)  # Apply coordinate transformation
+                    x = east - self.ref_east    # East → X
+                    y = north - self.ref_north  # North → Y
                     local_points.append([x, y])
+                
+                # Log first segment for debugging
+                if idx == 0:
+                    rospy.loginfo(f"First segment sample: UTM({shape.points[0][0]:.2f}, {shape.points[0][1]:.2f}) -> Local({local_points[0][0]:.2f}, {local_points[0][1]:.2f})")
                 
                 # Calculate cumulative distances along the path
                 cumulative_distances = [0.0]
@@ -98,6 +95,13 @@ class FrenetCoordinateCalculator:
             if all_points:
                 self.kdtree = cKDTree(all_points)
                 rospy.loginfo(f"Built KDTree with {len(all_points)} points")
+            
+            # 도로 범위 출력
+            if all_points:
+                all_points_array = np.array(all_points)
+                x_min, x_max = all_points_array[:, 0].min(), all_points_array[:, 0].max()
+                y_min, y_max = all_points_array[:, 1].min(), all_points_array[:, 1].max()
+                rospy.loginfo(f"Road network bounds: X[{x_min:.2f}, {x_max:.2f}], Y[{y_min:.2f}, {y_max:.2f}]")
             
         except Exception as e:
             rospy.logerr(f"Error loading road centerlines: {e}")
@@ -204,7 +208,7 @@ class FrenetCoordinateCalculator:
                     # Vector from closest point to vehicle
                     to_vehicle_dx = vehicle_x - closest_point[0]
                     to_vehicle_dy = vehicle_y - closest_point[1]
-
+                    
                     # Cross product to determine side (left/right)
                     cross_product = road_dx * to_vehicle_dy - road_dy * to_vehicle_dx
                     
@@ -224,10 +228,24 @@ class FrenetCoordinateCalculator:
     
     def vehicle_position_callback(self, msg):
         """Callback for vehicle position updates"""
-        # vehicle_x = msg.pose.position.x
-        # vehicle_y = msg.pose.position.y
-        vehicle_x = msg.host_east
-        vehicle_y = msg.host_north
+        # 차량 위치가 UTM 좌표로 들어오는지 로컬 좌표로 들어오는지 확인
+        raw_x = msg.host_east
+        raw_y = msg.host_north
+        
+        # UTM 좌표인지 확인 (값이 매우 크면 UTM)
+        if abs(raw_x) > 100000 or abs(raw_y) > 100000:
+            # UTM 좌표를 로컬 좌표로 변환
+            # 표준: msg.pose.position.x = East, msg.pose.position.y = North
+            vehicle_east = raw_x
+            vehicle_north = raw_y
+            vehicle_x = vehicle_east - self.ref_east    # East → X
+            vehicle_y = vehicle_north - self.ref_north  # North → Y
+            rospy.logdebug(f"Converted UTM(E:{vehicle_east:.2f}, N:{vehicle_north:.2f}) to Local({vehicle_x:.2f}, {vehicle_y:.2f})")
+        else:
+            # 이미 로컬 좌표
+            vehicle_x = raw_x
+            vehicle_y = raw_y
+            rospy.logdebug(f"Using local coordinates: ({vehicle_x:.2f}, {vehicle_y:.2f})")
         
         # Calculate Frenet coordinates
         s, d, segment = self.calculate_frenet_coordinates(vehicle_x, vehicle_y)
@@ -247,94 +265,14 @@ class FrenetCoordinateCalculator:
             
             self.frenet_pub.publish(frenet_msg)
             
-            # Publish closest point marker for visualization
-            # self.publish_closest_point_marker(vehicle_x, vehicle_y, s, d, segment)
-            
-            rospy.loginfo(f"Vehicle at ({vehicle_x:.2f}, {vehicle_y:.2f}) -> "
-                          f"Frenet (s={s:.2f}, d={d:.2f}) on segment {segment['id'] if segment else 'None'}")
-    
-    def publish_closest_point_marker(self, vehicle_x, vehicle_y, s, d, segment):
-        """Publish visualization marker for closest road point"""
-        if segment is None:
-            return
-            
-        marker = Marker()
-        marker.header.frame_id = "gps"
-        marker.header.stamp = rospy.Time.now()
-        marker.id = 0
-        marker.type = Marker.SPHERE
-        marker.action = Marker.ADD
-        
-        # Find actual closest point for visualization
-        _, _, closest_point, _ = self.find_closest_road_segment(vehicle_x, vehicle_y)
-        
-        if closest_point:
-            marker.pose.position.x = closest_point[0]
-            marker.pose.position.y = closest_point[1]
-            marker.pose.position.z = 0.1
-        
-        marker.scale.x = 0.5
-        marker.scale.y = 0.5
-        marker.scale.z = 0.5
-        
-        # Color based on lateral distance
-        if d > 0:  # Left side - blue
-            marker.color.r = 0.0
-            marker.color.g = 0.0
-            marker.color.b = 1.0
-        else:  # Right side - red
-            marker.color.r = 1.0
-            marker.color.g = 0.0
-            marker.color.b = 0.0
-        marker.color.a = 0.8
-        
-        self.closest_point_pub.publish(marker)
-    
-    def publish_road_centerlines(self):
-        """Publish road centerlines as Path message for RViz visualization"""
-        if not self.road_segments:
-            return
-        
-        path_msg = Path()
-        path_msg.header.frame_id = "gps"
-        path_msg.header.stamp = rospy.Time.now()
-        
-        # Combine all segments into one path for visualization
-        for segment in self.road_segments[:100]:  # Limit to first 100 segments for performance
-            for point in segment['points']:
-                pose_stamped = PoseStamped()
-                pose_stamped.header = path_msg.header
-                pose_stamped.pose.position.x = point[0]
-                pose_stamped.pose.position.y = point[1]
-                pose_stamped.pose.position.z = 0.0
-                pose_stamped.pose.orientation.w = 1.0
-                path_msg.poses.append(pose_stamped)
-        
-        self.road_path_pub.publish(path_msg)
-        rospy.loginfo(f"Published road centerlines path with {len(path_msg.poses)} points")
-    
-    def test_frenet_calculation(self, test_x, test_y):
-        """Test function to calculate Frenet coordinates for given position"""
-        s, d, segment = self.calculate_frenet_coordinates(test_x, test_y)
-        
-        if s is not None and d is not None:
-            rospy.loginfo(f"Test position ({test_x}, {test_y}) -> "
-                         f"Frenet coordinates: s={s:.2f}m, d={d:.2f}m "
-                         f"(segment {segment['id'] if segment else 'None'})")
-            return s, d, segment
+            rospy.loginfo_throttle(1, f"Vehicle UTM(E:{raw_x:.2f}, N:{raw_y:.2f}) Local({vehicle_x:.2f}, {vehicle_y:.2f}) -> "
+                          f"Frenet (s={s:.2f}m, d={d:.2f}m) on segment {segment['id'] if segment else 'None'}")
         else:
-            rospy.logwarn(f"Could not calculate Frenet coordinates for position ({test_x}, {test_y})")
-            return None, None, None
+            rospy.logwarn_throttle(5, f"Could not calculate Frenet coordinates for vehicle at ({vehicle_x:.2f}, {vehicle_y:.2f})")
 
 def main():
     try:
         calculator = FrenetCoordinateCalculator()
-        
-        # Test with some example coordinates (adjust as needed)
-        rospy.loginfo("Running test calculations...")
-        calculator.test_frenet_calculation(0.0, 0.0)
-        calculator.test_frenet_calculation(10.0, 5.0)
-        calculator.test_frenet_calculation(-10.0, -5.0)
         
         rospy.loginfo("Frenet coordinate calculator ready. Waiting for vehicle position...")
         rospy.loginfo("Publish vehicle position to /vehicle_position topic")
