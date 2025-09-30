@@ -26,5 +26,6 @@
 
     <node pkg="can"                    type="diagnostic_CAN_writer"            name="diagnostic_CAN_writer_node"                respawn="true" />    
 
+    <node pkg="gps_system_localizer"                    type="lanelet_marker.py"            name="lane_marker_node"                respawn="true" />
 
 </launch>

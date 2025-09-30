@@ -18,7 +18,7 @@ class FrenetCoordinateCalculator:
         
         # Parameters
         self.mapfile_path = rospy.get_param('~mapfile_path', 
-                                          '/home/katech/mcar_v11/src/localization/gps_system_localizer/src')
+                                          '/home/ads/mcar_v13/src/localization/gps_system_localizer/src')
         self.shp_filename = rospy.get_param('~shp_filename', 'A2_LINK_epsg5179.shp')
         
         # Reference coordinates (adjust these to your area)
@@ -67,7 +67,7 @@ class FrenetCoordinateCalculator:
                 for point in shape.points:
                     east, north = point
                     x = north - self.ref_north
-                    y = -(east - self.ref_east)  # Apply coordinate transformation
+                    y = (east - self.ref_east)  # Apply coordinate transformation
                     local_points.append([x, y])
                 
                 # Calculate cumulative distances along the path
@@ -204,7 +204,7 @@ class FrenetCoordinateCalculator:
                     # Vector from closest point to vehicle
                     to_vehicle_dx = vehicle_x - closest_point[0]
                     to_vehicle_dy = vehicle_y - closest_point[1]
-                    
+
                     # Cross product to determine side (left/right)
                     cross_product = road_dx * to_vehicle_dy - road_dy * to_vehicle_dx
                     
@@ -248,9 +248,9 @@ class FrenetCoordinateCalculator:
             self.frenet_pub.publish(frenet_msg)
             
             # Publish closest point marker for visualization
-            self.publish_closest_point_marker(vehicle_x, vehicle_y, s, d, segment)
+            # self.publish_closest_point_marker(vehicle_x, vehicle_y, s, d, segment)
             
-            rospy.logdebug(f"Vehicle at ({vehicle_x:.2f}, {vehicle_y:.2f}) -> "
+            rospy.loginfo(f"Vehicle at ({vehicle_x:.2f}, {vehicle_y:.2f}) -> "
                           f"Frenet (s={s:.2f}, d={d:.2f}) on segment {segment['id'] if segment else 'None'}")
     
     def publish_closest_point_marker(self, vehicle_x, vehicle_y, s, d, segment):

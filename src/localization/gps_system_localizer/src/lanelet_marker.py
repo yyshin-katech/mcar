@@ -363,9 +363,9 @@ class lanelet_marker(object):
                 file_groups[filename] = []
             file_groups[filename].append(wp)
         
-        rospy.loginfo(f"Creating markers for {len(file_groups)} different files:")
-        for filename in file_groups.keys():
-            rospy.loginfo(f"  - {filename}: {len(file_groups[filename])} features")
+        # rospy.loginfo(f"Creating markers for {len(file_groups)} different files:")
+        # for filename in file_groups.keys():
+            # rospy.loginfo(f"  - {filename}: {len(file_groups[filename])} features")
         
         # 성능을 위해 마커 수 제한 및 진행률 표시
         total_features = len(self.wps)
@@ -449,10 +449,10 @@ class lanelet_marker(object):
                 rospy.logwarn(f"Feature {wp['id']} has insufficient valid points ({valid_points}), skipping")
             
             # 진행률 표시 (100개마다)
-            if processed_count % 100 == 0:
-                rospy.loginfo(f"Processed {processed_count}/{total_features} features")
+            # if processed_count % 100 == 0:
+                # rospy.loginfo(f"Processed {processed_count}/{total_features} features")
 
-        rospy.loginfo(f"Successfully created {len(self.marker_array.markers)} valid markers from {total_features} features")
+        # rospy.loginfo(f"Successfully created {len(self.marker_array.markers)} valid markers from {total_features} features")
         
         # 마커가 너무 많으면 경고
         if len(self.marker_array.markers) > 5000:
