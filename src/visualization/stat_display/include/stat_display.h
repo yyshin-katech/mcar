@@ -29,6 +29,7 @@
 #include <katech_diagnostic_msgs/ipc_diagnostic_msg.h>
 
 #include <mmc_msgs/to_control_team_from_local_msg.h>
+#include <mmc_msgs/chassis_msg.h>
 
 #include <sound_play/SoundRequest.h>
 
@@ -56,6 +57,8 @@ class STAT_DISPLAY{
         ros::Subscriber local_sub;
         ros::Subscriber ipc_sub;
 
+        ros::Subscriber chassis_sub_node;
+
         ros::Publisher popup_pub;
         ros::Publisher gps_pub;
         ros::Publisher adcu_pub;
@@ -66,6 +69,7 @@ class STAT_DISPLAY{
         ros::Publisher vcu_pub;
         ros::Publisher cam_pub;
         ros::Publisher ipc_pub;
+        ros::Publisher local_text_pub;
 
         ros::Publisher sound_pub;
 
@@ -101,6 +105,7 @@ class STAT_DISPLAY{
         katech_diagnostic_msgs::ipc_diagnostic_msg ipc_msg;
         
         mmc_msgs::to_control_team_from_local_msg local_msg;
+        mmc_msgs::chassis_msg chassis_msg;
 
         // visualization_msgs::Marker GPS_text;
 
@@ -114,6 +119,7 @@ class STAT_DISPLAY{
         jsk_rviz_plugins::OverlayText VCU_text;
         jsk_rviz_plugins::OverlayText CAM_text;
         jsk_rviz_plugins::OverlayText IPC_text;
+        jsk_rviz_plugins::OverlayText LOCAL_text;
 
         void diagnostic_gps_callback(const katech_diagnostic_msgs::cpt7_gps_diagnostic_msg::ConstPtr& msg);
         void diagnostic_adcu_callback(const katech_diagnostic_msgs::k_adcu_diagnostic_msg::ConstPtr& msg);
@@ -125,6 +131,8 @@ class STAT_DISPLAY{
         void diagnostic_cam_callback(const katech_diagnostic_msgs::cam_diagnostic_msg::ConstPtr& msg);
         void diagnostic_ipc_callback(const katech_diagnostic_msgs::ipc_diagnostic_msg::ConstPtr& msg);
         void local_callback(const mmc_msgs::to_control_team_from_local_msg::ConstPtr& msg);
+        void chassis_callback_func(const mmc_msgs::chassis_msg::ConstPtr& msg);
+        
         void timerCallback(const ros::TimerEvent&);
 
         void POPUP_Text_Gen(const std::string& message);
@@ -160,6 +168,8 @@ class STAT_DISPLAY{
         void system_status_check();
 
         void sound_play(const std::string& sensor_name);
+
+        void Local_Text_Gen();
 
 };
 

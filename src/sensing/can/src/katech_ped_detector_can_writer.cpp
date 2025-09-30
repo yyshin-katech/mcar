@@ -52,7 +52,7 @@ class PED_DETECTOR_CAN_WRITTER{
 
 PED_DETECTOR_CAN_WRITTER::PED_DETECTOR_CAN_WRITTER()
 {
-    nh.subscribe("/katech_msg/crosswalk_detection", 1, &PED_DETECTOR_CAN_WRITTER::PED_DETECTOR_CALLBACK, this);
+    sub = nh.subscribe("/katech_msg/crosswalk_detection", 1, &PED_DETECTOR_CAN_WRITTER::PED_DETECTOR_CALLBACK, this);
 
     msg_list.push_back(make_tuple((char*)"Pedestrian_Stat",  vector<char*> {(char*)"rel_pos_y_1",\
                                                                     (char*)"rel_pos_x_1",\
@@ -146,6 +146,7 @@ void PED_DETECTOR_CAN_WRITTER::PED_DETECTOR_CALLBACK(const katech_custom_msgs::p
         }
         re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
         memset(can_data, 0, sizeof(can_data));
+
     }
     else if(msg.data.size() == 2)
     {

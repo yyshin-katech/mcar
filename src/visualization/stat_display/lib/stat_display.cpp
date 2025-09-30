@@ -12,7 +12,7 @@ STAT_DISPLAY::STAT_DISPLAY()
     vcu_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/vcu_stat", 1);
     cam_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/cam_stat", 1);
     ipc_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/ipc_stat", 1);
-    
+    local_text_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/local_info_stat", 1);
     sound_pub = nh.advertise<sound_play::SoundRequest>("/robotsound", 1);
 
     gps_sub = nh.subscribe("/diagnostic/cpt7_gps", 1, &STAT_DISPLAY::diagnostic_gps_callback, this);
@@ -26,6 +26,7 @@ STAT_DISPLAY::STAT_DISPLAY()
     ipc_sub = nh.subscribe("/diagnostic/ipc", 1, &STAT_DISPLAY::diagnostic_ipc_callback, this);
 
     local_sub = nh.subscribe("/localization/to_control_team", 1, &STAT_DISPLAY::local_callback, this);
+    chassis_sub_node = nh.subscribe("/sensors/shassis", 1, &STAT_DISPLAY::chassis_callback_func, this);
 
     timer_ = nh.createTimer(ros::Duration(1.0), &STAT_DISPLAY::timerCallback, this);
 
@@ -43,6 +44,11 @@ STAT_DISPLAY::STAT_DISPLAY()
 STAT_DISPLAY::~STAT_DISPLAY()
 {
     
+}
+
+void STAT_DISPLAY::chassis_callback_func(const mmc_msgs::chassis_msg::ConstPtr& msg)
+{
+    chassis_msg = *msg;
 }
 
 void STAT_DISPLAY::POPUP_Text_Gen(const std::string& message)
@@ -153,6 +159,8 @@ void STAT_DISPLAY::timerCallback(const ros::TimerEvent&)
     this->IPC_Text_Gen();
 
     this->system_status_check();
+
+    this->Local_Text_Gen();
 }
 
 void STAT_DISPLAY::GPS_Text_Gen()
@@ -959,30 +967,67 @@ void STAT_DISPLAY::sound_play(const std::string& sensor_name)
     sound_msg.arg = path;
     sound_msg.arg2 = "";
 
-    if(local_msg.Road_State == 1)
+    if(chassis_msg.vcu_EPS_Status == 1)
     {
-        if(play_count >= 4)
+        if(local_msg.Road_State == 1)
         {
-            sound_pub.publish(sound_msg);
-            play_count = 0;
+            if(play_count >= 4)
+            {
+                sound_pub.publish(sound_msg);
+                play_count = 0;
+            }
+            else
+            {
+                play_count++;
+            }
         }
         else
         {
-            play_count++;
+            if(play_count >= 2)
+            {
+                sound_pub.publish(sound_msg);
+                play_count = 0;
+            }
+            else
+            {
+                play_count++;
+            }
         }
     }
-    else
-    {
-        if(play_count >= 2)
-        {
-            sound_pub.publish(sound_msg);
-            play_count = 0;
-        }
-        else
-        {
-            play_count++;
-        }
-    }
-
     
+}
+
+void STAT_DISPLAY::Local_Text_Gen()
+{
+    ros::Time now = ros::Time::now();
+    
+    LOCAL_text.text = "Curr LANE: " + std::to_string(local_msg.LINK_ID) +
+                    "\nGPSRTK: " + std::to_string(cpt7_msg.GPSRTK_StatCode);
+
+    std_msgs::ColorRGBA state_color;
+
+    int32_t width = 400;
+    int32_t height = 80;
+
+    LOCAL_text.action = LOCAL_text.ADD;
+    LOCAL_text.font = "DejaVu Sans Mono";
+    LOCAL_text.text_size = 20;
+    LOCAL_text.width = width;
+    LOCAL_text.height = height;
+    LOCAL_text.left = 500;
+    LOCAL_text.top = 20;
+
+    state_color.r = 0;
+    state_color.g = 0;
+    state_color.b = 0;
+    state_color.a = 1;
+    LOCAL_text.fg_color = state_color;
+    
+    state_color.r = 0.4;
+    state_color.g = 0.4;
+    state_color.b = 0.4;
+    state_color.a = 0.5;
+    LOCAL_text.bg_color = state_color;
+
+    local_text_pub.publish(LOCAL_text);
 }
