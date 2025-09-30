@@ -16,7 +16,7 @@ from sensor_msgs.msg import NavSatFix
 import math
 
 # 파라미터 설정
-MAPFILE_PATH = rospy.get_param('MAPFILE_PATH', '/path/to/your/shp/files')
+MAPFILE_PATH = rospy.get_param('MAPFILE_PATH', '/home/katech/mcar_v11/src/localization/gps_system_localizer/src')
 MAP_EPSG_NUMBER = 5179  # 기존 5186에서 5179로 변경
 
 MIN_LANE_ID = 1
@@ -60,7 +60,7 @@ class SHPLocalizationNode(object):
         """SHP 파일에서 도로 링크 데이터 로드"""
         try:
             # SHP 파일 로드 (단일 파일 또는 여러 파일)
-            shp_file_path = f'{MAPFILE_PATH}/road_links.shp'
+            shp_file_path = f'{MAPFILE_PATH}/A2_LINK_epsg5179.shp'
             
             # 전체 도로 링크를 하나의 SHP 파일에서 로드
             self.all_road_links = gpd.read_file(shp_file_path)
