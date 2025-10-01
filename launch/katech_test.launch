@@ -4,9 +4,9 @@
 
     <param name="EPSG" value="5179" />
     
-    <!-- <param name="MAPFILE_PATH" value="$(find gps_system_localizer)/mapfiles/K_CITY_20250923" /> -->
+    <param name="MAPFILE_PATH" value="$(find gps_system_localizer)/mapfiles/K_CITY_20250923" />
     <!--K CITY 입체교차로 전용-->
-    <param name="MAPFILE_PATH" value="$(find gps_system_localizer)/mapfiles/K_CITY_SLOPE" />
+    <!-- <param name="MAPFILE_PATH" value="$(find gps_system_localizer)/mapfiles/K_CITY_SLOPE" /> -->
 
     
    <group ns="sensors/gps">

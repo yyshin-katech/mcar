@@ -14,7 +14,7 @@ class FrenetCoordinateCalculator:
         
         # Parameters
         self.mapfile_path = rospy.get_param('~mapfile_path', 
-                                          '/home/katech/mcar_v11/src/localization/gps_system_localizer/src')
+                                          '/home/ads/mcar_v13/src/localization/gps_system_localizer/src')
         self.shp_filename = rospy.get_param('~shp_filename', 'A2_LINK_epsg5179.shp')
         
         # Reference coordinates
