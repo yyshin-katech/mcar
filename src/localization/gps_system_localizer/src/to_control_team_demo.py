@@ -21,9 +21,16 @@ from utils_cython import find_closest, compute_current_lane, xy2frenet_with_clos
 MAPFILE_PATH = rospy.get_param('MAPFILE_PATH')
 MAP_EPSG_NUMBER = 5186
 
+MAP_IS_CITY = 1
+
 MIN_LANE_ID = 1
-MAX_LANE_ID = 60 #link_59 is dummy file
-# MAX_LANE_ID = 20
+
+if MAP_IS_CITY:
+    MAX_LANE_ID = 60 #link_59 is dummy file
+else:
+    MAX_LANE_ID = 20
+
+
 ODD_CNT_THRESHOLD = 20
 ODD_OCCUPIED_OFFSET_THRESHOLD = 0.95
 ODD_YAW_ERR_THRESHOLD = np.deg2rad(45)
@@ -168,6 +175,29 @@ class DistanceCalculator(object):
         """
         localization 메세지를 받아서 control team에 필요한 메세지 publish
         """
+        # (현재 LINK_ID, 이전 lane_id) -> 새로운 LINK_ID 매핑
+        lane_transitions = {
+            # FIRST UPHILL
+            (5, 7): 7,
+            (5, 8): 8,
+            (5, 3): 3,
+            (10, 8): 8,
+            (10, 3): 3,
+            (8, 10): 10,
+            (3, 10): 10,
+            
+            # SECOND UPHILL
+            (18, 11): 11,
+            (19, 16): 16,
+            (14, 11): 11,
+            (14, 16): 16,
+            (11, 18): 18,
+            (11, 14): 14,  # 원본 코드에 = 대신 == 버그 수정
+            (16, 18): 18,
+            (16, 19): 19,
+            (16, 14): 14,
+        }
+        
         ODD_id_list = [MAX_LANE_ID+1]
         t0 = time.time()
 
@@ -197,7 +227,58 @@ class DistanceCalculator(object):
         #     p.distance_to_lane_end = self.target_roads[current_lane_id]['station'][0][-1] + \
         #                              self.target_roads[25]['station'][0][-1] - current_s
         # else:
-
+        if not MAP_IS_CITY:
+            # p.LINK_ID = lane_transitions.get((p.LINK_ID, self.old_lane_id), p.LINK_ID)
+##############FIRST UPHILL############################################
+            if p.LINK_ID == 5:
+                if self.old_lane_id == 7:
+                    p.LINK_ID = 7
+                elif self.old_lane_id == 8:
+                    p.LINK_ID = 8
+                elif self.old_lane_id == 3:
+                    p.LINK_ID = 3
+                else:
+                    p.LINK_ID = 5
+            elif p.LINK_ID == 10:
+                if self.old_lane_id == 8:
+                    p.LINK_ID = 8
+                elif self.old_lane_id == 3:
+                    p.LINK_ID = 3
+                else:
+                    p.LINK_ID = 10
+            elif p.LINK_ID == 8:
+                if self.old_lane_id == 10:
+                    p.LINK_ID = 10
+            elif p.LINK_ID == 3:
+                if self.old_lane_id == 10:
+                    p.LINK_ID = 10
+##############SECOND UPHILL############################################
+            elif p.LINK_ID == 18:
+                if self.old_lane_id == 11:
+                    p.LINK_ID = 11
+            elif p.LINK_ID == 19:
+                if self.old_lane_id == 16:
+                    p.LINK_ID = 16
+            elif p.LINK_ID == 14:
+                if self.old_lane_id == 11:
+                    p.LINK_ID = 11
+                elif self.old_lane_id == 16:
+                    p.LINK_ID = 16
+            elif p.LINK_ID == 11:
+                if self.old_lane_id == 18:
+                    p.LINK_ID = 18
+                if self.old_lane_id = 14:
+                    p.LINK_ID = 14
+            elif p.LINK_ID == 16:
+                if self.old_lane_id == 18:
+                    p.LINK_ID = 18
+                elif self.old_lane_id == 19:
+                    p.LINK_ID = 19
+                elif self.old_lane_id == 14:
+                    p.LINK_ID = 14
+            else:
+                p.LINK_ID = p.LINK_ID
+            
         p.distance_to_lane_end = self.target_roads[current_lane_id]['station'][0][-1] - current_s
 
         if p.distance_to_lane_end < 0:
@@ -293,6 +374,8 @@ class DistanceCalculator(object):
         p.lateral_offset = current_d
         
         self.to_control_team_pub.publish(p)
+
+        self.old_lane_id = p.LINK_ID
 
 if __name__ == "__main__":
     DistanceCalculator()
