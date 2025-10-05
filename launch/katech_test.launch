@@ -3,11 +3,20 @@
     <arg name="sweet_home" default="$(optenv HOME)" />
 
     <param name="EPSG" value="5179" />
-    
-    <param name="MAPFILE_PATH" value="$(find gps_system_localizer)/mapfiles/K_CITY_20250923" />
-    <!-- K CITY 입체교차로 전용 -->
-    <!-- <param name="MAPFILE_PATH" value="$(find gps_system_localizer)/mapfiles/K_CITY_SLOPE" /> -->
 
+    <arg name="use_slope_map" default="false" doc="Use slope map instead of k_city"/>
+
+    <!-- 맵 경로 설정 -->
+    <param name="MAPFILE_PATH" 
+          value="$(find gps_system_localizer)/mapfiles/K_CITY_SLOPE" 
+          if="$(arg use_slope_map)"/>
+    <param name="MAPFILE_PATH" 
+          value="$(find gps_system_localizer)/mapfiles/K_CITY_20250923" 
+          unless="$(arg use_slope_map)"/>
+
+    <!-- USE_SLOPE 플래그 설정 -->
+    <param name="USE_SLOPE" value="true" type="bool" if="$(arg use_slope_map)"/>
+    <param name="USE_SLOPE" value="false" type="bool" unless="$(arg use_slope_map)"/>
     
    <group ns="sensors/gps">
         <include file="$(find novatel_gps_driver)/launch/tester_for_usb_eq.launch">

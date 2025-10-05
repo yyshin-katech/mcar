@@ -13,7 +13,10 @@ int8 left_LaneChange_avail
 int8 Speed_Limit #[km/h]
 int8 guard_zone
 
-int8 lane_id  # 1: mainlane1, 2: mainlane2, 3: merge_in, 4: out
+int8 GPS_Over
+int8 Take_Over_Request
+int8 Wrong_Way_Warn
+
 string lane_name
 
 

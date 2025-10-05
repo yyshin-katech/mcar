@@ -110,10 +110,7 @@ BO_ 1824 LOCAL_MAP_INFO: 8 NUC
  SG_ Speed_Limit : 48|8@1+ (1,0) [0|255] "" Vector__XXX
  SG_ guard_zone : 42|2@1+ (1,0) [0|3] "" Vector__XXX
 
-BO_ 64 On_ODD_Stat: 3 NUC
- SG_ GPS_Over : 3|1@1+ (1,0) [0|0] "" Vector__XXX
- SG_ Take_Over_Request : 16|1@1+ (1,0) [0|0] "" Vector__XXX
- SG_ Wrong_Way_Warn : 7|1@1+ (1,0) [0|1] "" Vector__XXX
+BO_ 64 On_ODD_Stat: 2 NUC
  SG_ distance_out_of_ODD : 8|8@1+ (1,0) [0|255] "m" Vector__XXX
  SG_ Road_State : 1|2@1+ (1,0) [0|3] "" Vector__XXX
  SG_ On_ODD : 0|1@1+ (1,0) [0|1] "" Vector__XXX
