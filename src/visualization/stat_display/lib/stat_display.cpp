@@ -15,6 +15,8 @@ STAT_DISPLAY::STAT_DISPLAY()
     local_text_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/local_info_stat", 1);
     sound_pub = nh.advertise<sound_play::SoundRequest>("/robotsound", 1);
 
+    system_diag_pub = nh.advertise<katech_diagnostic_msgs::katech_diagnostic_msg>("/diagnostic/system", 1);
+
     gps_sub = nh.subscribe("/diagnostic/cpt7_gps", 1, &STAT_DISPLAY::diagnostic_gps_callback, this);
     adcu_sub = nh.subscribe("/diagnostic/adcu", 1, &STAT_DISPLAY::diagnostic_adcu_callback, this);
     lidar_sub = nh.subscribe("/diagnostic/lidar", 1, &STAT_DISPLAY::diagnostic_lidar_callback, this);
@@ -87,7 +89,6 @@ void STAT_DISPLAY::POPUP_Text_Gen(const std::string& message)
     state_color.a = 0.7;
     POPUP_text.bg_color = state_color;
     popup_pub.publish(POPUP_text);
-
 }
 
 void STAT_DISPLAY::POPUP_Text_Clear()
@@ -161,6 +162,8 @@ void STAT_DISPLAY::timerCallback(const ros::TimerEvent&)
     this->system_status_check();
 
     this->Local_Text_Gen();
+
+    katech_diag_pub.publish(katech_diag_msg);
 }
 
 void STAT_DISPLAY::GPS_Text_Gen()
@@ -216,6 +219,8 @@ void STAT_DISPLAY::GPS_Text_Gen()
     state_color.a = 0.5;
     GPS_text.bg_color = state_color;
     gps_pub.publish(GPS_text);
+
+    katech_diag_msg.gps_status = gps_status;
 
 }
 void STAT_DISPLAY::GPS_AliveCnt_Check(uint8_t current_cnt)
@@ -295,6 +300,8 @@ void STAT_DISPLAY::ADCU_Text_Gen()
     state_color.a = 0.5;
     ADCU_text.bg_color = state_color;
     adcu_pub.publish(ADCU_text);
+
+    katech_diag_msg.adcu_status = adcu_status;
 }
 
 void STAT_DISPLAY::ADCU_AliveCnt_Check(uint8_t current_cnt)
@@ -381,6 +388,8 @@ void STAT_DISPLAY::LIDAR_Text_Gen()
     state_color.a = 0.5;
     LIDAR_text.bg_color = state_color;
     lidar_pub.publish(LIDAR_text);
+
+    katech_diag_msg.lidar_status = lidar_status;
 }
 
 void STAT_DISPLAY::LIDAR_AliveCnt_Check(uint8_t current_cnt)
@@ -460,6 +469,8 @@ void STAT_DISPLAY::RADAR_Text_Gen()
     state_color.a = 0.5;
     RADAR_text.bg_color = state_color;
     radar_pub.publish(RADAR_text);
+
+    katech_diag_msg.radar_status = radar_status;
 }
 
 void STAT_DISPLAY::RADAR_AliveCnt_Check(uint8_t current_cnt)
@@ -539,6 +550,8 @@ void STAT_DISPLAY::V2X_Text_Gen()
     state_color.a = 0.5;
     V2X_text.bg_color = state_color;
     v2x_pub.publish(V2X_text);
+
+    katech_diag_msg.v2x_status = v2x_status;
 }
 
 void STAT_DISPLAY::V2X_AliveCnt_Check(uint8_t current_cnt)
@@ -618,6 +631,8 @@ void STAT_DISPLAY::HMI_Text_Gen()
     state_color.a = 0.5;
     HMI_text.bg_color = state_color;
     hmi_pub.publish(HMI_text);
+
+    katech_diag_msg.hmi_status = hmi_status;
 }
 
 void STAT_DISPLAY::HMI_AliveCnt_Check(uint8_t current_cnt)
@@ -697,6 +712,8 @@ void STAT_DISPLAY::VCU_Text_Gen()
     state_color.a = 0.5;
     VCU_text.bg_color = state_color;
     vcu_pub.publish(VCU_text);
+
+    katech_diag_msg.vcu_status = vcu_status;
 }
 
 void STAT_DISPLAY::VCU_AliveCnt_Check(uint8_t current_cnt)
@@ -777,6 +794,8 @@ void STAT_DISPLAY::CAM_Text_Gen()
     CAM_text.bg_color = state_color;
     cam_pub.publish(CAM_text);
 
+    katech_diag_msg.cam_status = cam_status;
+
 }
 void STAT_DISPLAY::CAM_AliveCnt_Check(uint8_t current_cnt)
 {
@@ -855,6 +874,8 @@ void STAT_DISPLAY::IPC_Text_Gen()
     state_color.a = 0.5;
     IPC_text.bg_color = state_color;
     ipc_pub.publish(IPC_text);
+
+    katech_diag_msg.ipc_status = ipc_status;
 
 }
 void STAT_DISPLAY::IPC_AliveCnt_Check(uint8_t current_cnt)
@@ -967,7 +988,7 @@ void STAT_DISPLAY::sound_play(const std::string& sensor_name)
     sound_msg.arg = path;
     sound_msg.arg2 = "";
 
-    if(chassis_msg.vcu_EPS_Status == 1)
+    if(chassis_msg.vcu_EPS_Status == 2)
     {
         if(local_msg.Road_State == 1)
         {

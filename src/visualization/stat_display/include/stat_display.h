@@ -27,6 +27,7 @@
 #include <katech_diagnostic_msgs/vcu_diagnostic_msg.h>
 #include <katech_diagnostic_msgs/cam_diagnostic_msg.h>
 #include <katech_diagnostic_msgs/ipc_diagnostic_msg.h>
+#include <katech_diagnostic_msgs/katech_diagnostic_msg.h>
 
 #include <mmc_msgs/to_control_team_from_local_msg.h>
 #include <mmc_msgs/chassis_msg.h>
@@ -71,6 +72,8 @@ class STAT_DISPLAY{
         ros::Publisher ipc_pub;
         ros::Publisher local_text_pub;
 
+        ros::Publisher system_diag_pub;
+
         ros::Publisher sound_pub;
 
         ros::Timer timer_;
@@ -103,6 +106,8 @@ class STAT_DISPLAY{
         katech_diagnostic_msgs::vcu_diagnostic_msg vcu_msg;
         katech_diagnostic_msgs::cam_diagnostic_msg cam_msg;
         katech_diagnostic_msgs::ipc_diagnostic_msg ipc_msg;
+        
+        katech_diagnostic_msgs::katech_diagnostic_msg katech_diag_msg;
         
         mmc_msgs::to_control_team_from_local_msg local_msg;
         mmc_msgs::chassis_msg chassis_msg;

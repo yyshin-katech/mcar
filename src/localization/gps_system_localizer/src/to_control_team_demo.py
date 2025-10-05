@@ -10,6 +10,7 @@ from scipy.spatial import cKDTree as KDTree
 import time
 import pyproj
 
+from katech_diagnostic_msgs import katech_diagnostic_msg
 from mmc_msgs.msg import localization2D_msg, to_control_team_from_local_msg
 from sensor_msgs.msg import NavSatFix
 from utils import distance2curve
@@ -19,13 +20,13 @@ from utils_cython import find_closest, compute_current_lane, xy2frenet_with_clos
 # MAPFILE_PATH = '/home/katech/mcar_v10/src/localization/gps_system_localizer/mapfiles/K_CITY_20250630'
 # MAPFILE_PATH = '/home/ads/mcar_v10/src/localization/gps_system_localizer/mapfiles/KATECH_0508'
 MAPFILE_PATH = rospy.get_param('MAPFILE_PATH')
-MAP_EPSG_NUMBER = 5186
+USE_SLOPE = rospy.get_param('USE_SLOPE')
 
-MAP_IS_CITY = 1
+MAP_EPSG_NUMBER = 5186
 
 MIN_LANE_ID = 1
 
-if MAP_IS_CITY:
+if USE_SLOPE:
     MAX_LANE_ID = 60 #link_59 is dummy file
 else:
     MAX_LANE_ID = 20
@@ -70,7 +71,8 @@ class DistanceCalculator(object):
         # localization 정보 들어오면 바로 control team에 필요한 메세지 publish
         # callback 안에 publish 명령어까지 같이 들어있음
         rospy.Subscriber('/localization/pose_2d_gps', localization2D_msg, self.pose_2d_cb, queue_size=1)
-
+        rospy.Subscriber('/diagnostic/system', katech_diagnostic_msg, self.diag_cb, queue_size=1)
+        
     def set_publisher(self):
         self.to_control_team_pub = rospy.Publisher('/localization/to_control_team', to_control_team_from_local_msg, queue_size=1)
 
@@ -171,6 +173,37 @@ class DistanceCalculator(object):
          
         return value
     
+    def diag_cb(self, msg):
+        statuses = [
+            msg.gps_status,
+            msg.adcu_status,
+            msg.lidar_status,
+            msg.radar_status,
+            msg.v2x_status,
+            msg.hmi_status,
+            msg.vcu_status,
+            msg.cam_status,
+            msg.ipc_status,
+            ]
+        if any(s != 0 for s in statuses):
+            p.Take_Over_Request = 1
+        else:
+            p.Take_Over_Request = 0
+        # if (msg.gps_status != 0 or
+        #     msg.adcu_status != 0 or
+        #     msg.lidar_status != 0 or
+        #     msg.radar_status != 0 or
+        #     msg.v2x_status != 0 or
+        #     msg.hmi_status != 0 or
+        #     msg.vcu_status != 0 or
+        #     msg.cam_status != 0 or
+        #     msg.ipc_status != 0):
+        #     # rospy.loginfo("⚠ 하나라도 0이 아님! (문제 발생 가능)")
+        #     p.Take_Over_Request = 1
+        # else:
+        #     # rospy.loginfo("✅ 전부 0임 (정상 상태)")
+        #     p.Take_Over_Request = 0
+
     def pose_2d_cb(self, msg):
         """
         localization 메세지를 받아서 control team에 필요한 메세지 publish
@@ -296,8 +329,6 @@ class DistanceCalculator(object):
         p.Road_State = 0
         p.distance_out_of_ODD = 200  # 현재 상태 모든 도로가 계속 ODD 영역으로 설정
 
-        p.lane_id = current_lane_id + 1
-
         ## 지금 주행중인 링크랑 연결된 다음 링크가 ODD 이탈 영역 혹은 도로가 끊긴 경우 ##
 
         if p.NEXT_LINK_ID in ODD_id_list or p.NEXT_LINK_ID == 0:
@@ -350,20 +381,34 @@ class DistanceCalculator(object):
             else:
                 self.occupied_count = 0
 
-            # cs = CubicSpline(mapx_set, mapy_set, bc_type='natural')
-            # cs_derivative = cs.derivative()
-            # current_closest_waypoint_in_MATLAB = min(current_closest_waypoint_in_MATLAB, len(mapx_set) - 1)
-            # path_yaw = cs_derivative(mapx_set[current_closest_waypoint_in_MATLAB])
-            # yaw_error_size = abs(path_yaw - yaw)
+            cs = CubicSpline(mapx_set, mapy_set, bc_type='natural')
+            cs_derivative = cs.derivative()
+            current_closest_waypoint_in_MATLAB = min(current_closest_waypoint_in_MATLAB, len(mapx_set) - 1)
+            path_yaw = cs_derivative(mapx_set[current_closest_waypoint_in_MATLAB])
+            yaw_error_size = abs(path_yaw - yaw)
 
-            # p.yaw_error_size = yaw_error_size
+            p.yaw_error_size = yaw_error_size
 
-            # ## 현재 주행할 경로쪽으로 방향이 제대로 맞으면 오토모드 송출 아니면, 수동모드 송출 ##
+            ## 현재 주행할 경로쪽으로 방향이 제대로 맞으면 오토모드 송출 아니면, 수동모드 송출 ##
 
+            if yaw_error_size < ODD_YAW_ERR_THRESHOLD:
+                rospy.loginfo("On ODD")
+                p.Wrong_Way_Warn = 0
+            elif yaw_error_size > np.deg2rad(135):  #반대방향
+                p.On_ODD = 1
+                p.Road_State = 2
+                p.Wrong_Way_Warn = 1
+                p.distance_out_of_ODD = 0
+            else:   # 단순 이탈
+                p.On_ODD = 1
+                p.Road_State = 2
+                p.Wrong_Way_Warn = 0
+                p.distance_out_of_ODD = 0
             # if yaw_error_size >= ODD_YAW_ERR_THRESHOLD :
             #     p.On_ODD = 1
             #     p.Road_State = 2
             #     p.distance_out_of_ODD = 0
+                
 
         p.lane_name = current_lane_name
         p.host_east = e

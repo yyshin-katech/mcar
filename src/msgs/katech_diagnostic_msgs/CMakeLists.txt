@@ -22,6 +22,7 @@ add_message_files(
  vcu_diagnostic_msg.msg
  cam_diagnostic_msg.msg
  ipc_diagnostic_msg.msg
+ katech_diagnostic_msg.msg
 )
 
 ## Generate added messages and services with any dependencies listed here
