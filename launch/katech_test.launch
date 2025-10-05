@@ -6,6 +6,8 @@
 
     <arg name="use_slope_map" default="false" doc="Use slope map instead of k_city"/>
 
+    <!-- using roslaunch launch/katech_test.launch -->
+    <!-- using roslaunch launch/katech_test.launch use_slope_map:=true-->
     <!-- 맵 경로 설정 -->
     <param name="MAPFILE_PATH" 
           value="$(find gps_system_localizer)/mapfiles/K_CITY_SLOPE" 
@@ -15,8 +17,8 @@
           unless="$(arg use_slope_map)"/>
 
     <!-- USE_SLOPE 플래그 설정 -->
-    <param name="USE_SLOPE" value="true" type="bool" if="$(arg use_slope_map)"/>
-    <param name="USE_SLOPE" value="false" type="bool" unless="$(arg use_slope_map)"/>
+    <param name="USE_SLOPE" value="1" type="int" if="$(arg use_slope_map)"/>
+    <param name="USE_SLOPE" value="0" type="int" unless="$(arg use_slope_map)"/>
     
    <group ns="sensors/gps">
         <include file="$(find novatel_gps_driver)/launch/tester_for_usb_eq.launch">
