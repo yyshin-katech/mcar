@@ -1,5 +1,8 @@
 #include <stat_display.h>
 
+// 1280 * 720
+
+
 STAT_DISPLAY::STAT_DISPLAY()
 {
     popup_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/popup", 1);
@@ -1081,8 +1084,8 @@ void STAT_DISPLAY::MODE_Text_Gen()
     MANUAL_text.height = height;
     
     // 중앙 하단 위치 설정 (1920x1080 기준)
-    MANUAL_text.left = 500;//(1920 - width) / 2;  // 중앙 정렬
-    MANUAL_text.top = 700;  // 하단 (화면 해상도에 맞게 조정 필요)
+    MANUAL_text.left = 550;//(1920 - width) / 2;  // 중앙 정렬
+    MANUAL_text.top = 600;  // 하단 (화면 해상도에 맞게 조정 필요)
 
     // 파란색 텍스트
     state_color.r = 0;
