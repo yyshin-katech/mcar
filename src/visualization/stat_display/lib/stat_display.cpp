@@ -17,7 +17,7 @@ STAT_DISPLAY::STAT_DISPLAY()
 
     sound_pub = nh.advertise<sound_play::SoundRequest>("/robotsound", 1);
 
-    system_diag_pub = nh.advertise<katech_diagnostic_msgs::katech_diagnostic_msg>("/diagnostic/system", 1);
+    katech_diag_pub = nh.advertise<katech_diagnostic_msgs::katech_diagnostic_msg>("/diagnostic/system", 1);
 
     gps_sub = nh.subscribe("/diagnostic/cpt7_gps", 1, &STAT_DISPLAY::diagnostic_gps_callback, this);
     adcu_sub = nh.subscribe("/diagnostic/adcu", 1, &STAT_DISPLAY::diagnostic_adcu_callback, this);
@@ -1098,5 +1098,5 @@ void STAT_DISPLAY::MODE_Text_Gen()
     state_color.a = 0;
     MANUAL_text.bg_color = state_color;
     
-    manual_pub.publish(MANUAL_text);
+    mode_pub.publish(MANUAL_text);
 }
