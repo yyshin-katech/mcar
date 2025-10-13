@@ -1,6 +1,10 @@
 #!/usr/bin/env python3.8
 # -*- coding: utf-8 -*-
 
+# turnnel 입구 gps fake 지점
+# 링크 56번 남은거리 60미터
+# turnel 출구 gps fake off 지점
+# 링크 57번 남은거리 10미터
 import rospy
 import numpy as np
 import scipy.io as sio
@@ -46,6 +50,7 @@ class DistanceCalculator(object):
         self.set_subscriber()
         self.set_publisher()
         self.old_lane_id = 0
+        self.takeoverreq = 0
 
         rospy.spin()
 
@@ -188,9 +193,9 @@ class DistanceCalculator(object):
             msg.ipc_status,
             ]
         if any(s != 0 for s in statuses):
-            p.Take_Over_Request = 1
+            self.takeoverreq = 1
         else:
-            p.Take_Over_Request = 0
+            self.takeoverreq = 0
         # if (msg.gps_status != 0 or
         #     msg.adcu_status != 0 or
         #     msg.lidar_status != 0 or
@@ -331,6 +336,7 @@ class DistanceCalculator(object):
         p.Road_State = 0
         p.distance_out_of_ODD = 200  # 현재 상태 모든 도로가 계속 ODD 영역으로 설정
 
+        p.lane_id = current_lane_id + 1
         ## 지금 주행중인 링크랑 연결된 다음 링크가 ODD 이탈 영역 혹은 도로가 끊긴 경우 ##
 
         if p.NEXT_LINK_ID in ODD_id_list or p.NEXT_LINK_ID == 0:
@@ -383,29 +389,29 @@ class DistanceCalculator(object):
             else:
                 self.occupied_count = 0
 
-            cs = CubicSpline(mapx_set, mapy_set, bc_type='natural')
-            cs_derivative = cs.derivative()
-            current_closest_waypoint_in_MATLAB = min(current_closest_waypoint_in_MATLAB, len(mapx_set) - 1)
-            path_yaw = cs_derivative(mapx_set[current_closest_waypoint_in_MATLAB])
-            yaw_error_size = abs(path_yaw - yaw)
+            # cs = CubicSpline(mapx_set, mapy_set, bc_type='natural')
+            # cs_derivative = cs.derivative()
+            # current_closest_waypoint_in_MATLAB = min(current_closest_waypoint_in_MATLAB, len(mapx_set) - 1)
+            # path_yaw = cs_derivative(mapx_set[current_closest_waypoint_in_MATLAB])
+            # yaw_error_size = abs(path_yaw - yaw)
 
-            p.yaw_error_size = yaw_error_size
+            # p.yaw_error_size = yaw_error_size
 
             ## 현재 주행할 경로쪽으로 방향이 제대로 맞으면 오토모드 송출 아니면, 수동모드 송출 ##
 
-            if yaw_error_size < ODD_YAW_ERR_THRESHOLD:
-                rospy.loginfo("On ODD")
-                p.Wrong_Way_Warn = 0
-            elif yaw_error_size > np.deg2rad(135):  #반대방향
-                p.On_ODD = 1
-                p.Road_State = 2
-                p.Wrong_Way_Warn = 1
-                p.distance_out_of_ODD = 0
-            else:   # 단순 이탈
-                p.On_ODD = 1
-                p.Road_State = 2
-                p.Wrong_Way_Warn = 0
-                p.distance_out_of_ODD = 0
+            # if yaw_error_size < ODD_YAW_ERR_THRESHOLD:
+            #     rospy.loginfo("On ODD")
+            #     p.Wrong_Way_Warn = 0
+            # elif yaw_error_size > np.deg2rad(135):  #반대방향
+            #     p.On_ODD = 1
+            #     p.Road_State = 2
+            #     p.Wrong_Way_Warn = 1
+            #     p.distance_out_of_ODD = 0
+            # else:   # 단순 이탈
+            #     p.On_ODD = 1
+            #     p.Road_State = 2
+            #     p.Wrong_Way_Warn = 0
+            #     p.distance_out_of_ODD = 0
             # if yaw_error_size >= ODD_YAW_ERR_THRESHOLD :
             #     p.On_ODD = 1
             #     p.Road_State = 2
@@ -420,6 +426,11 @@ class DistanceCalculator(object):
         p.station = current_s
         p.lateral_offset = current_d
         
+        if self.takeoverreq == 1:
+            p.Take_Over_Request = 1
+        else:
+            p.Take_Over_Request  = 0
+
         self.to_control_team_pub.publish(p)
 
         self.old_lane_id = p.LINK_ID

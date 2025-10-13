@@ -18,7 +18,7 @@ int8 Take_Over_Request
 int8 Wrong_Way_Warn
 
 string lane_name
-
+uint8 lane_id
 
 
 float64 host_east   # global X [m]

@@ -773,6 +773,13 @@ void CHASSIS_CAN_READER(){
               kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
 
               switch(i){
+                case(0):
+                case(1):
+                case(2):
+                case(3):
+                case(4):
+                case(5):
+                break;
 
                 case(6): // vcu_EPS_Status
                   msg.vcu_EPS_Status = value;
@@ -786,6 +793,11 @@ void CHASSIS_CAN_READER(){
                   msg.vcu_BRK_Status = value;
                 break;
 
+                case(9):
+                case(10):
+                case(11):
+                break;
+                
                 case(12): // VCU1_ADCU_AliveCnt
                   msg.VCU1_ADCU_AliveCnt = value;
                 break;
