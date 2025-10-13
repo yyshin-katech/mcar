@@ -10,7 +10,7 @@ from scipy.spatial import cKDTree as KDTree
 import time
 import pyproj
 
-from katech_diagnostic_msgs import katech_diagnostic_msg
+from katech_diagnostic_msgs.msg import katech_diagnostic_msg
 from mmc_msgs.msg import localization2D_msg, to_control_team_from_local_msg
 from sensor_msgs.msg import NavSatFix
 from utils import distance2curve
@@ -27,9 +27,11 @@ MAP_EPSG_NUMBER = 5186
 MIN_LANE_ID = 1
 
 if USE_SLOPE:
-    MAX_LANE_ID = 60 #link_59 is dummy file
+    MAX_LANE_ID = 20 #link_59 is dummy file
+    MAP_IS_CITY = 0
 else:
-    MAX_LANE_ID = 20
+    MAX_LANE_ID = 60
+    MAP_IS_CITY = 1
 
 
 ODD_CNT_THRESHOLD = 20
@@ -300,7 +302,7 @@ class DistanceCalculator(object):
             elif p.LINK_ID == 11:
                 if self.old_lane_id == 18:
                     p.LINK_ID = 18
-                if self.old_lane_id = 14:
+                if self.old_lane_id == 14:
                     p.LINK_ID = 14
             elif p.LINK_ID == 16:
                 if self.old_lane_id == 18:
