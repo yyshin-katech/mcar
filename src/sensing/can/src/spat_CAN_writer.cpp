@@ -27,7 +27,7 @@
 
 using namespace std;
 
-#define MAX_SPAT_MSG 11
+#define MAX_SPAT_MSG 5
 
 class SPAT_CAN_WRITER{
   public:
@@ -135,10 +135,10 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg 
     {
       target_msg = (char*)"V2X_SPaT_1";
       temp_data = {(char)0,
-      (int)msg.data[i].Movements.TimeChangeDetails,
-      (unsigned char)msg.data[i].Movements.MovementPhaseStatus,
-      (double)msg.data[i].Movements.SignalGroupID,
-      (double)msg.data[i].IntersectionID};
+      (int)0,
+      (unsigned char)0,
+      (double)0,
+      (double)0};
 
       msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
       kvaDbGetMsgByName(dh, target_msg, &mh);
