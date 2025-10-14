@@ -26,8 +26,6 @@ from utils_cython import find_closest, compute_current_lane, xy2frenet_with_clos
 MAPFILE_PATH = rospy.get_param('MAPFILE_PATH')
 USE_SLOPE = rospy.get_param('USE_SLOPE')
 
-MAP_EPSG_NUMBER = 5186
-
 MIN_LANE_ID = 1
 
 if USE_SLOPE:
