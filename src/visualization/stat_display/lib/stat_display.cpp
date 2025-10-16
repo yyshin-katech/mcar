@@ -1085,7 +1085,7 @@ void STAT_DISPLAY::MODE_Text_Gen()
     
     // 중앙 하단 위치 설정 (1920x1080 기준)
     MANUAL_text.left = 550;//(1920 - width) / 2;  // 중앙 정렬
-    MANUAL_text.top = 400;  // 하단 (화면 해상도에 맞게 조정 필요)
+    MANUAL_text.top = 550;  // 하단 (화면 해상도에 맞게 조정 필요)
 
     // 파란색 텍스트
     state_color.r = 0;
