@@ -509,6 +509,7 @@ int main(int argc, char **argv){
   can_status = SPaTCW.OPEN_CAN_CHANNEL_AND_READ_DB(channel_num, filename, init_access_flag);
 
   ros::Subscriber sub1 = node.subscribe("/katri_v2x_node/katri_spat", 1, &SPAT_CAN_WRITER::CALLBACK_SPAT, &SPaTCW);
+  // ros::Subscriber sub1 = node.subscribe("/ktri_obu_interface_node/katri_spat", 1, &SPAT_CAN_WRITER::CALLBACK_SPAT, &SPaTCW);
   ros::Subscriber sub2 = node.subscribe("/localization/to_control_team", 1, &SPAT_CAN_WRITER::CALLBACK_LOCAL_TEAM, &SPaTCW);
 
   ros::waitForShutdown();   

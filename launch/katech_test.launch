@@ -47,7 +47,7 @@
 
   <node name="track_CAN_writer_no_grid"       type="track_CAN_writer_no_grid"     pkg="can"  respawn="true" />
 
-  <node name="katri_obu_interface_node"       type="katri_obu_interface_node"     pkg="katri_obu_interface"  respawn="true" />
+  <node name="katri_v2x_node"       type="katri_obu_interface_node"     pkg="katri_obu_interface"  respawn="true" />
   <node name="spat_CAN_writer"       type="spat_CAN_writer"     pkg="can"  respawn="true" />
 
   <!-- KATRI에서는 OFF-->
