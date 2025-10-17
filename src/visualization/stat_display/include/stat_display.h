@@ -27,6 +27,7 @@
 #include <katech_diagnostic_msgs/vcu_diagnostic_msg.h>
 #include <katech_diagnostic_msgs/cam_diagnostic_msg.h>
 #include <katech_diagnostic_msgs/ipc_diagnostic_msg.h>
+#include <katech_diagnostic_msgs/katech_diagnostic_msg.h>
 
 #include <mmc_msgs/to_control_team_from_local_msg.h>
 #include <mmc_msgs/chassis_msg.h>
@@ -71,6 +72,10 @@ class STAT_DISPLAY{
         ros::Publisher ipc_pub;
         ros::Publisher local_text_pub;
 
+        ros::Publisher mode_pub;
+
+        ros::Publisher katech_diag_pub;
+
         ros::Publisher sound_pub;
 
         ros::Timer timer_;
@@ -104,6 +109,8 @@ class STAT_DISPLAY{
         katech_diagnostic_msgs::cam_diagnostic_msg cam_msg;
         katech_diagnostic_msgs::ipc_diagnostic_msg ipc_msg;
         
+        katech_diagnostic_msgs::katech_diagnostic_msg katech_diag_msg;
+
         mmc_msgs::to_control_team_from_local_msg local_msg;
         mmc_msgs::chassis_msg chassis_msg;
 
@@ -120,6 +127,7 @@ class STAT_DISPLAY{
         jsk_rviz_plugins::OverlayText CAM_text;
         jsk_rviz_plugins::OverlayText IPC_text;
         jsk_rviz_plugins::OverlayText LOCAL_text;
+        jsk_rviz_plugins::OverlayText MANUAL_text;
 
         void diagnostic_gps_callback(const katech_diagnostic_msgs::cpt7_gps_diagnostic_msg::ConstPtr& msg);
         void diagnostic_adcu_callback(const katech_diagnostic_msgs::k_adcu_diagnostic_msg::ConstPtr& msg);
@@ -170,6 +178,8 @@ class STAT_DISPLAY{
         void sound_play(const std::string& sensor_name);
 
         void Local_Text_Gen();
+
+        void MODE_Text_Gen();
 
 };
 

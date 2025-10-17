@@ -1,5 +1,8 @@
 #include <stat_display.h>
 
+// 1280 * 720
+
+
 STAT_DISPLAY::STAT_DISPLAY()
 {
     popup_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/popup", 1);
@@ -13,7 +16,11 @@ STAT_DISPLAY::STAT_DISPLAY()
     cam_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/cam_stat", 1);
     ipc_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/ipc_stat", 1);
     local_text_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/local_info_stat", 1);
+    mode_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/mode_text", 1);
+
     sound_pub = nh.advertise<sound_play::SoundRequest>("/robotsound", 1);
+
+    katech_diag_pub = nh.advertise<katech_diagnostic_msgs::katech_diagnostic_msg>("/diagnostic/system", 1);
 
     gps_sub = nh.subscribe("/diagnostic/cpt7_gps", 1, &STAT_DISPLAY::diagnostic_gps_callback, this);
     adcu_sub = nh.subscribe("/diagnostic/adcu", 1, &STAT_DISPLAY::diagnostic_adcu_callback, this);
@@ -87,7 +94,6 @@ void STAT_DISPLAY::POPUP_Text_Gen(const std::string& message)
     state_color.a = 0.7;
     POPUP_text.bg_color = state_color;
     popup_pub.publish(POPUP_text);
-
 }
 
 void STAT_DISPLAY::POPUP_Text_Clear()
@@ -161,6 +167,10 @@ void STAT_DISPLAY::timerCallback(const ros::TimerEvent&)
     this->system_status_check();
 
     this->Local_Text_Gen();
+
+    this->MODE_Text_Gen();
+
+    katech_diag_pub.publish(katech_diag_msg);
 }
 
 void STAT_DISPLAY::GPS_Text_Gen()
@@ -216,6 +226,8 @@ void STAT_DISPLAY::GPS_Text_Gen()
     state_color.a = 0.5;
     GPS_text.bg_color = state_color;
     gps_pub.publish(GPS_text);
+
+    katech_diag_msg.gps_status = gps_status;
 
 }
 void STAT_DISPLAY::GPS_AliveCnt_Check(uint8_t current_cnt)
@@ -295,6 +307,8 @@ void STAT_DISPLAY::ADCU_Text_Gen()
     state_color.a = 0.5;
     ADCU_text.bg_color = state_color;
     adcu_pub.publish(ADCU_text);
+
+    katech_diag_msg.adcu_status = adcu_status;
 }
 
 void STAT_DISPLAY::ADCU_AliveCnt_Check(uint8_t current_cnt)
@@ -381,6 +395,8 @@ void STAT_DISPLAY::LIDAR_Text_Gen()
     state_color.a = 0.5;
     LIDAR_text.bg_color = state_color;
     lidar_pub.publish(LIDAR_text);
+
+    katech_diag_msg.lidar_status = lidar_status;
 }
 
 void STAT_DISPLAY::LIDAR_AliveCnt_Check(uint8_t current_cnt)
@@ -460,6 +476,8 @@ void STAT_DISPLAY::RADAR_Text_Gen()
     state_color.a = 0.5;
     RADAR_text.bg_color = state_color;
     radar_pub.publish(RADAR_text);
+
+    katech_diag_msg.radar_status = radar_status;
 }
 
 void STAT_DISPLAY::RADAR_AliveCnt_Check(uint8_t current_cnt)
@@ -506,7 +524,7 @@ void STAT_DISPLAY::V2X_Text_Gen()
     V2X_text.top = 50+30+30+30;
 
     V2X_AliveCnt_Check(v2x_msg.V2X_AliveCount);
-    v2x_status = 0;
+    
     if((v2x_status == 0) || (v2x_msg.V2X_StatCode == 0))
     {   //흰색 정상
         state_color.r = 0;
@@ -539,6 +557,8 @@ void STAT_DISPLAY::V2X_Text_Gen()
     state_color.a = 0.5;
     V2X_text.bg_color = state_color;
     v2x_pub.publish(V2X_text);
+
+    katech_diag_msg.v2x_status = v2x_status;
 }
 
 void STAT_DISPLAY::V2X_AliveCnt_Check(uint8_t current_cnt)
@@ -618,6 +638,8 @@ void STAT_DISPLAY::HMI_Text_Gen()
     state_color.a = 0.5;
     HMI_text.bg_color = state_color;
     hmi_pub.publish(HMI_text);
+
+    katech_diag_msg.hmi_status = hmi_status;
 }
 
 void STAT_DISPLAY::HMI_AliveCnt_Check(uint8_t current_cnt)
@@ -697,6 +719,8 @@ void STAT_DISPLAY::VCU_Text_Gen()
     state_color.a = 0.5;
     VCU_text.bg_color = state_color;
     vcu_pub.publish(VCU_text);
+
+    katech_diag_msg.vcu_status = vcu_status;
 }
 
 void STAT_DISPLAY::VCU_AliveCnt_Check(uint8_t current_cnt)
@@ -777,6 +801,8 @@ void STAT_DISPLAY::CAM_Text_Gen()
     CAM_text.bg_color = state_color;
     cam_pub.publish(CAM_text);
 
+    katech_diag_msg.cam_status = cam_status;
+
 }
 void STAT_DISPLAY::CAM_AliveCnt_Check(uint8_t current_cnt)
 {
@@ -855,6 +881,8 @@ void STAT_DISPLAY::IPC_Text_Gen()
     state_color.a = 0.5;
     IPC_text.bg_color = state_color;
     ipc_pub.publish(IPC_text);
+
+    katech_diag_msg.ipc_status = ipc_status;
 
 }
 void STAT_DISPLAY::IPC_AliveCnt_Check(uint8_t current_cnt)
@@ -967,7 +995,7 @@ void STAT_DISPLAY::sound_play(const std::string& sensor_name)
     sound_msg.arg = path;
     sound_msg.arg2 = "";
 
-    if(chassis_msg.vcu_EPS_Status == 1)
+    if(chassis_msg.vcu_EPS_Status == 2)
     {
         if(local_msg.Road_State == 1)
         {
@@ -1030,4 +1058,48 @@ void STAT_DISPLAY::Local_Text_Gen()
     LOCAL_text.bg_color = state_color;
 
     local_text_pub.publish(LOCAL_text);
+}
+
+void STAT_DISPLAY::MODE_Text_Gen()
+{
+    // vcu_EPS_Status 값에 따라 텍스트 결정
+    if(chassis_msg.vcu_EPS_Status == 2)
+    {
+        MANUAL_text.text = "AUTO";
+    }
+    else  // 0 또는 1
+    {
+        MANUAL_text.text = "MANUAL";
+    }
+
+    std_msgs::ColorRGBA state_color;
+
+    int32_t width = 300;
+    int32_t height = 50;
+
+    MANUAL_text.action = MANUAL_text.ADD;
+    MANUAL_text.font = "DejaVu Sans Mono";
+    MANUAL_text.text_size = 30;
+    MANUAL_text.width = width;
+    MANUAL_text.height = height;
+    
+    // 중앙 하단 위치 설정 (1920x1080 기준)
+    MANUAL_text.left = 550;//(1920 - width) / 2;  // 중앙 정렬
+    MANUAL_text.top = 550;  // 하단 (화면 해상도에 맞게 조정 필요)
+
+    // 파란색 텍스트
+    state_color.r = 0;
+    state_color.g = 0;
+    state_color.b = 1;
+    state_color.a = 1;
+    MANUAL_text.fg_color = state_color;
+
+    // 완전 투명 배경
+    state_color.r = 0;
+    state_color.g = 0;
+    state_color.b = 0;
+    state_color.a = 0;
+    MANUAL_text.bg_color = state_color;
+    
+    mode_pub.publish(MANUAL_text);
 }

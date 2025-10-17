@@ -71,9 +71,11 @@ LOCAL_CAN_WRITER::LOCAL_CAN_WRITER(){
                                                                          (char*)"Speed_Limit",\
                                                                          (char*)"guard_zone"}));
 
-  msg_list.push_back(make_tuple((char*)"LANE_INFO_A",  vector<char*> {(char*)"TIME",\
-                                                                 (char*)"ALLIVE_CNT",\
-                                                                 (char*)"LANE_ID"}));
+  msg_list.push_back(make_tuple((char*)"LANE_INFO_A",  vector<char*> {(char*)"RIGHT_LINK_ID",\
+                                                                    (char*)"LEFT_LINK_ID",\
+                                                                    (char*)"TIME",\
+                                                                    (char*)"ALLIVE_CNT",\
+                                                                    (char*)"LANE_ID"}));
 
   msg_list.push_back(make_tuple((char*)"LANE_INFO_B",  vector<char*> {(char*)"M_ENTER",\
                                                                       (char*)"M_EXIT"}));
@@ -88,7 +90,10 @@ LOCAL_CAN_WRITER::LOCAL_CAN_WRITER(){
   msg_list.push_back(make_tuple((char*)"CAR_EGO_SD",  vector<char*> {(char*)"EGO_S",\
                                                                      (char*)"EGO_D"}));
 
-  msg_list.push_back(make_tuple((char*)"On_ODD_Stat",  vector<char*> {(char*)"On_ODD",\
+  msg_list.push_back(make_tuple((char*)"On_ODD_Stat",  vector<char*> {(char*)"GPS_Over",\
+                                                                      (char*)"Take_Over_Request",\
+                                                                      (char*)"Wrong_Way_Warn",\
+                                                                     (char*)"On_ODD",\
                                                                      (char*)"Road_State",\
                                                                      (char*)"distance_out_of_ODD"}));
 
@@ -139,7 +144,7 @@ void LOCAL_CAN_WRITER::CALLBACK_LOCAL(const mmc_msgs::to_control_team_from_local
 
       case(1):
         target_msg = (char*)"LANE_INFO_A";
-        temp_data = {new_time, (double)alive_count, (double)msg.lane_id};
+        temp_data = {0, 0, new_time, (double)alive_count, (double)msg.LINK_ID};
       break;
 
       case(2):
@@ -172,7 +177,7 @@ void LOCAL_CAN_WRITER::CALLBACK_LOCAL(const mmc_msgs::to_control_team_from_local
 
       case(5):
         target_msg = (char*)"On_ODD_Stat";
-        temp_data = {(double)msg.On_ODD, (double)msg.Road_State, msg.distance_out_of_ODD};
+        temp_data = {(double)msg.GPS_Over, (double)msg.Take_Over_Request, (double)msg.Wrong_Way_Warn, (double)msg.On_ODD, (double)msg.Road_State, msg.distance_out_of_ODD};
       break;
 
     }

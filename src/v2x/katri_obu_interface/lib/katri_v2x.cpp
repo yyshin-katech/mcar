@@ -42,7 +42,7 @@ KATRI_V2X::KATRI_V2X()
         exit(0);
     }
 
-    memset(&sig_SPaT, 0, sizeof(SIG_SPAT) * 10);
+    memset(&sig_SPaT, 0, sizeof(SIG_SPAT) * 5);
     
 }
 KATRI_V2X::~KATRI_V2X()
@@ -97,10 +97,10 @@ void KATRI_V2X::loop(void)
         {
             void *p;
 
-            p = malloc(sizeof(SIG_SPAT) * 20);
-            memcpy(p, buffer, sizeof(SIG_SPAT) * 11);
+            p = malloc(sizeof(SIG_SPAT) * 5);
+            memcpy(p, buffer, sizeof(SIG_SPAT) * 5);
             // memcpy(sig_SPaT, p, sizeof(SIG_SPAT) * 10);
-            memcpy(sig_SPaT, (SIG_SPAT *)buffer, sizeof(SIG_SPAT) * 11);
+            memcpy(sig_SPaT, (SIG_SPAT *)buffer, sizeof(SIG_SPAT) * 5);
 
             // ROS_INFO("%d",((SIG_SPAT *)p + 8)->Intersection_id);
             // ROS_INFO("%d",((SIG_SPAT *)p + 8)->signalGroup);
@@ -111,22 +111,22 @@ void KATRI_V2X::loop(void)
             free(p);
         }
 
-        for(i=0;i<11;i++)
-        {
-            	ROS_INFO("Intersection ID : %d", sig_SPaT[i].Intersection_id);
-				ROS_INFO("signalGroup : %d", sig_SPaT[i].signalGroup);
-				ROS_INFO("movementName : %s", sig_SPaT[i].movementName);
-				ROS_INFO("eventState : %d", sig_SPaT[i].eventState);
-				ROS_INFO("minEndTime : %d", sig_SPaT[i].minEndTime);
-                ROS_INFO(" ");
-        }
+        // for(i=0;i<5;i++)
+        // {
+        //     	ROS_INFO("Intersection ID : %d", sig_SPaT[i].Intersection_id);
+		// 		ROS_INFO("signalGroup : %d", sig_SPaT[i].signalGroup);
+		// 		ROS_INFO("movementName : %s", sig_SPaT[i].movementName);
+		// 		ROS_INFO("eventState : %d", sig_SPaT[i].eventState);
+		// 		ROS_INFO("minEndTime : %d", sig_SPaT[i].minEndTime);
+        //         ROS_INFO(" ");
+        // }
         
         // ROS_INFO("%s", &p);
         v2x_msgs::intersection_msg intersection_data;
         std_msgs::String str_msg;
 
         msg1.time = ros::Time::now();
-        for(i=0;i<11;i++)
+        for(i=0;i<5;i++)
         {
             intersection_data.IntersectionID = sig_SPaT[i].Intersection_id;
             str_msg.data = sig_SPaT[i].movementName[0];

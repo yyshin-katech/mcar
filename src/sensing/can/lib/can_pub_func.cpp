@@ -727,21 +727,37 @@ void CHASSIS_CAN_READER(){
     can_status = canReadWait(hCAN, &temp_id, can_data, &dlc, &canread_flag, &timestamp, timeout_channel_0);
     kvaDb_status = kvaDbGetMsgById(dh, temp_id, &mh);
     
+    if(kvaDb_status == kvaDbOK){
+      // 먼저 메시지 이름을 가져옴
+      kvaDbGetMsgName(mh, buff, sizeof(buff));
+      
+      // 매칭되는 메시지 찾기
+      bool matched_flag = false;
+      int msg_idx = -1;
+      
+      for(int i=0; i < msg_list.size(); i++){
+        if(strcmp(buff, get<0>(msg_list[i])) == 0){
+          matched_flag = true;
+          msg_idx = i;
+          break; // 찾았으면 루프 종료
+        }
+      }
     
-    for(int i=0; i!=msg_list.size(); i++){
+    // for(int i=0; i!=msg_list.size(); i++){
         
-      if(strcmp(buff, get<0>(msg_list[i])) == 0){
-        matched_flag = true;
-        msg_idx = i;
-      }
+    //   if(strcmp(buff, get<0>(msg_list[i])) == 0){
+    //     matched_flag = true;
+    //     msg_idx = i;
+    //   }
     
 
-      if(matched_flag == false){
-        msg_idx = 0;
-      }
-
-      if(kvaDb_status == kvaDbOK){
-        kvaDbGetMsgName(mh, buff, sizeof(buff));
+    //   if(matched_flag == false){
+    //     msg_idx = 0;
+    //   }
+    
+      // if(kvaDb_status == kvaDbOK){
+        // kvaDbGetMsgName(mh, buff, sizeof(buff));
+      if(matched_flag){
 
         switch(msg_idx){
 
@@ -773,6 +789,13 @@ void CHASSIS_CAN_READER(){
               kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
 
               switch(i){
+                case(0):
+                case(1):
+                case(2):
+                case(3):
+                case(4):
+                case(5):
+                break;
 
                 case(6): // vcu_EPS_Status
                   msg.vcu_EPS_Status = value;
@@ -786,6 +809,11 @@ void CHASSIS_CAN_READER(){
                   msg.vcu_BRK_Status = value;
                 break;
 
+                case(9):
+                case(10):
+                case(11):
+                break;
+                
                 case(12): // VCU1_ADCU_AliveCnt
                   msg.VCU1_ADCU_AliveCnt = value;
                 break;

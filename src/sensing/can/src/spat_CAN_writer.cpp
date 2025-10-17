@@ -27,7 +27,7 @@
 
 using namespace std;
 
-#define MAX_SPAT_MSG 11
+#define MAX_SPAT_MSG 5
 
 class SPAT_CAN_WRITER{
   public:
@@ -135,10 +135,10 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg 
     {
       target_msg = (char*)"V2X_SPaT_1";
       temp_data = {(char)0,
-      (int)msg.data[i].Movements.TimeChangeDetails,
-      (unsigned char)msg.data[i].Movements.MovementPhaseStatus,
-      (double)msg.data[i].Movements.SignalGroupID,
-      (double)msg.data[i].IntersectionID};
+      (int)0,
+      (unsigned char)0,
+      (double)0,
+      (double)0};
 
       msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
       kvaDbGetMsgByName(dh, target_msg, &mh);
@@ -509,6 +509,7 @@ int main(int argc, char **argv){
   can_status = SPaTCW.OPEN_CAN_CHANNEL_AND_READ_DB(channel_num, filename, init_access_flag);
 
   ros::Subscriber sub1 = node.subscribe("/katri_v2x_node/katri_spat", 1, &SPAT_CAN_WRITER::CALLBACK_SPAT, &SPaTCW);
+  // ros::Subscriber sub1 = node.subscribe("/ktri_obu_interface_node/katri_spat", 1, &SPAT_CAN_WRITER::CALLBACK_SPAT, &SPaTCW);
   ros::Subscriber sub2 = node.subscribe("/localization/to_control_team", 1, &SPAT_CAN_WRITER::CALLBACK_LOCAL_TEAM, &SPaTCW);
 
   ros::waitForShutdown();   

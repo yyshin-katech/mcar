@@ -132,59 +132,43 @@ class ROSCrosswalkDetector:
         active_objects = [obj for obj in msg.data if obj.status in [1, 2]]
         
         if not active_objects:
-            return
+            ped_msg.id = 0
+            ped_msg.status = 0
+            ped_msg.on_crosswalk = 0
+            ped_msg.rel_pos_x = 0
+            ped_msg.rel_pos_y = 0
+
+            pub_msg_ar.data.append(ped_msg)
         
         # rospy.loginfo('활성 오브젝트 %d개 처리 중...', len(active_objects))
         
         # detection_results = []
-        
-        for obj in active_objects:
-            # 오브젝트가 위치한 횡단보도들 찾기
-            crosswalk_ids, abs_pos = self.find_crosswalks_containing_object(
-                obj.x, obj.y
-            )
-            
-            # 결과 기록
-            # result = {
-            #     'timestamp': rospy.Time.now().to_sec(),
-            #     'object_id': obj.id,
-            #     'object_type': obj.status,
-            #     'relative_position': [obj.x, obj.y],
-            #     'absolute_position': abs_pos,
-            #     'crosswalk_ids': crosswalk_ids,
-            #     'confidence': obj.confidence
-            # }
-            
-            # ped_msg.id = obj.id
-            # ped_msg.status = obj.status
-            # ped_msg.on_crosswalk = 1
-
-            # detection_results.append(result)
-            
-            # 로깅
-            if crosswalk_ids:
-                rospy.loginfo(
-                    '오브젝트 %d: 횡단보도 %s번 위에 있음 (절대위치: %.1f, %.1f)',
-                    obj.id, str(crosswalk_ids), abs_pos[0], abs_pos[1]
-                )
-                ped_msg.id = obj.id
-                ped_msg.status = obj.status
-                ped_msg.on_crosswalk = 1
-                ped_msg.rel_pos_x = obj.x
-                ped_msg.rel_pos_y = obj.y
-
-                pub_msg_ar.data.append(ped_msg)
-
-            else:
-                # 가장 가까운 횡단보도 찾기
-                nearest_id, distance = self.find_nearest_crosswalk(
+        else:
+            for obj in active_objects:
+                # 오브젝트가 위치한 횡단보도들 찾기
+                crosswalk_ids, abs_pos = self.find_crosswalks_containing_object(
                     obj.x, obj.y
                 )
                 
-                # rospy.logdebug(
-                #     '오브젝트 %d: 횡단보도 밖 (가장 가까운: %d번, 거리: %.1fm)',
-                #     obj.id, nearest_id, distance
-                # )
+                # 로깅
+                if crosswalk_ids:
+                    # rospy.loginfo(
+                    #     '오브젝트 %d: 횡단보도 %s번 위에 있음 (절대위치: %.1f, %.1f)',
+                    #     obj.id, str(crosswalk_ids), abs_pos[0], abs_pos[1]
+                    # )
+                    ped_msg.id = obj.id
+                    ped_msg.status = obj.status
+                    ped_msg.on_crosswalk = 1
+                    ped_msg.rel_pos_x = obj.x
+                    ped_msg.rel_pos_y = obj.y
+
+                    pub_msg_ar.data.append(ped_msg)
+
+                else:
+                    # 가장 가까운 횡단보도 찾기
+                    nearest_id, distance = self.find_nearest_crosswalk(
+                        obj.x, obj.y
+                    )
         
         # 결과 발행
         pub_msg_ar.time = rospy.Time.now()

@@ -1,6 +1,10 @@
 #!/usr/bin/env python3.8
 # -*- coding: utf-8 -*-
 
+# turnnel 입구 gps fake 지점
+# 링크 56번 남은거리 60미터
+# turnel 출구 gps fake off 지점
+# 링크 57번 남은거리 10미터
 import rospy
 import numpy as np
 import scipy.io as sio
@@ -10,6 +14,7 @@ from scipy.spatial import cKDTree as KDTree
 import time
 import pyproj
 
+from katech_diagnostic_msgs.msg import katech_diagnostic_msg
 from mmc_msgs.msg import localization2D_msg, to_control_team_from_local_msg
 from sensor_msgs.msg import NavSatFix
 from utils import distance2curve
@@ -19,11 +24,18 @@ from utils_cython import find_closest, compute_current_lane, xy2frenet_with_clos
 # MAPFILE_PATH = '/home/katech/mcar_v10/src/localization/gps_system_localizer/mapfiles/K_CITY_20250630'
 # MAPFILE_PATH = '/home/ads/mcar_v10/src/localization/gps_system_localizer/mapfiles/KATECH_0508'
 MAPFILE_PATH = rospy.get_param('MAPFILE_PATH')
-MAP_EPSG_NUMBER = 5186
+USE_SLOPE = rospy.get_param('USE_SLOPE')
 
 MIN_LANE_ID = 1
-MAX_LANE_ID = 60 #link_59 is dummy file
-# MAX_LANE_ID = 20
+
+if USE_SLOPE:
+    MAX_LANE_ID = 20 #link_59 is dummy file
+    MAP_IS_CITY = 0
+else:
+    MAX_LANE_ID = 60
+    MAP_IS_CITY = 1
+
+
 ODD_CNT_THRESHOLD = 20
 ODD_OCCUPIED_OFFSET_THRESHOLD = 0.95
 ODD_YAW_ERR_THRESHOLD = np.deg2rad(45)
@@ -36,6 +48,7 @@ class DistanceCalculator(object):
         self.set_subscriber()
         self.set_publisher()
         self.old_lane_id = 0
+        self.takeoverreq = 0
 
         rospy.spin()
 
@@ -63,7 +76,8 @@ class DistanceCalculator(object):
         # localization 정보 들어오면 바로 control team에 필요한 메세지 publish
         # callback 안에 publish 명령어까지 같이 들어있음
         rospy.Subscriber('/localization/pose_2d_gps', localization2D_msg, self.pose_2d_cb, queue_size=1)
-
+        rospy.Subscriber('/diagnostic/system', katech_diagnostic_msg, self.diag_cb, queue_size=1)
+        
     def set_publisher(self):
         self.to_control_team_pub = rospy.Publisher('/localization/to_control_team', to_control_team_from_local_msg, queue_size=1)
 
@@ -164,10 +178,64 @@ class DistanceCalculator(object):
          
         return value
     
+    def diag_cb(self, msg):
+        statuses = [
+            msg.gps_status,
+            msg.adcu_status,
+            msg.lidar_status,
+            msg.radar_status,
+            msg.v2x_status,
+            msg.hmi_status,
+            msg.vcu_status,
+            msg.cam_status,
+            msg.ipc_status,
+            ]
+        if any(s != 0 for s in statuses):
+            self.takeoverreq = 1
+        else:
+            self.takeoverreq = 0
+        # if (msg.gps_status != 0 or
+        #     msg.adcu_status != 0 or
+        #     msg.lidar_status != 0 or
+        #     msg.radar_status != 0 or
+        #     msg.v2x_status != 0 or
+        #     msg.hmi_status != 0 or
+        #     msg.vcu_status != 0 or
+        #     msg.cam_status != 0 or
+        #     msg.ipc_status != 0):
+        #     # rospy.loginfo("⚠ 하나라도 0이 아님! (문제 발생 가능)")
+        #     p.Take_Over_Request = 1
+        # else:
+        #     # rospy.loginfo("✅ 전부 0임 (정상 상태)")
+        #     p.Take_Over_Request = 0
+
     def pose_2d_cb(self, msg):
         """
         localization 메세지를 받아서 control team에 필요한 메세지 publish
         """
+        # (현재 LINK_ID, 이전 lane_id) -> 새로운 LINK_ID 매핑
+        lane_transitions = {
+            # FIRST UPHILL
+            (5, 7): 7,
+            (5, 8): 8,
+            (5, 3): 3,
+            (10, 8): 8,
+            (10, 3): 3,
+            (8, 10): 10,
+            (3, 10): 10,
+            
+            # SECOND UPHILL
+            (18, 11): 11,
+            (19, 16): 16,
+            (14, 11): 11,
+            (14, 16): 16,
+            (11, 18): 18,
+            (11, 14): 14,  # 원본 코드에 = 대신 == 버그 수정
+            (16, 18): 18,
+            (16, 19): 19,
+            (16, 14): 14,
+        }
+        
         ODD_id_list = [MAX_LANE_ID+1]
         t0 = time.time()
 
@@ -197,7 +265,58 @@ class DistanceCalculator(object):
         #     p.distance_to_lane_end = self.target_roads[current_lane_id]['station'][0][-1] + \
         #                              self.target_roads[25]['station'][0][-1] - current_s
         # else:
-
+        if not MAP_IS_CITY:
+            # p.LINK_ID = lane_transitions.get((p.LINK_ID, self.old_lane_id), p.LINK_ID)
+##############FIRST UPHILL############################################
+            if p.LINK_ID == 5:
+                if self.old_lane_id == 7:
+                    p.LINK_ID = 7
+                elif self.old_lane_id == 8:
+                    p.LINK_ID = 8
+                elif self.old_lane_id == 3:
+                    p.LINK_ID = 3
+                else:
+                    p.LINK_ID = 5
+            elif p.LINK_ID == 10:
+                if self.old_lane_id == 8:
+                    p.LINK_ID = 8
+                elif self.old_lane_id == 3:
+                    p.LINK_ID = 3
+                else:
+                    p.LINK_ID = 10
+            elif p.LINK_ID == 8:
+                if self.old_lane_id == 10:
+                    p.LINK_ID = 10
+            elif p.LINK_ID == 3:
+                if self.old_lane_id == 10:
+                    p.LINK_ID = 10
+##############SECOND UPHILL############################################
+            elif p.LINK_ID == 18:
+                if self.old_lane_id == 11:
+                    p.LINK_ID = 11
+            elif p.LINK_ID == 19:
+                if self.old_lane_id == 16:
+                    p.LINK_ID = 16
+            elif p.LINK_ID == 14:
+                if self.old_lane_id == 11:
+                    p.LINK_ID = 11
+                elif self.old_lane_id == 16:
+                    p.LINK_ID = 16
+            elif p.LINK_ID == 11:
+                if self.old_lane_id == 18:
+                    p.LINK_ID = 18
+                if self.old_lane_id == 14:
+                    p.LINK_ID = 14
+            elif p.LINK_ID == 16:
+                if self.old_lane_id == 18:
+                    p.LINK_ID = 18
+                elif self.old_lane_id == 19:
+                    p.LINK_ID = 19
+                elif self.old_lane_id == 14:
+                    p.LINK_ID = 14
+            else:
+                p.LINK_ID = p.LINK_ID
+            
         p.distance_to_lane_end = self.target_roads[current_lane_id]['station'][0][-1] - current_s
 
         if p.distance_to_lane_end < 0:
@@ -216,7 +335,6 @@ class DistanceCalculator(object):
         p.distance_out_of_ODD = 200  # 현재 상태 모든 도로가 계속 ODD 영역으로 설정
 
         p.lane_id = current_lane_id + 1
-
         ## 지금 주행중인 링크랑 연결된 다음 링크가 ODD 이탈 영역 혹은 도로가 끊긴 경우 ##
 
         if p.NEXT_LINK_ID in ODD_id_list or p.NEXT_LINK_ID == 0:
@@ -269,6 +387,35 @@ class DistanceCalculator(object):
             else:
                 self.occupied_count = 0
 
+            # 20251014
+            distances = np.zeros(len(mapx_set))
+            for i in range(1, len(mapx_set)):
+                dx = mapx_set[i] - mapx_set[i-1]
+                dy = mapy_set[i] - mapy_set[i-1]
+                distances[i] = distances[i-1] + np.sqrt(dx**2 + dy**2)
+
+            # 각 축에 대한 스플라인 생성
+            cs_x = CubicSpline(distances, mapx_set, bc_type='natural')
+            cs_y = CubicSpline(distances, mapy_set, bc_type='natural')
+
+            # 현재 웨이포인트의 거리
+            current_closest_waypoint_in_MATLAB = min(current_closest_waypoint_in_MATLAB, len(mapx_set) - 1)
+            current_distance = distances[current_closest_waypoint_in_MATLAB]
+
+            # 경로의 접선 벡터 계산
+            dx_ds = cs_x.derivative()(current_distance)
+            dy_ds = cs_y.derivative()(current_distance)
+
+            # 경로의 yaw 계산
+            path_yaw = np.arctan2(dy_ds, dx_ds)
+
+            # Yaw 오차 계산 (각도 차이를 -π ~ π 범위로 정규화)
+            yaw_error = path_yaw - yaw
+            yaw_error = np.arctan2(np.sin(yaw_error), np.cos(yaw_error))  # -π ~ π 범위로
+            yaw_error_size = abs(yaw_error)
+
+            p.yaw_error_size = yaw_error_size
+
             # cs = CubicSpline(mapx_set, mapy_set, bc_type='natural')
             # cs_derivative = cs.derivative()
             # current_closest_waypoint_in_MATLAB = min(current_closest_waypoint_in_MATLAB, len(mapx_set) - 1)
@@ -277,12 +424,27 @@ class DistanceCalculator(object):
 
             # p.yaw_error_size = yaw_error_size
 
-            # ## 현재 주행할 경로쪽으로 방향이 제대로 맞으면 오토모드 송출 아니면, 수동모드 송출 ##
+            # # 현재 주행할 경로쪽으로 방향이 제대로 맞으면 오토모드 송출 아니면, 수동모드 송출 ##
+
+            if yaw_error_size < ODD_YAW_ERR_THRESHOLD:
+                rospy.loginfo("On ODD")
+                p.Wrong_Way_Warn = 0
+            elif yaw_error_size > np.deg2rad(135):  #반대방향
+                p.On_ODD = 1
+                p.Road_State = 2
+                p.Wrong_Way_Warn = 1
+                p.distance_out_of_ODD = 0
+            else:   # 단순 이탈
+                p.On_ODD = 1
+                p.Road_State = 2
+                p.Wrong_Way_Warn = 0
+                p.distance_out_of_ODD = 0
 
             # if yaw_error_size >= ODD_YAW_ERR_THRESHOLD :
             #     p.On_ODD = 1
             #     p.Road_State = 2
             #     p.distance_out_of_ODD = 0
+                
 
         p.lane_name = current_lane_name
         p.host_east = e
@@ -292,7 +454,14 @@ class DistanceCalculator(object):
         p.station = current_s
         p.lateral_offset = current_d
         
+        if self.takeoverreq == 1:
+            p.Take_Over_Request = 1
+        else:
+            p.Take_Over_Request  = 0
+
         self.to_control_team_pub.publish(p)
+
+        self.old_lane_id = p.LINK_ID
 
 if __name__ == "__main__":
     DistanceCalculator()

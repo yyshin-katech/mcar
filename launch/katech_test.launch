@@ -3,11 +3,22 @@
     <arg name="sweet_home" default="$(optenv HOME)" />
 
     <param name="EPSG" value="5179" />
-    
-    <param name="MAPFILE_PATH" value="$(find gps_system_localizer)/mapfiles/K_CITY_20250923" />
-    <!-- K CITY 입체교차로 전용 -->
-    <!-- <param name="MAPFILE_PATH" value="$(find gps_system_localizer)/mapfiles/K_CITY_SLOPE" /> -->
 
+    <arg name="use_slope_map" default="false" doc="Use slope map instead of k_city"/>
+
+    <!-- using roslaunch launch/katech_test.launch -->
+    <!-- using roslaunch launch/katech_test.launch use_slope_map:=true-->
+    <!-- 맵 경로 설정 -->
+    <param name="MAPFILE_PATH" 
+          value="$(find gps_system_localizer)/mapfiles/K_CITY_SLOPE" 
+          if="$(arg use_slope_map)"/>
+    <param name="MAPFILE_PATH" 
+          value="$(find gps_system_localizer)/mapfiles/K_CITY_20251014" 
+          unless="$(arg use_slope_map)"/>
+
+    <!-- USE_SLOPE 플래그 설정 -->
+    <param name="USE_SLOPE" value="1" type="int" if="$(arg use_slope_map)"/>
+    <param name="USE_SLOPE" value="0" type="int" unless="$(arg use_slope_map)"/>
     
    <group ns="sensors/gps">
         <include file="$(find novatel_gps_driver)/launch/tester_for_usb_eq.launch">
@@ -36,7 +47,7 @@
 
   <node name="track_CAN_writer_no_grid"       type="track_CAN_writer_no_grid"     pkg="can"  respawn="true" />
 
-  <node name="katri_obu_interface_node"       type="katri_obu_interface_node"     pkg="katri_obu_interface"  respawn="true" />
+  <node name="katri_v2x_node"       type="katri_obu_interface_node"     pkg="katri_obu_interface"  respawn="true" />
   <node name="spat_CAN_writer"       type="spat_CAN_writer"     pkg="can"  respawn="true" />
 
   <!-- KATRI에서는 OFF-->
