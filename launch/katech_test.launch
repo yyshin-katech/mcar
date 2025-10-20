@@ -13,7 +13,7 @@
           value="$(find gps_system_localizer)/mapfiles/K_CITY_SLOPE" 
           if="$(arg use_slope_map)"/>
     <param name="MAPFILE_PATH" 
-          value="$(find gps_system_localizer)/mapfiles/K_CITY_20251020" 
+          value="$(find gps_system_localizer)/mapfiles/K_CITY_20251014" 
           unless="$(arg use_slope_map)"/>
 
     <!-- USE_SLOPE 플래그 설정 -->
