@@ -493,10 +493,10 @@ class DistanceCalculator(object):
                 p.host_north = n
                 p.GPS_Over = 0
         
-        if self.takeoverreq == 1:
+        if self.takeoverreq == 1 or p.LINK_ID == 31 or p.LINK_ID == 54:
             p.Take_Over_Request = 1
         else:
-            p.Take_Over_Request  = 0
+            p.Take_Over_Request = 0
 
         self.to_control_team_pub.publish(p)
 
