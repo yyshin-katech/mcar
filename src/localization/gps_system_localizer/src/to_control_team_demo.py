@@ -427,7 +427,7 @@ class DistanceCalculator(object):
             # # 현재 주행할 경로쪽으로 방향이 제대로 맞으면 오토모드 송출 아니면, 수동모드 송출 ##
 
             if yaw_error_size < ODD_YAW_ERR_THRESHOLD:
-                rospy.loginfo("On ODD")
+                # rospy.loginfo("On ODD")
                 p.Wrong_Way_Warn = 0
             elif yaw_error_size > np.deg2rad(135):  #반대방향
                 p.On_ODD = 1
