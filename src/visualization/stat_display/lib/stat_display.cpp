@@ -252,6 +252,11 @@ void STAT_DISPLAY::GPS_AliveCnt_Check(uint8_t current_cnt)
     {
         gps_status = 0;
     }
+    
+    if(local_msg.GPS_Over == 1)
+    {
+        gps_status = 1;
+    }
 }
 
 void STAT_DISPLAY::ADCU_Text_Gen()
