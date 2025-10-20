@@ -454,6 +454,21 @@ class DistanceCalculator(object):
         p.station = current_s
         p.lateral_offset = current_d
         
+        if p.LINK_ID == 56:
+            if distance_to_lane_end < 60.0:
+                p.host_east = 0
+                p.host_north = 0
+                p.GPS_Over = 1
+
+        if p.LINK_ID == 57:
+            p.host_east = 0
+            p.host_north = 0
+            p.GPS_Over = 1
+            if p.distance_to_lane_end < 10.0:
+                p.host_east = e
+                p.host_north = n
+                p.GPS_Over = 0
+        
         if self.takeoverreq == 1:
             p.Take_Over_Request = 1
         else:
