@@ -388,62 +388,86 @@ class DistanceCalculator(object):
                 self.occupied_count = 0
 
             # 20251014
-            # distances = np.zeros(len(mapx_set))
-            # for i in range(1, len(mapx_set)):
-            #     dx = mapx_set[i] - mapx_set[i-1]
-            #     dy = mapy_set[i] - mapy_set[i-1]
-            #     distances[i] = distances[i-1] + np.sqrt(dx**2 + dy**2)
+            distances = np.zeros(len(mapx_set))
+            for i in range(1, len(mapx_set)):
+                dx = mapx_set[i] - mapx_set[i-1]
+                dy = mapy_set[i] - mapy_set[i-1]
+                distances[i] = distances[i-1] + np.sqrt(dx**2 + dy**2)
 
-            # # 각 축에 대한 스플라인 생성
+            # 중복 제거 및 strictly increasing 보장
+            min_distance_increment = 1e-6  # 최소 거리 증가값
+            unique_indices = [0]  # 첫 번째 점은 항상 포함
+
+            for i in range(1, len(distances)):
+                if distances[i] > distances[unique_indices[-1]] + min_distance_increment:
+                    unique_indices.append(i)
+
+            # 최소 2개의 점이 필요
+            if len(unique_indices) < 2:
+                rospy.logwarn(f"Lane {current_lane_id}: Not enough unique points for interpolation")
+                p.yaw_error_size = 100
+                self.to_control_team_pub.publish(p)
+                return
+
+            # 필터링된 데이터로 배열 생성
+            distances_clean = distances[unique_indices]
+            mapx_clean = mapx_set[unique_indices]
+            mapy_clean = mapy_set[unique_indices]
+
+            # 각 축에 대한 스플라인 생성
             # cs_x = CubicSpline(distances, mapx_set, bc_type='natural')
             # cs_y = CubicSpline(distances, mapy_set, bc_type='natural')
 
-            # # 현재 웨이포인트의 거리
-            # current_closest_waypoint_in_MATLAB = min(current_closest_waypoint_in_MATLAB, len(mapx_set) - 1)
-            # current_distance = distances[current_closest_waypoint_in_MATLAB]
+            cs_x = CubicSpline(distances_clean, mapx_clean, bc_type='natural')
+            cs_y = CubicSpline(distances_clean, mapy_clean, bc_type='natural')
 
-            # # 경로의 접선 벡터 계산
-            # dx_ds = cs_x.derivative()(current_distance)
-            # dy_ds = cs_y.derivative()(current_distance)
+            # 현재 웨이포인트의 거리 (clean 인덱스로 변환)
+            current_closest_waypoint_in_MATLAB = min(current_closest_waypoint_in_MATLAB, len(mapx_set) - 1)
 
-            # # 경로의 yaw 계산
-            # path_yaw = np.arctan2(dy_ds, dx_ds)
+            # 원본 인덱스를 clean 인덱스로 매핑
+            if current_closest_waypoint_in_MATLAB in unique_indices:
+                clean_idx = unique_indices.index(current_closest_waypoint_in_MATLAB)
+            else:
+                # 가장 가까운 clean 인덱스 찾기
+                clean_idx = np.searchsorted(unique_indices, current_closest_waypoint_in_MATLAB)
+                clean_idx = min(clean_idx, len(unique_indices) - 1)
 
-            # # Yaw 오차 계산 (각도 차이를 -π ~ π 범위로 정규화)
-            # yaw_error = path_yaw - yaw
-            # yaw_error = np.arctan2(np.sin(yaw_error), np.cos(yaw_error))  # -π ~ π 범위로
-            # yaw_error_size = abs(yaw_error)
+            current_distance = distances_clean[clean_idx]
 
-            # p.yaw_error_size = yaw_error_size
+            # 경로의 접선 벡터 계산
+            dx_ds = cs_x.derivative()(current_distance)
+            dy_ds = cs_y.derivative()(current_distance)
 
-            # # cs = CubicSpline(mapx_set, mapy_set, bc_type='natural')
-            # # cs_derivative = cs.derivative()
-            # # current_closest_waypoint_in_MATLAB = min(current_closest_waypoint_in_MATLAB, len(mapx_set) - 1)
-            # # path_yaw = cs_derivative(mapx_set[current_closest_waypoint_in_MATLAB])
-            # # yaw_error_size = abs(path_yaw - yaw)
+            # 경로의 yaw 계산
+            path_yaw = np.arctan2(dy_ds, dx_ds)
 
-            # # p.yaw_error_size = yaw_error_size
+            # Yaw 오차 계산 (각도 차이를 -π ~ π 범위로 정규화)
+            yaw_error = path_yaw - yaw
+            yaw_error = np.arctan2(np.sin(yaw_error), np.cos(yaw_error))  # -π ~ π 범위로
+            yaw_error_size = abs(yaw_error)
 
-            # # # 현재 주행할 경로쪽으로 방향이 제대로 맞으면 오토모드 송출 아니면, 수동모드 송출 ##
+            p.yaw_error_size = yaw_error_size
 
-            # if yaw_error_size < ODD_YAW_ERR_THRESHOLD:
-            #     # rospy.loginfo("On ODD")
-            #     p.Wrong_Way_Warn = 0
-            # elif yaw_error_size > np.deg2rad(135):  #반대방향
+            # # 현재 주행할 경로쪽으로 방향이 제대로 맞으면 오토모드 송출 아니면, 수동모드 송출 ##
+
+            if yaw_error_size < ODD_YAW_ERR_THRESHOLD:
+                # rospy.loginfo("On ODD")
+                p.Wrong_Way_Warn = 0
+            elif yaw_error_size > np.deg2rad(135):  #반대방향
+                p.On_ODD = 1
+                p.Road_State = 2
+                p.Wrong_Way_Warn = 1
+                p.distance_out_of_ODD = 0
+            else:   # 단순 이탈
+                p.On_ODD = 1
+                p.Road_State = 2
+                p.Wrong_Way_Warn = 0
+                p.distance_out_of_ODD = 0
+
+            # if yaw_error_size >= ODD_YAW_ERR_THRESHOLD :
             #     p.On_ODD = 1
             #     p.Road_State = 2
-            #     p.Wrong_Way_Warn = 1
             #     p.distance_out_of_ODD = 0
-            # else:   # 단순 이탈
-            #     p.On_ODD = 1
-            #     p.Road_State = 2
-            #     p.Wrong_Way_Warn = 0
-            #     p.distance_out_of_ODD = 0
-
-            # # if yaw_error_size >= ODD_YAW_ERR_THRESHOLD :
-            # #     p.On_ODD = 1
-            # #     p.Road_State = 2
-            # #     p.distance_out_of_ODD = 0
                 
 
         p.lane_name = current_lane_name
