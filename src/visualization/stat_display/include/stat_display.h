@@ -112,7 +112,7 @@ class STAT_DISPLAY{
         katech_diagnostic_msgs::katech_diagnostic_msg katech_diag_msg;
 
         mmc_msgs::to_control_team_from_local_msg local_msg;
-        mmc_msgs::chassis_msg chassis_msg;
+        mmc_msgs::chassis_msg lo_chassis_msg;
 
         // visualization_msgs::Marker GPS_text;
 

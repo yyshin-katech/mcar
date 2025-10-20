@@ -33,7 +33,7 @@ STAT_DISPLAY::STAT_DISPLAY()
     ipc_sub = nh.subscribe("/diagnostic/ipc", 1, &STAT_DISPLAY::diagnostic_ipc_callback, this);
 
     local_sub = nh.subscribe("/localization/to_control_team", 1, &STAT_DISPLAY::local_callback, this);
-    chassis_sub_node = nh.subscribe("/sensors/shassis", 1, &STAT_DISPLAY::chassis_callback_func, this);
+    chassis_sub_node = nh.subscribe("/sensors/chassis", 1, &STAT_DISPLAY::chassis_callback_func, this);
 
     timer_ = nh.createTimer(ros::Duration(1.0), &STAT_DISPLAY::timerCallback, this);
 
@@ -55,7 +55,7 @@ STAT_DISPLAY::~STAT_DISPLAY()
 
 void STAT_DISPLAY::chassis_callback_func(const mmc_msgs::chassis_msg::ConstPtr& msg)
 {
-    chassis_msg = *msg;
+    lo_chassis_msg = *msg;
 }
 
 void STAT_DISPLAY::POPUP_Text_Gen(const std::string& message)
@@ -1000,7 +1000,7 @@ void STAT_DISPLAY::sound_play(const std::string& sensor_name)
     sound_msg.arg = path;
     sound_msg.arg2 = "";
 
-    if(chassis_msg.vcu_EPS_Status == 2)
+    if(lo_chassis_msg.vcu_EPS_Status == 2)
     {
         if(local_msg.Road_State == 1)
         {
@@ -1068,7 +1068,7 @@ void STAT_DISPLAY::Local_Text_Gen()
 void STAT_DISPLAY::MODE_Text_Gen()
 {
     // vcu_EPS_Status 값에 따라 텍스트 결정
-    if(chassis_msg.vcu_EPS_Status == 2)
+    if(lo_chassis_msg.vcu_EPS_Status == 2)
     {
         MANUAL_text.text = "AUTO";
     }
@@ -1100,10 +1100,10 @@ void STAT_DISPLAY::MODE_Text_Gen()
     MANUAL_text.fg_color = state_color;
 
     // 완전 투명 배경
-    state_color.r = 0;
-    state_color.g = 0;
-    state_color.b = 0;
-    state_color.a = 0;
+    state_color.r = 0.2;
+    state_color.g = 0.2;
+    state_color.b = 0.2;
+    state_color.a = 0.5;
     MANUAL_text.bg_color = state_color;
     
     mode_pub.publish(MANUAL_text);
