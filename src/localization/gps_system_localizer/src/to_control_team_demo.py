@@ -5,6 +5,7 @@
 # 링크 56번 남은거리 60미터
 # turnel 출구 gps fake off 지점
 # 링크 57번 남은거리 10미터
+# 어린이 보호구역 진입전 신호등 레드 전체 65초
 import rospy
 import numpy as np
 import scipy.io as sio
@@ -32,7 +33,7 @@ if USE_SLOPE:
     MAX_LANE_ID = 20 #link_59 is dummy file
     MAP_IS_CITY = 0
 else:
-    MAX_LANE_ID = 60
+    MAX_LANE_ID = 61
     MAP_IS_CITY = 1
 
 
