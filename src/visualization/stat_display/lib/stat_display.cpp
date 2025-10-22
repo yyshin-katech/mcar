@@ -233,6 +233,14 @@ void STAT_DISPLAY::GPS_Text_Gen()
         GPS_text.fg_color = state_color;
     }
 
+    if (local_msg.GPS_Over == 1)
+    {
+        state_color.r = 1;
+        state_color.g = 0.5;
+        state_color.b = 0;
+        state_color.a = 1;
+        GPS_text.fg_color = state_color; 
+    }
 
     state_color.r = 0.4;
     state_color.g = 0.4;
@@ -267,10 +275,10 @@ void STAT_DISPLAY::GPS_AliveCnt_Check(uint8_t current_cnt)
         gps_status = 0;
     }
     
-    if(local_msg.GPS_Over == 1)
-    {
-        gps_status = 1;
-    }
+    // if(local_msg.GPS_Over == 1)
+    // {
+    //     gps_status = 1;
+    // }
 }
 
 void STAT_DISPLAY::ADCU_Text_Gen()
