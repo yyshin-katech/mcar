@@ -110,50 +110,50 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg 
         {
           target_msg = (char*)"V2X_SPaT_1";
           // ROS_INFO("%d", msg.data[i].Movements.SignalGroupID);
-          temp_time = msg.data[i].Movements.TimeChangeDetails;
-          temp_phase = msg.data[i].Movements.MovementPhaseStatus;
-          // 어린이 보호구역 진입 신호등
-          if ((g_intersection_id == 200) && (g_signalGroup_id == 9))
-          {
-            if (msg.data[i].Movements.MovementPhaseStatus == 3) //red
-            {
-              if (msg.data[i].Movements.TimeChangeDetails > (65-12))
-              {
-                temp_time = 650 - msg.data[i].Movements.TimeChangeDetails;
-                temp_phase = 3;
-              }
-              else
-              {
-                temp_time = 20;
-                temp_phase = 6;
-              }
-            }
-          } 
-          else if ((g_intersection_id == 300) && (g_signalGroup_id == 11))
-          {
-            if (msg.data[i].Movements.MovementPhaseStatus == 3) //red
-            {
-              if (msg.data[i].Movements.TimeChangeDetails > (32-15))
-              {
-                temp_time = 320 - msg.data[i].Movements.TimeChangeDetails;
-                temp_phase = 3;
-              }
-              else
-              {
-                temp_time = 20;
-                temp_phase = 6;
-              }
-            }
-          } 
-          else
-          {
-            temp_time = msg.data[i].Movements.TimeChangeDetails;
-            temp_phase = msg.data[i].Movements.MovementPhaseStatus;
-          }
+          // temp_time = msg.data[i].Movements.TimeChangeDetails;
+          // temp_phase = msg.data[i].Movements.MovementPhaseStatus;
+          // // 어린이 보호구역 진입 신호등
+          // if ((g_intersection_id == 200) && (g_signalGroup_id == 9))
+          // {
+          //   if (msg.data[i].Movements.MovementPhaseStatus == 3) //red
+          //   {
+          //     if (msg.data[i].Movements.TimeChangeDetails > (65-12))
+          //     {
+          //       temp_time = 650 - msg.data[i].Movements.TimeChangeDetails;
+          //       temp_phase = 3;
+          //     }
+          //     else
+          //     {
+          //       temp_time = 20;
+          //       temp_phase = 6;
+          //     }
+          //   }
+          // } 
+          // else if ((g_intersection_id == 300) && (g_signalGroup_id == 11))
+          // {
+          //   if (msg.data[i].Movements.MovementPhaseStatus == 3) //red
+          //   {
+          //     if (msg.data[i].Movements.TimeChangeDetails > (32-15))
+          //     {
+          //       temp_time = 320 - msg.data[i].Movements.TimeChangeDetails;
+          //       temp_phase = 3;
+          //     }
+          //     else
+          //     {
+          //       temp_time = 20;
+          //       temp_phase = 6;
+          //     }
+          //   }
+          // } 
+          // else
+          // {
+          //   temp_time = msg.data[i].Movements.TimeChangeDetails;
+          //   temp_phase = msg.data[i].Movements.MovementPhaseStatus;
+          // }
         
           temp_data = {(char)0,
-          (int)temp_time,
-          (unsigned char)temp_phase,
+          (int)msg.data[i].Movements.TimeChangeDetails,
+          (unsigned char)msg.data[i].Movements.MovementPhaseStatus,
           (double)msg.data[i].Movements.SignalGroupID,
           (double)msg.data[i].IntersectionID};
 
