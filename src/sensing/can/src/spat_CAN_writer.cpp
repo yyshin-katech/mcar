@@ -112,27 +112,27 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg 
           temp_time = msg.data[i].Movements.TimeChangeDetails;
           temp_phase = msg.data[i].Movements.MovementPhaseStatus;
           // 어린이 보호구역 진입 신호등
-          // if ((g_intersection_id == 200) && (g_signalGroup_id == 15))
-          // {
-          //   if (msg.data[i].Movements.MovementPhaseStatus == 3) //red
-          //   {
-          //     if (msg.data[i].Movements.TimeChangeDetails > (65-12))
-          //     {
-          //       temp_time = 65 - msg.data[i].Movements.TimeChangeDetails;
-          //       temp_phase = 3;
-          //     }
-          //     else
-          //     {
-          //       temp_time = 20;
-          //       temp_phase = 6;
-          //     }
-          //   }
-          // } 
-          // else
-          // {
-          //   temp_time = msg.data[i].Movements.TimeChangeDetails;
-          //   temp_phase = msg.data[i].Movements.MovementPhaseStatus;
-          // }
+          if ((g_intersection_id == 200) && (g_signalGroup_id == 9))
+          {
+            if (msg.data[i].Movements.MovementPhaseStatus == 3) //red
+            {
+              if (msg.data[i].Movements.TimeChangeDetails > (65-12))
+              {
+                temp_time = 65 - msg.data[i].Movements.TimeChangeDetails;
+                temp_phase = 3;
+              }
+              else
+              {
+                temp_time = 20;
+                temp_phase = 6;
+              }
+            }
+          } 
+          else
+          {
+            temp_time = msg.data[i].Movements.TimeChangeDetails;
+            temp_phase = msg.data[i].Movements.MovementPhaseStatus;
+          }
 
           temp_data = {(char)0,
           (int)temp_time,
