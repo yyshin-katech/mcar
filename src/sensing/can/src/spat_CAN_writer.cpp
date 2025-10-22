@@ -128,6 +128,22 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg 
               }
             }
           } 
+          else if ((g_intersection_id == 300) && (g_signalGroup_id == 11))
+          {
+            if (msg.data[i].Movements.MovementPhaseStatus == 3) //red
+            {
+              if (msg.data[i].Movements.TimeChangeDetails > (32-15))
+              {
+                temp_time = 32 - msg.data[i].Movements.TimeChangeDetails;
+                temp_phase = 3;
+              }
+              else
+              {
+                temp_time = 20;
+                temp_phase = 6;
+              }
+            }
+          } 
           else
           {
             temp_time = msg.data[i].Movements.TimeChangeDetails;
