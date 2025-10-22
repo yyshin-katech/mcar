@@ -109,7 +109,7 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg 
           target_msg = (char*)"V2X_SPaT_1";
 
           // 어린이 보호구역 진입 신호등
-          if ((g_intersection_id == 200) && (g_signalGroup_Id == 15))
+          if ((g_intersection_id == 200) && (g_signalGroup_id == 15))
           {
             if (msg.data[i].Movements.MovementPhaseStatus == 3)
             {

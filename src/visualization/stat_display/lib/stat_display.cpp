@@ -22,6 +22,9 @@ STAT_DISPLAY::STAT_DISPLAY()
 
     katech_diag_pub = nh.advertise<katech_diagnostic_msgs::katech_diagnostic_msg>("/diagnostic/system", 1);
 
+    // 신호등 Publisher 추가
+    traffic_light_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/traffic_light_stat", 1);
+    
     gps_sub = nh.subscribe("/diagnostic/cpt7_gps", 1, &STAT_DISPLAY::diagnostic_gps_callback, this);
     adcu_sub = nh.subscribe("/diagnostic/adcu", 1, &STAT_DISPLAY::diagnostic_adcu_callback, this);
     lidar_sub = nh.subscribe("/diagnostic/lidar", 1, &STAT_DISPLAY::diagnostic_lidar_callback, this);
@@ -35,6 +38,9 @@ STAT_DISPLAY::STAT_DISPLAY()
     local_sub = nh.subscribe("/localization/to_control_team", 1, &STAT_DISPLAY::local_callback, this);
     chassis_sub_node = nh.subscribe("/sensors/chassis", 1, &STAT_DISPLAY::chassis_callback_func, this);
 
+    // 신호등 Subscriber 추가 (토픽 이름은 실제 사용하는 것으로 변경)
+    traffic_light_sub = nh.subscribe("/katri_v2x_node/katri_spat", 1, &STAT_DISPLAY::traffic_light_callback, this);
+    
     timer_ = nh.createTimer(ros::Duration(1.0), &STAT_DISPLAY::timerCallback, this);
 
     gps_status = 2; // 0: 정상 1: warning 2:error
@@ -51,6 +57,14 @@ STAT_DISPLAY::STAT_DISPLAY()
 STAT_DISPLAY::~STAT_DISPLAY()
 {
     
+}
+
+void STAT_DISPLAY::traffic_light_callback(const v2x_msgs::intersection_array_msg::ConstPtr& msg)
+{
+    // 실제 메시지 구조에 맞게 수정
+    // traffic_light_msg = *msg;
+    // traffic_light_time = msg->remaining_time;  // 0.1초 단위
+    // traffic_light_color = msg->color;          // 1: 초록, 2: 주황, 3: 빨강
 }
 
 void STAT_DISPLAY::chassis_callback_func(const mmc_msgs::chassis_msg::ConstPtr& msg)
@@ -1107,4 +1121,67 @@ void STAT_DISPLAY::MODE_Text_Gen()
     MANUAL_text.bg_color = state_color;
     
     mode_pub.publish(MANUAL_text);
+}
+
+void STAT_DISPLAY::TRAFFIC_LIGHT_Text_Gen()
+{
+    // 신호등이 없으면 표시하지 않음
+    if(traffic_light_color == 0 || traffic_light_time <= 0)
+    {
+        TRAFFIC_LIGHT_text.action = TRAFFIC_LIGHT_text.DELETE;
+        traffic_light_pub.publish(TRAFFIC_LIGHT_text);
+        return;
+    }
+
+    // 초 단위로 변환 (100 -> 10초)
+    int seconds = traffic_light_time / 10;
+    
+    TRAFFIC_LIGHT_text.text = std::to_string(seconds) + "s";
+
+    std_msgs::ColorRGBA state_color;
+
+    int32_t width = 150;
+    int32_t height = 80;
+
+    TRAFFIC_LIGHT_text.action = TRAFFIC_LIGHT_text.ADD;
+    TRAFFIC_LIGHT_text.font = "DejaVu Sans Mono";
+    TRAFFIC_LIGHT_text.text_size = 50;  // 큰 글씨로
+    TRAFFIC_LIGHT_text.width = width;
+    TRAFFIC_LIGHT_text.height = height;
+    TRAFFIC_LIGHT_text.left = 1100;  // 화면 오른쪽 상단
+    TRAFFIC_LIGHT_text.top = 50;
+
+    // 신호등 색상에 따라 색 설정
+    if(traffic_light_color == 6)  // 초록
+    {
+        state_color.r = 0;
+        state_color.g = 1;
+        state_color.b = 0;
+        state_color.a = 1;
+    }
+    else if(traffic_light_color == 7)  // 주황
+    {
+        state_color.r = 1;
+        state_color.g = 0.6;
+        state_color.b = 0;
+        state_color.a = 1;
+    }
+    else if(traffic_light_color == 3)  // 빨강
+    {
+        state_color.r = 1;
+        state_color.g = 0;
+        state_color.b = 0;
+        state_color.a = 1;
+    }
+    
+    TRAFFIC_LIGHT_text.fg_color = state_color;
+
+    // 반투명 검은 배경
+    state_color.r = 0;
+    state_color.g = 0;
+    state_color.b = 0;
+    state_color.a = 0.7;
+    TRAFFIC_LIGHT_text.bg_color = state_color;
+    
+    traffic_light_pub.publish(TRAFFIC_LIGHT_text);
 }

@@ -32,6 +32,9 @@
 #include <mmc_msgs/to_control_team_from_local_msg.h>
 #include <mmc_msgs/chassis_msg.h>
 
+#include <v2x_msgs/intersection_msg.h>
+#include <v2x_msgs/intersection_array_msg.h>
+
 #include <sound_play/SoundRequest.h>
 
 #include <map>
@@ -77,6 +80,13 @@ class STAT_DISPLAY{
         ros::Publisher katech_diag_pub;
 
         ros::Publisher sound_pub;
+
+
+        // Publisher 추가
+        ros::Publisher traffic_light_pub;
+
+        // Subscriber 추가
+        ros::Subscriber traffic_light_sub;
 
         ros::Timer timer_;
 
@@ -181,6 +191,20 @@ class STAT_DISPLAY{
 
         void MODE_Text_Gen();
 
+        // 신호등 메시지 변수 (메시지 타입은 실제 사용하는 것으로 변경)
+        // 예: your_msgs::traffic_light_msg traffic_light_msg;
+        // v2x_msgs::intersection_array_msg traffic_light_msg;      // 남은 시간 (0.1초 단위)
+        // int traffic_light_color;     // 0: 없음, 1: 초록, 2: 주황, 3: 빨강
+        int traffic_light_time;      // 남은 시간 (0.1초 단위)
+        int traffic_light_color;     // 0: 없음, 1: 초록, 2: 주황, 3: 빨강
+        // Callback 함수
+        void traffic_light_callback(const v2x_msgs::intersection_array_msg::ConstPtr& msg);
+
+        // Text 생성 함수
+        void TRAFFIC_LIGHT_Text_Gen();
+
+        // OverlayText 변수
+        jsk_rviz_plugins::OverlayText TRAFFIC_LIGHT_text;
 };
 
 #endif
