@@ -95,7 +95,8 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg 
   int re_value = 0;
   
   // ROS_INFO("SPaT msg CALLBACK@!!!!!!!!");
-    
+  int temp_time =0;
+  unsigned char temp_phase = 0;
   for(int i = 0; i<MAX_SPAT_MSG; i++)
   {
     // g_intersection_id = 500;
@@ -108,27 +109,34 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg 
         {
           target_msg = (char*)"V2X_SPaT_1";
 
+          temp_time = msg.data[i].Movements.TimeChangeDetails;
+          temp_phase = msg.data[i].Movements.MovementPhaseStatus;
           // 어린이 보호구역 진입 신호등
-          if ((g_intersection_id == 200) && (g_signalGroup_id == 15))
-          {
-            if (msg.data[i].Movements.MovementPhaseStatus == 3) //red
-            {
-              if (msg.data[i].Movements.TimeChangeDetails > (65-12))
-              {
-                msg.data[i].Movements.TimeChangeDetails = 65 - msg.data[i].Movements.TimeChangeDetails;
-                msg.data[i].Movements.MovementPhaseStatus = 3;
-              }
-              else
-              {
-                msg.data[i].Movements.TimeChangeDetails = 20;
-                msg.data[i].Movements.MovementPhaseStatus = 6;
-              }
-            }
-          } 
+          // if ((g_intersection_id == 200) && (g_signalGroup_id == 15))
+          // {
+          //   if (msg.data[i].Movements.MovementPhaseStatus == 3) //red
+          //   {
+          //     if (msg.data[i].Movements.TimeChangeDetails > (65-12))
+          //     {
+          //       temp_time = 65 - msg.data[i].Movements.TimeChangeDetails;
+          //       temp_phase = 3;
+          //     }
+          //     else
+          //     {
+          //       temp_time = 20;
+          //       temp_phase = 6;
+          //     }
+          //   }
+          // } 
+          // else
+          // {
+          //   temp_time = msg.data[i].Movements.TimeChangeDetails;
+          //   temp_phase = msg.data[i].Movements.MovementPhaseStatus;
+          // }
 
           temp_data = {(char)0,
-          (int)msg.data[i].Movements.TimeChangeDetails,
-          (unsigned char)msg.data[i].Movements.MovementPhaseStatus,
+          (int)temp_time,
+          (unsigned char)temp_phase,
           (double)msg.data[i].Movements.SignalGroupID,
           (double)msg.data[i].IntersectionID};
 
