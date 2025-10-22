@@ -99,16 +99,17 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg 
   unsigned char temp_phase = 0;
   for(int i = 0; i<MAX_SPAT_MSG; i++)
   {
-    // g_intersection_id = 500;
-    // g_signalGroup_id = 2;
+    // g_intersection_id = 200;
+    // g_signalGroup_id = 9;
     if(g_intersection_id != 0)
     {
       if(msg.data[i].IntersectionID == g_intersection_id)
       {
+        // ROS_INFO("%d", msg.data[i].IntersectionID);
         if(msg.data[i].Movements.SignalGroupID == g_signalGroup_id)
         {
           target_msg = (char*)"V2X_SPaT_1";
-
+          // ROS_INFO("%d", msg.data[i].Movements.SignalGroupID);
           temp_time = msg.data[i].Movements.TimeChangeDetails;
           temp_phase = msg.data[i].Movements.MovementPhaseStatus;
           // 어린이 보호구역 진입 신호등
@@ -118,7 +119,7 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg 
             {
               if (msg.data[i].Movements.TimeChangeDetails > (65-12))
               {
-                temp_time = 65 - msg.data[i].Movements.TimeChangeDetails;
+                temp_time = 650 - msg.data[i].Movements.TimeChangeDetails;
                 temp_phase = 3;
               }
               else
@@ -134,7 +135,7 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg 
             {
               if (msg.data[i].Movements.TimeChangeDetails > (32-15))
               {
-                temp_time = 32 - msg.data[i].Movements.TimeChangeDetails;
+                temp_time = 320 - msg.data[i].Movements.TimeChangeDetails;
                 temp_phase = 3;
               }
               else
@@ -149,7 +150,7 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg 
             temp_time = msg.data[i].Movements.TimeChangeDetails;
             temp_phase = msg.data[i].Movements.MovementPhaseStatus;
           }
-
+        
           temp_data = {(char)0,
           (int)temp_time,
           (unsigned char)temp_phase,
@@ -169,8 +170,8 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg 
 
           ROS_INFO("Intersection ID : %d", msg.data[i].IntersectionID);
           ROS_INFO("signalGroup : %d", msg.data[i].Movements.SignalGroupID);
-          ROS_INFO("eventState : %d", msg.data[i].Movements.MovementPhaseStatus);
-          ROS_INFO("minEndTime : %d", msg.data[i].Movements.TimeChangeDetails);
+          ROS_INFO("eventState : %d", temp_phase);
+          ROS_INFO("minEndTime : %d", temp_time);
         }
       }
     }
