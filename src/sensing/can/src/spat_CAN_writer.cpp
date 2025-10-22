@@ -107,6 +107,25 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg 
         if(msg.data[i].Movements.SignalGroupID == g_signalGroup_id)
         {
           target_msg = (char*)"V2X_SPaT_1";
+
+          // 어린이 보호구역 진입 신호등
+          if ((g_intersection_id == 200) && (g_signalGroup_Id == 15))
+          {
+            if (msg.data[i].Movements.MovementPhaseStatus == 3)
+            {
+              if (msg.data[i].Movements.TimeChangeDetails > (65-12))
+              {
+                msg.data[i].Movements.TimeChangeDetails = msg.data[i].Movements.TimeChangeDetails - 12;
+                // msg.data[i].Movements.MovementPhaseStatus = 3;
+              }
+              else
+              {
+                msg.data[i].Movements.TimeChangeDetails = 20;
+                msg.data[i].Movements.MovementPhaseStatus = 6;
+              }
+            }
+          } 
+
           temp_data = {(char)0,
           (int)msg.data[i].Movements.TimeChangeDetails,
           (unsigned char)msg.data[i].Movements.MovementPhaseStatus,
