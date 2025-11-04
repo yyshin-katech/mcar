@@ -138,28 +138,6 @@ install(TARGETS ${PROJECT_NAME} front_RADAR_CAN_reader
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-
-################################################################################################# LIDAR CAN reader
-add_executable(front_LIDAR_CAN_reader src/front_LIDAR_CAN_reader.cpp)
-target_compile_options(front_LIDAR_CAN_reader PRIVATE)
-add_dependencies(front_LIDAR_CAN_reader ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(front_LIDAR_CAN_reader 
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES} 
-  # ${catkin_LIBRARY_DIRS}
-
-  ##### Linking External Library
-  ${CANLIB_LIBRARY}
-  ${KVADBLIB_LIBRARY}
-  ##############################
-)
-install(TARGETS ${PROJECT_NAME} front_LIDAR_CAN_reader
-   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-
 ############################################################################################### vision CAN reader
 add_executable(vision_CAN_reader src/vision_CAN_reader.cpp)
 target_compile_options(vision_CAN_reader PRIVATE)
@@ -201,28 +179,6 @@ install(TARGETS ${PROJECT_NAME} chassis_CAN_reader
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-
-############################################################################################# track_CAN_writer
-# add_executable(track_CAN_writer src/track_CAN_writer.cpp)
-# target_compile_options(track_CAN_writer PRIVATE)
-# add_dependencies(track_CAN_writer ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-# target_link_libraries(track_CAN_writer 
-#   ${PROJECT_NAME}
-#   ${catkin_LIBRARIES} 
-#   # ${catkin_LIBRARY_DIRS}
-
-#   ##### Linking External Library
-#   ${CANLIB_LIBRARY}
-#   ${KVADBLIB_LIBRARY}
-#   ##############################
-# )
-# install(TARGETS ${PROJECT_NAME} track_CAN_writer
-#    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
-
-
 ############################################################################################# track_CAN_writer_no_grid
 add_executable(track_CAN_writer_no_grid src/track_CAN_writer_no_grid.cpp)
 target_compile_options(track_CAN_writer_no_grid PRIVATE)
@@ -242,27 +198,6 @@ install(TARGETS ${PROJECT_NAME} track_CAN_writer_no_grid
    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
-
-
-# ############################################################################################## planned path CAN reader
-# add_executable(planned_path_CAN_reader src/planned_path_CAN_reader.cpp)
-# target_compile_options(planned_path_CAN_reader PRIVATE)
-# add_dependencies(planned_path_CAN_reader ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-# target_link_libraries(planned_path_CAN_reader 
-#   ${PROJECT_NAME}
-#   ${catkin_LIBRARIES} 
-#   ${catkin_LIBRARY_DIRS}
-
-#   ##### Linking External Library
-#   ${CANLIB_LIBRARY}
-#   ${KVADBLIB_LIBRARY}
-#   ##############################
-# )
-# install(TARGETS ${PROJECT_NAME} planned_path_CAN_reader
-#    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
 
 ############################################################################################## spat_CAN_writer
 add_executable(spat_CAN_writer src/spat_CAN_writer.cpp)
@@ -324,49 +259,6 @@ install(TARGETS ${PROJECT_NAME} cpt7_CAN_writer
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-############################################################################################## HMI_CAN_writer
-# add_executable(HMI_CAN_writer src/HMI_CAN_writer.cpp)
-# target_compile_options(HMI_CAN_writer PRIVATE)
-# add_dependencies(HMI_CAN_writer ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-# target_link_libraries(HMI_CAN_writer 
-#   ${PROJECT_NAME}
-#   ${catkin_LIBRARIES} 
-#   # ${catkin_LIBRARY_DIRS}
-
-#   ##### Linking External Library
-#   ${CANLIB_LIBRARY}
-#   ${KVADBLIB_LIBRARY}
-#   ##############################
-# )
-# install(TARGETS ${PROJECT_NAME} HMI_CAN_writer
-#    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
-
-
-############################################################################################## from control team CAN reader
-add_executable(from_control_team_CAN_reader src/from_control_team_CAN_reader.cpp)
-target_compile_options(from_control_team_CAN_reader PRIVATE)
-add_dependencies(from_control_team_CAN_reader ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(from_control_team_CAN_reader 
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES} 
-  # ${catkin_LIBRARY_DIRS}
-
-  ##### Linking External Library
-  ${CANLIB_LIBRARY}
-  ${KVADBLIB_LIBRARY}
-  ##############################
-)
-install(TARGETS ${PROJECT_NAME} from_control_team_CAN_reader
-   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-
-
 ############################################################################################## Tucson_CAN_reader
 add_executable(Tucson_CAN_reader src/Tucson_CAN_reader.cpp)
 target_compile_options(Tucson_CAN_reader PRIVATE)
@@ -386,29 +278,6 @@ install(TARGETS ${PROJECT_NAME} Tucson_CAN_reader
    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
-
-
-############################################################################################## V2V_CAN_writer_to_ctrl
-add_executable(V2V_CAN_writer_to_ctrl src/V2V_CAN_writer_to_ctrl.cpp)
-target_compile_options(V2V_CAN_writer_to_ctrl PRIVATE)
-add_dependencies(V2V_CAN_writer_to_ctrl ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(V2V_CAN_writer_to_ctrl 
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES} 
-  # ${catkin_LIBRARY_DIRS}
-
-  ##### Linking External Library
-  ${CANLIB_LIBRARY}
-  ${KVADBLIB_LIBRARY}
-  ##############################
-)
-install(TARGETS ${PROJECT_NAME} V2V_CAN_writer_to_ctrl
-   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-
 
 # Mark cpp header files for installation
 install(DIRECTORY include
