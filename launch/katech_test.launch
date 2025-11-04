@@ -13,16 +13,8 @@
           value="$(find gps_system_localizer)/mapfiles/K_CITY_SLOPE" 
           if="$(arg use_slope_map)"/>
     <param name="MAPFILE_PATH" 
-          value="$(find gps_system_localizer)/mapfiles/KATECH_PG_250605" 
-          unless="$(arg use_slope_map)"/>
-
-
-<!-- kcity 용
-    <param name="MAPFILE_PATH" 
           value="$(find gps_system_localizer)/mapfiles/K_CITY_20251023" 
-          unless="$(arg use_slope_map)"/> -->
-
-
+          unless="$(arg use_slope_map)"/>
 
     <!-- USE_SLOPE 플래그 설정 -->
     <param name="USE_SLOPE" value="1" type="int" if="$(arg use_slope_map)"/>
