@@ -16,6 +16,7 @@
 #include <mmc_msgs/lane_array_msg.h>
 #include <mmc_msgs/lane_msg.h>
 #include <mmc_msgs/chassis_msg.h>
+#include <mmc_msgs/motor_rpm_msg.h>
 #include <mmc_msgs/to_control_team_from_local_msg.h>
 
 #include <algorithm>
@@ -49,7 +50,8 @@ class LOCAL_CAN_WRITER{
     vector<tuple<char*, vector<char*>>> msg_list;
 
     LOCAL_CAN_WRITER();
-    void CALLBACK_LOCAL(const mmc_msgs::to_control_team_from_local_msg& data);
+    void CALLBACK_LOCAL(const mmc_msgs::to_control_team_from_local_msg& msg);
+    void CALLBACK_RPM(const mmc_msgs::motor_rpm_msg& msg);
     short FIND_MSG_IDX(char* target_msg, vector<tuple<char*, vector<char*>>>* msg_list);
     canStatus OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num, char *filename, bool init_access_flag);
     void LOOP();
@@ -100,8 +102,37 @@ LOCAL_CAN_WRITER::LOCAL_CAN_WRITER(){
   msg_list.push_back(make_tuple((char*)"CAR_EGO_A_Ex",  vector<char*> {(char*)"X_High",\
                                                                      (char*)"Y_High"}));
 
+  msg_list.push_back(make_tuple((char*)"MOTOR_RPM", vector<char *>{(char *)"N"}));                                                                   
+
 }
  
+void LOCAL_CAN_WRITER::CALLBACK_RPM(const mmc_msgs::motor_rpm_msg& msg)
+{
+  unsigned char can_data[dlc];
+  char* target_msg;
+  unsigned short msg_idx;
+  KvaDbMessageHnd mh = 0;
+  KvaDbSignalHnd sh = 0;
+  vector<double> temp_data;
+  unsigned int id_write, flag = 0;
+  int re_value = 0;
+
+  target_msg = (char*)"MOTOR_RPM";
+  temp_data = {(double)msg.N};
+ 
+  msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
+  kvaDbGetMsgByName(dh, target_msg, &mh);
+  kvaDbGetMsgId(mh, &id_write, &flag);
+
+  for(int j=0; j!=get<1>(msg_list[msg_idx]).size(); j++){
+    kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[j], &sh);
+    kvaDbStoreSignalValuePhys(sh, &can_data, sizeof(can_data), temp_data[j]);
+  }
+
+  re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
+  memset(can_data, 0, sizeof(can_data));
+}
+
 void LOCAL_CAN_WRITER::CALLBACK_LOCAL(const mmc_msgs::to_control_team_from_local_msg& msg ){
   local_calling = true;
 
@@ -301,6 +332,7 @@ int main(int argc, char **argv){
   can_status = LCW.OPEN_CAN_CHANNEL_AND_READ_DB(channel_num, filename, init_access_flag);
 
   ros::Subscriber sub1 = node.subscribe("/localization/to_control_team", 1, &LOCAL_CAN_WRITER::CALLBACK_LOCAL, &LCW);
+  ros::Subscriber sub2 = node.subscribe("/sensros/rpm", 1, &LOCAL_CAN_WRITER::CALLBACK_RPM, &LCW);
 
   LCW.pub5 = node.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/local_CAN_status", 10, true);
   jsk_rviz_plugins::OverlayText msg;

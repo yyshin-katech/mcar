@@ -163,7 +163,7 @@ void IONIQ_CAN_READER()
                                                                     (char *)"WHL_SPD_Checksum_LSB",
                                                                     (char *)"WHL_SPD_Checksum_MSB",}));
 
-  msg_list.push_back(make_tuple((char *)"MOTOR_RPM", vector<char *>{(char *)"N"}));
+  
 
   while (ros::ok())
   { // 4000Hz
