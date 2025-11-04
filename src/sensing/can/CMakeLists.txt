@@ -259,11 +259,11 @@ install(TARGETS ${PROJECT_NAME} cpt7_CAN_writer
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-############################################################################################## Tucson_CAN_reader
-add_executable(Tucson_CAN_reader src/Tucson_CAN_reader.cpp)
-target_compile_options(Tucson_CAN_reader PRIVATE)
-add_dependencies(Tucson_CAN_reader ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(Tucson_CAN_reader 
+############################################################################################## IONIQ_CAN_reader
+add_executable(IONIQ_CAN_reader src/IONIQ_CAN_reader.cpp)
+target_compile_options(IONIQ_CAN_reader PRIVATE)
+add_dependencies(IONIQ_CAN_reader ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(IONIQ_CAN_reader 
   ${PROJECT_NAME}
   ${catkin_LIBRARIES} 
   # ${catkin_LIBRARY_DIRS}
@@ -273,7 +273,7 @@ target_link_libraries(Tucson_CAN_reader
   ${KVADBLIB_LIBRARY}
   ##############################
 )
-install(TARGETS ${PROJECT_NAME} Tucson_CAN_reader
+install(TARGETS ${PROJECT_NAME} IONIQ_CAN_reader
    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

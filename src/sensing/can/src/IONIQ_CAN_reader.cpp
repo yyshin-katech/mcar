@@ -13,8 +13,7 @@
 
 #include <mmc_msgs/V2V.h>
 
-#include <sensor_msgs/NavSatFix.h>
-#include <mmc_msgs/localization2D_msg.h>
+#include <mmc_msgs/motor_rpm_msg.h>
 
 #include <algorithm>
 #include <math.h>
@@ -28,6 +27,7 @@ using namespace std;
 
 #define PI 3.141592
 
+ros::Timer timer_;
 ros::Publisher pub1;
 
 canHandle hCAN;
@@ -66,6 +66,40 @@ typedef struct{
 } structWHL_SPD11;
 
 structWHL_SPD11 sWheel_SPD;
+mmc_msgs::motor_rpm_msg msgRPM;
+
+void timerCallback(const ros::TimerEvent&)
+{
+  double wheel_rpm = 0;
+  double motor_rpm = 0;
+
+  wheel_rpm = (sWheel_SPD.wheel_spd_fl * 1000) / (60 * 2 * PI * tire_radius);
+  motor_rpm = wheel_rpm * gear_ratio;
+
+  msgRPM.N = motor_rpm;
+
+  pub1.publish(msgRPM);
+}
+
+short FIND_MSG_IDX(char* target_msg, vector<tuple<char*, vector<char*>>>* msg_list){
+  short idx = -1;
+
+  for(short i=0; i!=msg_list->size(); i++){
+
+    if(strcmp(target_msg, get<0>(msg_list->at(i))) == 0){
+      idx = i;
+      break;
+    }
+  }
+
+  if(idx != -1){
+    return idx;
+
+  }else{
+    cout<<"No matched message! : "<<target_msg<<endl;
+    return -1;
+  }
+}
 
 canStatus OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num, char *filename, bool init_access_flag)
 {
@@ -115,13 +149,9 @@ void IONIQ_CAN_READER()
 {
   ros::Rate rate(freq_for_channel_0);
   ros::Time time_last_pub = ros::Time::now();
-  ros::Duration time_force_pub = ros::Duration(0.01);
-  mmc_msgs::V2V msg;
 
   short MsgCount = 0;
-  double wheel_rpm = 0;
-  double motor_rpm = 0;
-  
+
   vector<tuple<char *, vector<char *>>> msg_list;
 
   msg_list.push_back(make_tuple((char *)"WHL_SPD11", vector<char *>{(char *)"WHL_SPD_FL",
@@ -130,8 +160,10 @@ void IONIQ_CAN_READER()
                                                                     (char *)"WHL_SPD_RR",
                                                                     (char *)"WHL_SPD_AliveCounter_LSB",
                                                                     (char *)"WHL_SPD_AliveCounter_MSB",
-                                                                    (char *)"WHL_SPD_Checksum_LSB"
+                                                                    (char *)"WHL_SPD_Checksum_LSB",
                                                                     (char *)"WHL_SPD_Checksum_MSB",}));
+
+  msg_list.push_back(make_tuple((char *)"MOTOR_RPM", vector<char *>{(char *)"N"}));
 
   while (ros::ok())
   { // 4000Hz
@@ -154,45 +186,49 @@ void IONIQ_CAN_READER()
         }
       }
 
-      for (int i = 0; i != get<1>(msg_list[msg_idx]).size(); i++)
+      if (msg_idx == 0)
       {
-        kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[i], &sh);
-        kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
-
-        switch (i)
+        for (int i = 0; i != get<1>(msg_list[msg_idx]).size(); i++)
         {
-        case (0): // Neutral
-          sWheel_SPD.wheel_spd_fl = (double)value;
-          break;
-        case (1): // Park
-          sWheel_SPD.wheel_spd_fr = (double)value;
-          break;
-        case (2): // Drive(forward)
-          sWheel_SPD.wheel_spd_rl = (double)value;
-          break;
-        case (3): // Reverse
-          sWheel_SPD.wheel_spd_rl = (double)value;
-          break;
-        case (4): // Reverse
-          sWheel_SPD.AliveCnt_LSB = (unsigned char)value;
-          break;
-        case (5): // Reverse
-          sWheel_SPD.AliveCnt_MSB = (unsigned char)value;
-          break;
-        case (6): // Reverse
-          sWheel_SPD.Checksum_LSB = (unsigned char)value;
-          break;
-        case (7): // Reverse
-          sWheel_SPD.Checksum_MSB = (unsigned char)value;
-          break;
-        default:
-          break;
-        }
-      }  
+          kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[i], &sh);
+          kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
+
+          switch (i)
+          {
+          case (0): // Neutral
+            sWheel_SPD.wheel_spd_fl = (double)value;
+            break;
+          case (1): // Park
+            sWheel_SPD.wheel_spd_fr = (double)value;
+            break;
+          case (2): // Drive(forward)
+            sWheel_SPD.wheel_spd_rl = (double)value;
+            break;
+          case (3): // Reverse
+            sWheel_SPD.wheel_spd_rl = (double)value;
+            break;
+          case (4): // Reverse
+            sWheel_SPD.AliveCnt_LSB = (unsigned char)value;
+            break;
+          case (5): // Reverse
+            sWheel_SPD.AliveCnt_MSB = (unsigned char)value;
+            break;
+          case (6): // Reverse
+            sWheel_SPD.Checksum_LSB = (unsigned char)value;
+            break;
+          case (7): // Reverse
+            sWheel_SPD.Checksum_MSB = (unsigned char)value;
+            break;
+          default:
+            break;
+          }
+        } 
+        
+      }
+      
     }
 
-    wheel_rpm = (sWheel_SPD.wheel_spd_fl * 1000) / (60 * 2 * PI * tire_radius);
-    motor_rpm = wheel_rpm * gear_ratio;
+    
     rate.sleep();
   }
 }
@@ -204,6 +240,9 @@ int main(int argc, char **argv)
   ros::NodeHandle node("~");
   ros::AsyncSpinner spinner(0);
   spinner.start();
+
+  timer_ = node.createTimer(ros::Duration(0.1), &timerCallback);
+  pub1 = node.advertise<mmc_msgs::motor_rpm_msg>("/sensors/rpm", 1);
 
   string relative_path = ros::package::getPath("can");
   char filename[100];
