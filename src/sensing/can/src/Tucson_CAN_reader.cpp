@@ -33,6 +33,9 @@ ros::Publisher pub1;
 canHandle hCAN;
 canStatus can_status;
 
+double tire_radius = 0.326;
+double gear_ratio = 7.412;
+
 long temp_id;
 unsigned long timestamp;
 unsigned int id_write, flag, dlc = 8, canread_flag = 0;
@@ -50,15 +53,19 @@ unsigned short timeout_channel_0 = 100;   // ms
 unsigned short id;
 char buff[50];
 double value;
-double east = 0;
-double north = 0;
-double yaw = 0;
-double altitude = 0;
-double position_covariance_xx = 0;
-double position_covariance_yy = 0;
 
+typedef struct{
+  double wheel_spd_fl;
+  double wheel_spd_fr;
+  double wheel_spd_rl;
+  double wheel_spd_rr;
+  unsigned char AliveCnt_LSB;
+  unsigned char AliveCnt_MSB;
+  unsigned char Checksum_LSB;
+  unsigned char Checksum_MSB;
+} structWHL_SPD11;
 
-
+structWHL_SPD11 sWheel_SPD;
 
 canStatus OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num, char *filename, bool init_access_flag)
 {
@@ -112,7 +119,9 @@ void IONIQ_CAN_READER()
   mmc_msgs::V2V msg;
 
   short MsgCount = 0;
-
+  double wheel_rpm = 0;
+  double motor_rpm = 0;
+  
   vector<tuple<char *, vector<char *>>> msg_list;
 
   msg_list.push_back(make_tuple((char *)"WHL_SPD11", vector<char *>{(char *)"WHL_SPD_FL",
@@ -134,12 +143,14 @@ void IONIQ_CAN_READER()
       kvaDbGetMsgName(mh, buff, sizeof(buff));
       short msg_idx = 9999;
 
-      for (short i = 0; i != msg_list.size(); i++)
-      {
-
-        if (strcmp(buff, get<0>(msg_list[i])) == 0)
-        {
+      // 매칭되는 메시지 찾기
+      bool matched_flag = false;
+      
+      for(int i=0; i < msg_list.size(); i++){
+        if(strcmp(buff, get<0>(msg_list[i])) == 0){
+          matched_flag = true;
           msg_idx = i;
+          break; // 찾았으면 루프 종료
         }
       }
 
@@ -148,47 +159,46 @@ void IONIQ_CAN_READER()
         kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[i], &sh);
         kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
 
-        switch ((int)value)
+        switch (i)
         {
         case (0): // Neutral
-          msg.TransmissionState = 0;
+          sWheel_SPD.wheel_spd_fl = (double)value;
           break;
         case (1): // Park
-          msg.TransmissionState = 1;
+          sWheel_SPD.wheel_spd_fr = (double)value;
           break;
         case (2): // Drive(forward)
-          msg.TransmissionState = 2;
+          sWheel_SPD.wheel_spd_rl = (double)value;
           break;
         case (3): // Reverse
-          msg.TransmissionState = 3;
+          sWheel_SPD.wheel_spd_rl = (double)value;
           break;
         case (4): // Reverse
-          msg.TransmissionState = 3;
+          sWheel_SPD.AliveCnt_LSB = (unsigned char)value;
           break;
         case (5): // Reverse
-          msg.TransmissionState = 3;
+          sWheel_SPD.AliveCnt_MSB = (unsigned char)value;
           break;
         case (6): // Reverse
-          msg.TransmissionState = 3;
+          sWheel_SPD.Checksum_LSB = (unsigned char)value;
           break;
         case (7): // Reverse
-          msg.TransmissionState = 3;
+          sWheel_SPD.Checksum_MSB = (unsigned char)value;
           break;
         default:
-          msg.TransmissionState = 7;
           break;
         }
-      }
-      break;
-      
+      }  
     }
+
+    wheel_rpm = (sWheel_SPD.wheel_spd_fl * 1000) / (60 * 2 * PI * tire_radius);
+    motor_rpm = wheel_rpm * gear_ratio;
     rate.sleep();
   }
 }
 
 int main(int argc, char **argv)
 {
-
   cout << "Initializing ..." << endl;
   ros::init(argc, argv, "IONIQ_CAN_reader");
   ros::NodeHandle node("~");
@@ -210,8 +220,6 @@ int main(int argc, char **argv)
   {
     IONIQ_CAN_READER();
   }
-
-  
 
   ros::waitForShutdown();
   canBusOff(hCAN);

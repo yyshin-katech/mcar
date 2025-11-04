@@ -46,6 +46,9 @@ VAL_TABLE_ VtSIg_eventState_1 9 "caution-Conflicting-Traffic" 8 "protected-clear
 VAL_TABLE_ Value_Table_Track_Status 7 "New Coasting Target" 6 "Invalid Coasting Target" 5 "Merged Target" 4 "Coasting Target" 3 "Updated Target" 2 "New Updated Target" 1 "New Target" 0 "No Target" ;
 
 
+BO_ 870 MOTOR_RPM: 8 Vector__XXX
+ SG_ N : 0|16@1+ (0.25,0) [0|16383.75] "rpm" Vector__XXX
+
 BO_ 529 Pedestrian_Stat_1: 8 NUC
  SG_ rel_pos_y_3 : 53|10@1- (0.01,0) [-5.12|5.11] "m" Vector__XXX
  SG_ rel_pos_x_3 : 41|12@1- (0.01,10.24) [-10.24|30.71] "m" Vector__XXX
