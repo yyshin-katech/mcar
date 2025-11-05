@@ -61,10 +61,50 @@ STAT_DISPLAY::~STAT_DISPLAY()
 
 void STAT_DISPLAY::traffic_light_callback(const v2x_msgs::intersection_array_msg::ConstPtr& msg)
 {
-    // 실제 메시지 구조에 맞게 수정
-    // traffic_light_msg = *msg;
-    // traffic_light_time = msg->remaining_time;  // 0.1초 단위
-    // traffic_light_color = msg->color;          // 1: 초록, 2: 주황, 3: 빨강
+    uint16_t target_intersection_id = local_msg.look_at_IntersectionID;
+    uint8_t target_signal_group_id = local_msg.look_at_signalGroupID;
+
+    if (target_intersection_id == 0)
+    {
+        return;
+    }
+
+    for (const auto& intersection : msg->data)
+    {
+        // 교차로 ID 매칭
+        if (intersection.IntersectionID == target_intersection_id)
+        {
+            // Movements는 단일 객체이므로 직접 접근
+            const auto& movement = intersection.Movements;
+            
+            // SignalGroupID 체크 (0이 아닐 때만)
+            if (target_signal_group_id != 0 && 
+                movement.SignalGroupID != target_signal_group_id)
+            {
+                continue;  // SignalGroupID가 다르면 건너뛰기
+            }
+            
+            // 남은 시간 및 색상 정보 저장
+            traffic_light_time = movement.TimeChangeDetails;
+            
+            switch(movement.MovementPhaseStatus)
+            {
+                case 3:  traffic_light_color = 1; break;  // 초록
+                case 8:  traffic_light_color = 2; break;  // 주황
+                case 6:  traffic_light_color = 3; break;  // 빨강
+                default: traffic_light_color = 0; break;  // 알 수 없음
+            }
+            
+            // ROS_INFO("🚦 [ID:%d, SG:%d] 색상=%d, 남은시간=%.1f초",
+            //          target_intersection_id, 
+            //          target_signal_group_id,
+            //          traffic_light_color, 
+            //          traffic_light_time / 10.0);
+            
+            return;  // 찾았으면 종료
+        }
+    }
+
 }
 
 void STAT_DISPLAY::chassis_callback_func(const mmc_msgs::chassis_msg::ConstPtr& msg)
@@ -185,6 +225,8 @@ void STAT_DISPLAY::timerCallback(const ros::TimerEvent&)
     this->MODE_Text_Gen();
 
     katech_diag_pub.publish(katech_diag_msg);
+
+    this->TRAFFIC_LIGHT_Text_Gen();
 }
 
 void STAT_DISPLAY::GPS_Text_Gen()
@@ -974,21 +1016,32 @@ void STAT_DISPLAY::system_status_check()
     }
     else if (abnormal_count >= 2)
     {
-       oss << "🚨 시스템 고장 (" << abnormal_count << "개 시스템 오류)";
-       std::string str = oss.str();
+        oss << "🚨 시스템 고장 (" << abnormal_count << "개 시스템 오류)";
+        std::string str = oss.str();
 
-       this->POPUP_Text_Gen(str);
-       this->sound_play("ADS");
+        this->POPUP_Text_Gen(str);
+        this->sound_play("ADS");
+    }
+    else if (local_msg.Road_State == 1)
+    {
+        oss << "전방 ODD 이탈 경고";
+        std::string str = oss.str();
+
+        this->sound_play("ODD");
+        this->POPUP_Text_Gen(str);
+    }
+    else if (lo_chassis_msg.AEB_flag == 1)
+    {
+        oss << "전방 추돌 경고";
+        std::string str = oss.str();
+
+        this->sound_play("AEB");
+        this->POPUP_Text_Gen(str);
     }
     else
     {
         // std::cout << "✅ 모든 센서 정상" << std::endl;
         this->POPUP_Text_Clear();
-    }
-
-    if(local_msg.Road_State == 1)
-    {
-        this->sound_play("ODD");
     }
 }
 
@@ -1017,6 +1070,7 @@ void STAT_DISPLAY::sound_play(const std::string& sensor_name)
     else if (sensor_name == "ADS") path = base_path + "ad_system_warning.mp3";
     else if (sensor_name == "ODD") path = base_path + "odd_warning.mp3";
     else if (sensor_name == "IPC") path = base_path + "percept_warning.mp3";
+    else if (sensor_name == "AEB") path = base_path + "aeb_warning.mp3";
     else path = base_path + "ad_system_warning.mp3";  // fallback
 
     sound_msg.arg = path;

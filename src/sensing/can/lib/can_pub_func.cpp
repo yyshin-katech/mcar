@@ -711,9 +711,10 @@ void CHASSIS_CAN_READER(){
                                                                    (char*)"vcu_VS",\
                                                                    (char*)"vcu_SAS_Angle",\
                                                                    (char*)"vcu_SAS_Speed",\
-                                                                   (char*)"vcu_LONG_ACCEL"}));                                                      
+                                                                   (char*)"vcu_LONG_ACCEL"}));            
+  msg_list.push_back(make_tuple((char*)"from_Control", vector<char*> {(char*)"AEB_flag"}));
 
-  int msg_num = 4;
+  int msg_num = 5;
   int temp_substring;
   bool matched_flag = false;
   int msg_idx;
@@ -892,6 +893,21 @@ void CHASSIS_CAN_READER(){
 
                 case(5): // vcu_LONG_ACCEL
                   msg.vcu_LONG_ACCEL = value; 
+                break;
+              }
+            }
+          break;
+
+          case(4): // from_Control
+
+            for(int i=0; i!=get<1>(msg_list[msg_idx]).size(); i++){
+              kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[i], &sh);
+              kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
+
+              switch(i){
+
+                case(0): // AEB_flag
+                  msg.AEB_flag = value;
                 break;
               }
             }

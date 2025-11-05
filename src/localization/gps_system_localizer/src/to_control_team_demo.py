@@ -37,7 +37,7 @@ else:
     MAP_IS_CITY = 1
 
 
-ODD_CNT_THRESHOLD = 20
+ODD_CNT_THRESHOLD = 10
 ODD_OCCUPIED_OFFSET_THRESHOLD = 0.95
 ODD_YAW_ERR_THRESHOLD = np.deg2rad(45)
 
@@ -84,12 +84,6 @@ class DistanceCalculator(object):
 
     def load_centerline_map(self):
         try:
-            # self.road_1 = sio.loadmat(MAPFILE_PATH + '/PG_link_1.mat')
-            # self.road_2 = sio.loadmat(MAPFILE_PATH + '/PG_link_2.mat')
-            # self.road_3 = sio.loadmat(MAPFILE_PATH + '/PG_link_3.mat')
-            # self.road_4 = sio.loadmat(MAPFILE_PATH + '/PG_link_4.mat')
-            # self.road_5 = sio.loadmat(MAPFILE_PATH + '/PG_link_5.mat')
-            # self.road_6 = sio.loadmat(MAPFILE_PATH + '/PG_link_6.mat')
             for i in range(MIN_LANE_ID, MAX_LANE_ID+1):
                 mat_file_path = f'{MAPFILE_PATH}/link_{i}.mat'
                 setattr(self, f'road_{i}', sio.loadmat(mat_file_path))
@@ -104,13 +98,6 @@ class DistanceCalculator(object):
 
     def compute_my_lane_cy(self, e, n):
         ''' cython 버전 '''
-        # lane_names = ['road_1', 
-        #               'road_2',
-        #               'road_3', 
-        #               'road_4',
-        #               'road_5', 
-        #               'road_6' ,
-        #               'none']
         lane_names = [f'road_{i}' for i in range(MIN_LANE_ID, MAX_LANE_ID+1)]
         lane_names.append('none')
         
@@ -125,11 +112,11 @@ class DistanceCalculator(object):
 
         if self.map_loaded: # mat 파일 로드 
             distances, indexs = compute_current_lane(self.target_roads, e, n)
-            min_abs_d = 100.0
-            # min_abs_d = 2.0
+            # min_abs_d = 100.0
+            min_abs_d = 1.5
 
             for i, (dist, closest_waypoint) in enumerate(zip(distances, indexs)):
-                if dist > 4.0:
+                if dist > 3.0:
                     continue
                 else:
                     mapx = self.target_roads[i]['east'][0]
@@ -214,30 +201,7 @@ class DistanceCalculator(object):
         """
         localization 메세지를 받아서 control team에 필요한 메세지 publish
         """
-        # (현재 LINK_ID, 이전 lane_id) -> 새로운 LINK_ID 매핑
-        lane_transitions = {
-            # FIRST UPHILL
-            (5, 7): 7,
-            (5, 8): 8,
-            (5, 3): 3,
-            (10, 8): 8,
-            (10, 3): 3,
-            (8, 10): 10,
-            (3, 10): 10,
-            
-            # SECOND UPHILL
-            (18, 11): 11,
-            (19, 16): 16,
-            (14, 11): 11,
-            (14, 16): 16,
-            (11, 18): 18,
-            (11, 14): 14,  # 원본 코드에 = 대신 == 버그 수정
-            (16, 18): 18,
-            (16, 19): 19,
-            (16, 14): 14,
-        }
-        
-        ODD_id_list = [MAX_LANE_ID+1]
+        ODD_id_list = list(range(1, MAX_LANE_ID +1)) # [MAX_LANE_ID+1]
         t0 = time.time()
 
         e = msg.east
@@ -266,69 +230,11 @@ class DistanceCalculator(object):
         #     p.distance_to_lane_end = self.target_roads[current_lane_id]['station'][0][-1] + \
         #                              self.target_roads[25]['station'][0][-1] - current_s
         # else:
-        if not MAP_IS_CITY:
-            # p.LINK_ID = lane_transitions.get((p.LINK_ID, self.old_lane_id), p.LINK_ID)
-##############FIRST UPHILL############################################
-            if p.LINK_ID == 5:
-                if self.old_lane_id == 7:
-                    p.LINK_ID = 7
-                elif self.old_lane_id == 8:
-                    p.LINK_ID = 8
-                elif self.old_lane_id == 3:
-                    p.LINK_ID = 3
-                else:
-                    p.LINK_ID = 5
-            elif p.LINK_ID == 10:
-                if self.old_lane_id == 8:
-                    p.LINK_ID = 8
-                elif self.old_lane_id == 3:
-                    p.LINK_ID = 3
-                else:
-                    p.LINK_ID = 10
-            elif p.LINK_ID == 8:
-                if self.old_lane_id == 10:
-                    p.LINK_ID = 10
-            elif p.LINK_ID == 3:
-                if self.old_lane_id == 10:
-                    p.LINK_ID = 10
-##############SECOND UPHILL############################################
-            elif p.LINK_ID == 18:
-                if self.old_lane_id == 11:
-                    p.LINK_ID = 11
-            elif p.LINK_ID == 19:
-                if self.old_lane_id == 16:
-                    p.LINK_ID = 16
-            elif p.LINK_ID == 14:
-                if self.old_lane_id == 11:
-                    p.LINK_ID = 11
-                elif self.old_lane_id == 16:
-                    p.LINK_ID = 16
-            elif p.LINK_ID == 11:
-                if self.old_lane_id == 18:
-                    p.LINK_ID = 18
-                if self.old_lane_id == 14:
-                    p.LINK_ID = 14
-            elif p.LINK_ID == 16:
-                if self.old_lane_id == 18:
-                    p.LINK_ID = 18
-                elif self.old_lane_id == 19:
-                    p.LINK_ID = 19
-                elif self.old_lane_id == 14:
-                    p.LINK_ID = 14
-            else:
-                p.LINK_ID = p.LINK_ID
-            
         p.distance_to_lane_end = self.target_roads[current_lane_id]['station'][0][-1] - current_s
-
-        if p.distance_to_lane_end < 0:
-            print(p.distance_to_lane_end)
-            print(e)
-            print(n)
 
         mapx_set = self.target_roads[current_lane_id]['east'][0]
         mapy_set = self.target_roads[current_lane_id]['north'][0]
         
-
         ## 자차량 ODD 상태 initilaize ##
 
         p.On_ODD = 0
@@ -339,20 +245,12 @@ class DistanceCalculator(object):
         ## 지금 주행중인 링크랑 연결된 다음 링크가 ODD 이탈 영역 혹은 도로가 끊긴 경우 ##
 
         if p.NEXT_LINK_ID in ODD_id_list or p.NEXT_LINK_ID == 0:
-
             p.Road_State = 1  # 이탈 경고
             p.distance_out_of_ODD = p.distance_to_lane_end  # 이탈 영역까지 남은 거리
 
-        if p.NEXT_LINK_ID == 31:
-            p.Road_State = 1
-            p.distance_out_of_ODD = p.distance_to_lane_end
-        elif p.LINK_ID == 52:
-            p.Road_State = 1
-            p.distance_out_of_ODD = p.distance_to_lane_end
-
-
+        
         ## 현재 영역에 주행할 경로가 없거나, ODD 이탈 영역에 들어올 때 계속 수동모드 플래그 송출 ##
-        if p.lane_id == 0 or p.lane_id in ODD_id_list:
+        if p.lane_id == 0 or not (p.lane_id in ODD_id_list):
             p.left_LaneChange_avail = 0
             p.right_LaneChange_avail = 0
             p.look_at_signalGroupID = 0
@@ -464,13 +362,7 @@ class DistanceCalculator(object):
                 p.Road_State = 2
                 p.Wrong_Way_Warn = 0
                 p.distance_out_of_ODD = 0
-
-            # if yaw_error_size >= ODD_YAW_ERR_THRESHOLD :
-            #     p.On_ODD = 1
-            #     p.Road_State = 2
-            #     p.distance_out_of_ODD = 0
-                
-
+            
         p.lane_name = current_lane_name
         p.host_east = e
         p.host_north = n
@@ -478,23 +370,30 @@ class DistanceCalculator(object):
         p.waypoint_index = current_closest_waypoint_in_MATLAB
         p.station = current_s
         p.lateral_offset = current_d
-        
-        if p.LINK_ID == 56:
-            if p.distance_to_lane_end < 60.0:
-                p.host_east = 0
-                p.host_north = 0
-                p.GPS_Over = 1
 
-        if p.LINK_ID == 57:
-            p.host_east = 0
-            p.host_north = 0
-            p.GPS_Over = 1
-            if p.distance_to_lane_end < 10.0:
-                p.host_east = e
-                p.host_north = n
-                p.GPS_Over = 0
+        # 터널 진입 구간    
+        # if p.LINK_ID == 56:
+        #     if p.distance_to_lane_end < 60.0:
+        #         p.host_east = 0
+        #         p.host_north = 0
+        #         p.GPS_Over = 1
+
+        # if p.LINK_ID == 57:
+        #     p.host_east = 0
+        #     p.host_north = 0
+        #     p.GPS_Over = 1
+        #     if p.distance_to_lane_end < 10.0:
+        #         p.host_east = e
+        #         p.host_north = n
+        #         p.GPS_Over = 0
         
-        if self.takeoverreq == 1 or p.LINK_ID == 31 or p.LINK_ID == 54:
+        # 어린이 보호구역 전에서 ODD 이탈 경고
+
+        if p.LINK_ID == 61:
+            p.Road_State = 2
+
+        # 센서 고장 일때, 어린이 보호구역 안에서
+        if self.takeoverreq == 1 or p.Road_State == 2 or p.On_ODD == 1 or p.LINK_ID == 0:
             p.Take_Over_Request = 1
         else:
             p.Take_Over_Request = 0

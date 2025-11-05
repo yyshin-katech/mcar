@@ -19,3 +19,5 @@ uint8 VCU2_ADCU_AliveCnt
 float64 vcu_VS
 float64 vcu_SAS_Angle
 float64 vcu_LONG_ACCEL
+
+uint8 AEB_flag
