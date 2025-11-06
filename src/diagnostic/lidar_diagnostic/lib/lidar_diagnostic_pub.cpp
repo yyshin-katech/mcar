@@ -11,7 +11,7 @@ LIDAR_DIAGNOSTIC_PUB::LIDAR_DIAGNOSTIC_PUB()
     pub = nh.advertise<katech_diagnostic_msgs::lidar_diagnostic_msg>("/diagnostic/lidar", 1);
     sub = nh.subscribe("/percept_topic", 5, &LIDAR_DIAGNOSTIC_PUB::percept_callback, this);
 
-    timer_ = nh.createTimer(ros::Duration(1.0), &LIDAR_DIAGNOSTIC_PUB::timer_callback, this);
+    timer_ = nh.createTimer(ros::Duration(0.1), &LIDAR_DIAGNOSTIC_PUB::timer_callback, this);
 }
 
 LIDAR_DIAGNOSTIC_PUB::~LIDAR_DIAGNOSTIC_PUB()
@@ -109,8 +109,8 @@ bool LIDAR_DIAGNOSTIC_PUB::checkConnection(const std::string& ip, uint16_t port)
     FD_SET(sock, &writefds);
 
     struct timeval tv;
-    tv.tv_sec = 1;
-    tv.tv_usec = 0;
+    tv.tv_sec = 0;
+    tv.tv_usec = 100000;
 
     result = select(sock + 1, nullptr, &writefds, nullptr, &tv);
     if (result > 0) {
