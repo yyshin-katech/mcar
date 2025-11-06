@@ -206,6 +206,13 @@ void STAT_DISPLAY::local_callback(const mmc_msgs::to_control_team_from_local_msg
     local_msg = *msg;
 }
 
+void STAT_DISPLAY::diag_timerCallback(const ros::TimerEvent&);
+{
+    this->system_status_check();
+
+    katech_diag_pub.publish(katech_diag_msg);
+}
+
 void STAT_DISPLAY::timerCallback(const ros::TimerEvent&)
 {
     this->GPS_Text_Gen();
@@ -218,13 +225,9 @@ void STAT_DISPLAY::timerCallback(const ros::TimerEvent&)
     this->CAM_Text_Gen();
     this->IPC_Text_Gen();
 
-    this->system_status_check();
-
     this->Local_Text_Gen();
 
     this->MODE_Text_Gen();
-
-    katech_diag_pub.publish(katech_diag_msg);
 
     this->TRAFFIC_LIGHT_Text_Gen();
 }

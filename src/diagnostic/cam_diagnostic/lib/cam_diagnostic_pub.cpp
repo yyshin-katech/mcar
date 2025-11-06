@@ -6,7 +6,7 @@ CAM_DIAGNOSTIC_PUB::CAM_DIAGNOSTIC_PUB()
     lane_sub = nh.subscribe("/sensors/vision_lane", 5, &CAM_DIAGNOSTIC_PUB::cam_lane_callback, this);
     obj_sub = nh.subscribe("/sensors/vision_pos", 5, &CAM_DIAGNOSTIC_PUB::cam_obj_callback, this);
 
-    timer_ = nh.createTimer(ros::Duration(1.0), &CAM_DIAGNOSTIC_PUB::timer_callback, this);
+    timer_ = nh.createTimer(ros::Duration(0.1), &CAM_DIAGNOSTIC_PUB::timer_callback, this);
 }
 
 CAM_DIAGNOSTIC_PUB::~CAM_DIAGNOSTIC_PUB()

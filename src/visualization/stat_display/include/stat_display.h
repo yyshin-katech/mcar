@@ -89,6 +89,7 @@ class STAT_DISPLAY{
         ros::Subscriber traffic_light_sub;
 
         ros::Timer timer_;
+        ros::Timer diag_timer_;
 
         uint8_t current_gps_cnt, last_gps_cnt, unchanged_gps_cnt;
         uint8_t gps_status;
@@ -152,6 +153,7 @@ class STAT_DISPLAY{
         void chassis_callback_func(const mmc_msgs::chassis_msg::ConstPtr& msg);
         
         void timerCallback(const ros::TimerEvent&);
+        void diag_timerCallback(const ros::TimerEvent&);
 
         void POPUP_Text_Gen(const std::string& message);
         void POPUP_Text_Clear();
