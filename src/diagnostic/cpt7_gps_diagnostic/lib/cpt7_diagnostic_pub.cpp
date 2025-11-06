@@ -7,7 +7,7 @@ CPT7_DIAGNOSTIC_PUB::CPT7_DIAGNOSTIC_PUB()
     sub = nh.subscribe("/sensors/gps/bestpos", 1, &CPT7_DIAGNOSTIC_PUB::bestpos_callback, this);
     sub_inspva = nh.subscribe("/sensors/gps/inspva", 1, &CPT7_DIAGNOSTIC_PUB::inspva_callback, this);
     
-    timer_ = nh.createTimer(ros::Duration(1.0), &CPT7_DIAGNOSTIC_PUB::timerCallback, this);
+    timer_ = nh.createTimer(ros::Duration(0.1), &CPT7_DIAGNOSTIC_PUB::timerCallback, this);
 
     alive_cnt = 0;
     bestpos_cb_cnt = 0;
