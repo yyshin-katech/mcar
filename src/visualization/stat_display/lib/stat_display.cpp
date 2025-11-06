@@ -1032,7 +1032,7 @@ void STAT_DISPLAY::system_status_check()
     }
     else if (lo_chassis_msg.AEB_flag == 1)
     {
-        oss << "전방 추돌 경고";
+        oss << "🚨 전방 추돌 경고 🚨";
         std::string str = oss.str();
 
         this->sound_play("AEB");

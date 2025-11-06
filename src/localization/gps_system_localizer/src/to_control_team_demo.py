@@ -25,17 +25,9 @@ from utils_cython import find_closest, compute_current_lane, xy2frenet_with_clos
 # MAPFILE_PATH = '/home/katech/mcar_v10/src/localization/gps_system_localizer/mapfiles/K_CITY_20250630'
 # MAPFILE_PATH = '/home/ads/mcar_v10/src/localization/gps_system_localizer/mapfiles/KATECH_0508'
 MAPFILE_PATH = rospy.get_param('MAPFILE_PATH')
-USE_SLOPE = rospy.get_param('USE_SLOPE')
-
+MAPFILE_PATH = '/home/katech/mcar_v13/src/localization/gps_system_localizer/mapfiles/K_CITY_20251106'
 MIN_LANE_ID = 1
-
-if USE_SLOPE:
-    MAX_LANE_ID = 20 #link_59 is dummy file
-    MAP_IS_CITY = 0
-else:
-    MAX_LANE_ID = 61
-    MAP_IS_CITY = 1
-
+MAX_LANE_ID = 61
 
 ODD_CNT_THRESHOLD = 10
 ODD_OCCUPIED_OFFSET_THRESHOLD = 0.95
@@ -90,7 +82,7 @@ class DistanceCalculator(object):
 
             # self.target_roads = [self.road_1, self.road_2,self.road_3,self.road_4,self.road_5,self.road_6]
             self.target_roads = [getattr(self, f'road_{i}') for i in range(MIN_LANE_ID, MAX_LANE_ID+1)]
-
+            
             self.map_loaded = True
 
         except Execption as e:
@@ -112,10 +104,12 @@ class DistanceCalculator(object):
 
         if self.map_loaded: # mat 파일 로드 
             distances, indexs = compute_current_lane(self.target_roads, e, n)
-            # min_abs_d = 100.0
-            min_abs_d = 1.5
-
+            
+            min_abs_d = 100.0
+            # min_abs_d = 1.5
+            
             for i, (dist, closest_waypoint) in enumerate(zip(distances, indexs)):
+                
                 if dist > 3.0:
                     continue
                 else:
@@ -155,7 +149,7 @@ class DistanceCalculator(object):
                 current_closest_waypoint_in_MATLAB = current_closest_waypoint_index + 1
 
                 current_lane_name = lane_names[current_lane_id]
-
+        
         return current_lane_id, current_lane_name, distance_to_entry_end, distance_to_exit_start, current_s, current_d, current_closest_waypoint_in_MATLAB
     
     def lane_occupied_check(self,offset):
@@ -206,7 +200,10 @@ class DistanceCalculator(object):
 
         e = msg.east
         n = msg.north
+        e = 935637.84+2.6+0.22
+        n = 1916057.58
         yaw = msg.yaw
+        yaw = 1.2
 
         current_lane_id, current_lane_name, distance_to_entry_end, distance_to_exit_start, current_s, current_d, current_closest_waypoint_in_MATLAB = self.compute_my_lane_cy(e, n)
 
@@ -224,7 +221,7 @@ class DistanceCalculator(object):
         p.left_LaneChange_avail = self.target_roads[current_lane_id]['left_LaneChange_avail'][0][0]
         p.right_LaneChange_avail = self.target_roads[current_lane_id]['right_LaneChange_avail'][0][0]
         p.Speed_Limit = self.target_roads[current_lane_id]['Speed_Limit'][0][0]
-        # print(current_lane_id)
+        # print(p.LINK_ID)
         # if current_lane_id == 24:
         #     p.is_stop_line = 1
         #     p.distance_to_lane_end = self.target_roads[current_lane_id]['station'][0][-1] + \
@@ -265,7 +262,7 @@ class DistanceCalculator(object):
             p.Road_State = 2
             p.distance_out_of_ODD = 0
             p.yaw_error_size = 100
-
+        
         ## 현재 영역이 이탈 구역이 아닐 때 즉, 경로가 잡혔다면 ---> 제대로 그 경로안에 있고, 방향을 잘 보고 있는지 확인 ##
         else:
             ## 차선 걸쳐있을 때 마다 cnt 스코어 상승 ##
@@ -281,6 +278,7 @@ class DistanceCalculator(object):
                     p.On_ODD = 1
                     p.Road_State = 2
                     p.distance_out_of_ODD = 0
+                    
 
             ## 차선안에 들어오면 스코어 초기화  ##
             else:

@@ -141,7 +141,8 @@ from geometry_msgs.msg import Point
 from mmc_msgs.msg import to_control_team_from_local_msg
 
 # MAPFILE_PATH = rospy.get_param("MAPFILE_PATH_kiapi")
-MAPFILE_PATH = '/home/ads/mcar_v13/src/localization/gps_system_localizer/src'
+# MAPFILE_PATH = '/home/ads/mcar_v13/src/localization/gps_system_localizer/src'
+MAPFILE_PATH = '/home/katech/mcar_v13/src/localization/gps_system_localizer/src'
 
 def lanelet_data_initialize(shp_file):
     """Initialize data from a single shapefile"""

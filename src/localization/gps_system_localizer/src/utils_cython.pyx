@@ -15,7 +15,7 @@ cpdef list find_closest(c_np.ndarray[double, ndim=1] mapx, c_np.ndarray[double, 
       dx = x - map_x
       dy = y - map_y
       dist = sqrt(dx*dx + dy*dy)
-
+      
       if dist < closest_len:
           closest_len = dist
           closest_waypoint = j
@@ -33,13 +33,13 @@ cpdef list compute_current_lane(object target_roads, double e, double n):
 
   dists = []
   waypoints_list = []
-
+  
   for i, target_road in enumerate(target_roads):
     mapx = target_road['east'][0]
     mapy = target_road['north'][0]
 
-    waypoints = np.vstack((mapx, mapy)).T # (N x 2)
-    pose = np.array([e, n])
+    # waypoints = np.vstack((mapx, mapy)).T # (N x 2)
+    # pose = np.array([e, n])
 
     closest_len, closest_waypoint = find_closest(mapx, mapy, e, n)
     dists.append(closest_len)
