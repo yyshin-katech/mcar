@@ -5,7 +5,7 @@ IPC_DIAGNOSTIC_PUB::IPC_DIAGNOSTIC_PUB()
     pub = nh.advertise<katech_diagnostic_msgs::ipc_diagnostic_msg>("/diagnostic/ipc", 1);
     sub = nh.subscribe("/percept_topic", 5, &IPC_DIAGNOSTIC_PUB::percept_callback, this);
 
-    timer_ = nh.createTimer(ros::Duration(1.0), &IPC_DIAGNOSTIC_PUB::timer_callback, this);
+    timer_ = nh.createTimer(ros::Duration(0.1), &IPC_DIAGNOSTIC_PUB::timer_callback, this);
 
     percept_callback_cnt = 0;
     percept_callback_cnt_old = 0;
