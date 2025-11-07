@@ -5,7 +5,7 @@ VCU_DIAGNOSTIC_PUB::VCU_DIAGNOSTIC_PUB()
     pub = nh.advertise<katech_diagnostic_msgs::vcu_diagnostic_msg>("/diagnostic/vcu", 1);
     sub = nh.subscribe("/sensors/chassis", 5, &VCU_DIAGNOSTIC_PUB::vcu_callback, this);
 
-    timer_ = nh.createTimer(ros::Duration(1.0), &VCU_DIAGNOSTIC_PUB::timer_callback, this);
+    timer_ = nh.createTimer(ros::Duration(0.1), &VCU_DIAGNOSTIC_PUB::timer_callback, this);
 }
 
 VCU_DIAGNOSTIC_PUB::~VCU_DIAGNOSTIC_PUB()
