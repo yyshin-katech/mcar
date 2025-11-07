@@ -7,7 +7,7 @@ V2X_DIAGNOSTIC_PUB::V2X_DIAGNOSTIC_PUB()
     pub = nh.advertise<katech_diagnostic_msgs::v2x_diagnostic_msg>("/diagnostic/v2x", 1);
     sub = nh.subscribe("/katri_v2x_node/katri_spat", 1, &V2X_DIAGNOSTIC_PUB::v2x_callback, this);
 
-    timer_ = nh.createTimer(ros::Duration(1.0), &V2X_DIAGNOSTIC_PUB::timer_callback, this);
+    timer_ = nh.createTimer(ros::Duration(0.1), &V2X_DIAGNOSTIC_PUB::timer_callback, this);
 
     conn_stat = 0;
     v2x_callback_cnt = 0;
@@ -87,8 +87,8 @@ bool V2X_DIAGNOSTIC_PUB::checkConnection(const std::string& ip, uint16_t port)
     FD_SET(sock, &writefds);
 
     struct timeval tv;
-    tv.tv_sec = 1;
-    tv.tv_usec = 0;
+    tv.tv_sec = 0;
+    tv.tv_usec = 1000000;
 
     result = select(sock + 1, nullptr, &writefds, nullptr, &tv);
     if (result > 0) {

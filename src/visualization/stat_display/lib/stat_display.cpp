@@ -206,7 +206,7 @@ void STAT_DISPLAY::local_callback(const mmc_msgs::to_control_team_from_local_msg
     local_msg = *msg;
 }
 
-void STAT_DISPLAY::diag_timerCallback(const ros::TimerEvent&);
+void STAT_DISPLAY::diag_timerCallback(const ros::TimerEvent&)
 {
     this->system_status_check();
 
