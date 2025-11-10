@@ -25,9 +25,9 @@ from utils_cython import find_closest, compute_current_lane, xy2frenet_with_clos
 # MAPFILE_PATH = '/home/katech/mcar_v10/src/localization/gps_system_localizer/mapfiles/K_CITY_20250630'
 # MAPFILE_PATH = '/home/ads/mcar_v10/src/localization/gps_system_localizer/mapfiles/KATECH_0508'
 MAPFILE_PATH = rospy.get_param('MAPFILE_PATH')
-MAPFILE_PATH = '/home/katech/mcar_v13/src/localization/gps_system_localizer/mapfiles/K_CITY_20251106'
+# MAPFILE_PATH = '/home/katech/mcar_v13/src/localization/gps_system_localizer/mapfiles/K_CITY_20251106'
 MIN_LANE_ID = 1
-MAX_LANE_ID = 61
+MAX_LANE_ID = 75
 
 ODD_CNT_THRESHOLD = 10
 ODD_OCCUPIED_OFFSET_THRESHOLD = 0.95
@@ -200,10 +200,10 @@ class DistanceCalculator(object):
 
         e = msg.east
         n = msg.north
-        e = 935637.84+2.6+0.22
-        n = 1916057.58
+        # e = 935637.84+2.6+0.22
+        # n = 1916057.58
         yaw = msg.yaw
-        yaw = 1.2
+        # yaw = 1.2
 
         current_lane_id, current_lane_name, distance_to_entry_end, distance_to_exit_start, current_s, current_d, current_closest_waypoint_in_MATLAB = self.compute_my_lane_cy(e, n)
 
