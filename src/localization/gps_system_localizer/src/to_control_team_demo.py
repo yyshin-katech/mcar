@@ -387,6 +387,11 @@ class DistanceCalculator(object):
         
         # 어린이 보호구역 전에서 ODD 이탈 경고
 
+        # d ddd dddddd ddddds dddddddfff ddddddddd
+        if p.LINK_ID == 48 and p.distance_to_lane_end < 98.0
+            p.have_to_LangeChange_right = 1
+
+
         if p.LINK_ID in [61, 34, 35, 36, 37, 53, 54, 55, 67, 68, 73]:
             p.On_ODD = 1
             p.Road_State = 2
