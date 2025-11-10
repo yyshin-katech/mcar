@@ -387,7 +387,8 @@ class DistanceCalculator(object):
         
         # 어린이 보호구역 전에서 ODD 이탈 경고
 
-        if p.LINK_ID == 61:
+        if p.LINK_ID in [61, 34, 35, 36, 37, 53, 54, 55, 67, 68, 73]:
+            p.On_ODD = 1
             p.Road_State = 2
 
         # 센서 고장 일때, 어린이 보호구역 안에서
