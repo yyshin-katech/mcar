@@ -33,7 +33,7 @@ if USE_SLOPE:
     MAX_LANE_ID = 20 #link_59 is dummy file
     MAP_IS_CITY = 0
 else:
-    MAX_LANE_ID = 61
+    MAX_LANE_ID = 2
     MAP_IS_CITY = 1
 
 

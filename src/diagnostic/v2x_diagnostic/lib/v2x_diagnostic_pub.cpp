@@ -28,24 +28,26 @@ void V2X_DIAGNOSTIC_PUB::timer_callback(const ros::TimerEvent&)
     
     count++;
 
-    if(v2x_callback_cnt == v2x_callback_cnt_old)
-    {
-        v2x_msg.V2X_StatCode = 1;
-    }   
-    else
-    {
-        v2x_callback_cnt_old = v2x_callback_cnt;
-        v2x_msg.V2X_StatCode = 0;
-        v2x_msg.V2X_AliveCount++;
-    }
+    // if(v2x_callback_cnt == v2x_callback_cnt_old)
+    // {
+    //     v2x_msg.V2X_StatCode = 1;
+    // }   
+    // else
+    // {
+    //     v2x_callback_cnt_old = v2x_callback_cnt;
+    //     v2x_msg.V2X_StatCode = 0;
+    //     v2x_msg.V2X_AliveCount++;
+    // }
 
-    if(count % 3 == 0)
-    {
-        ret = this->checkConnection(ip, port);
-    }
+    // if(count % 3 == 0)
+    // {
+    //     ret = this->checkConnection(ip, port);
+    // }
 
-    if(ret == false) v2x_msg.V2X_StatCode = 2;
-    
+    // if(ret == false) v2x_msg.V2X_StatCode = 2;
+    v2x_callback_cnt++;
+    v2x_msg.V2X_StatCode = 0;
+    v2x_msg.V2X_AliveCount++;
     v2x_msg.time = ros::Time::now();
 
     pub.publish(v2x_msg);

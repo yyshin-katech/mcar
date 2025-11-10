@@ -16,7 +16,6 @@
           value="$(find gps_system_localizer)/mapfiles/KATECH_PG_250605" 
           unless="$(arg use_slope_map)"/>
 
-
 <!-- kcity 용
     <param name="MAPFILE_PATH" 
           value="$(find gps_system_localizer)/mapfiles/K_CITY_20251023" 
