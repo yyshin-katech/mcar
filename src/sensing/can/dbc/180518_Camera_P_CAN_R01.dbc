@@ -1,0 +1,271 @@
+VERSION ""
+
+
+NS_ : 
+	NS_DESC_
+	CM_
+	BA_DEF_
+	BA_
+	VAL_
+	CAT_DEF_
+	CAT_
+	FILTER
+	BA_DEF_DEF_
+	EV_DATA_
+	ENVVAR_DATA_
+	SGTYPE_
+	SGTYPE_VAL_
+	BA_DEF_SGTYPE_
+	BA_SGTYPE_
+	SIG_TYPE_REF_
+	VAL_TABLE_
+	SIG_GROUP_
+	SIG_VALTYPE_
+	SIGTYPE_VALTYPE_
+	BO_TX_BU_
+	BA_DEF_REL_
+	BA_REL_
+	BA_DEF_DEF_REL_
+	BU_SG_REL_
+	BU_EV_REL_
+	BU_BO_REL_
+	SG_MUL_VAL_
+
+BS_:
+
+BU_:
+VAL_TABLE_ VtSigLkasMode 15 "System Failure" 14 "System Not Calibrated" 6 "Mode 2 Right Line" 5 "Mode 2 Left Line" 4 "Mode 2 Full Lane" 3 "Mode 1 MDPS Control" 2 "System Unavailable" 1 "Low Vehicle Speed" 0 "System OFF" ;
+VAL_TABLE_ Vt_FCW_Warning 4 "3rd Warning" 2 "2nd Warning" 1 "1st Warning" 0 "No Warning" ;
+VAL_TABLE_ Vt_DrivingSide 1 "Left" 0 "Right" ;
+VAL_TABLE_ Vt_DayNightDecision 3 "Dusk" 2 "Night" 1 "Day" 0 "Unknown" ;
+VAL_TABLE_ Vt_Tunnel 1 "In tunnel" 0 "Not in tunnel" ;
+VAL_TABLE_ Vt_TunnelExit 1 "Detected" 0 "Not detected" ;
+VAL_TABLE_ Vt_AutofixStat 4 "E_OUT_OF_RANGE" 3 "E_CALIBRATION_OK" 2 "E_CHANGE_CALIBRATION" 1 "E_NOT_CALCULATED" ;
+VAL_TABLE_ Vt_FCWStatus 2 "FCW2(soft,low speed)" 1 "FCW Warning" ;
+VAL_TABLE_ Vt_FCWSuppReason 3 "HostBrakePress" 2 "HostVehicleSpeed" 1 "FriendorFoe" 0 "NoSuppression" ;
+VAL_TABLE_ Vt_PassingInVehicle 3 "PassingInOnBothSide" 2 "PassingInOnRightSide" 1 "PassingInOnLeftSide" 0 "NoPassingIn" ;
+VAL_TABLE_ Vt_BooleanTrue 1 "True" 0 "False" ;
+VAL_TABLE_ Vt_LaneMarkType 6 "Invalid" 5 "Botts'Dots" 4 "DoubleLaneMark" 3 "RoadEdge" 2 "Undecided" 1 "Solid" 0 "Dashed" ;
+VAL_TABLE_ Vt_LaneMarkQuality 3 "HighQuality" 2 "HighQuality" 1 "LowQuality" 0 "LowQuality" ;
+VAL_TABLE_ Vt_BooleanAvail 1 "Available" 0 "Unavailable" ;
+VAL_TABLE_ Vt_LDWWarning 1 "WarningIsON" 0 "WarningIsNotIssued" ;
+VAL_TABLE_ Vt_BooleanValid 1 "Valid" 0 "Invalid" ;
+VAL_TABLE_ Vt_BooleanDetect 1 "Detected" 0 "Not detected" ;
+VAL_TABLE_ Vt_LaneColor 1 "Yellow" 0 "White" ;
+VAL_TABLE_ Vt_BooleanPredict 1 "Predicted" 0 "Not predicted" ;
+VAL_TABLE_ Vt_ObjectMode 2 "CutOut" 1 "CutIn" 0 "NoCutInCutOut" ;
+VAL_TABLE_ Vt_ObjectLane 5 "Unknown" 4 "ObjectInFurtherLanesRight" 3 "ObjectInNextLaneRight" 2 "ObjectInFurtherLanesLeft" 1 "ObjectInNextLaneLeft" 0 "ObjectInEGOLane" ;
+VAL_TABLE_ Vt_CIPV 1 "CIPV" 0 "NotCIPV" ;
+VAL_TABLE_ Vt_ObstacleBrakeLights 1 "BrakeLightsOn" 0 "BrakeLightsOff/Undefined" ;
+VAL_TABLE_ Vt_BlinkerInfo 4 "both" 3 "right" 2 "left" 0 "off" ;
+VAL_TABLE_ Vt_MotionStatus 4 "Stationary" 3 "Stopped" 2 "Oncoming" 1 "Preceeding" 0 "Undecided" ;
+VAL_TABLE_ Vt_ObjectType 4 "Other" 3 "Motorcycle" 2 "Truck" 1 "Car" 0 "Unknown" ;
+VAL_TABLE_ Vt_SF_Status 0 "NONE" 1 "FUSION_MOVE" 2 "FUSION_STAT" 3 "RADAR_MOVE" 4 "RADAR_STAT" 5 "CAMERA_MOVE" 6 "CAMERA_STAT" ;
+VAL_TABLE_ Interface_Version 15 "zInvalid0F" 14 "zInvalid0E" 13 "zInvalid0D" 12 "zInvalid0C" 11 "zInvalid0B" 10 "zInvalid0A" 9 "zInvalid09" 8 "zInvalid08" 7 "zInvalid07" 6 "zInvalid06" 5 "zInvalid05" 4 "zInvalid04" 3 "zInvalid03" 2 "zInvalid02" 1 "ADP_DV1" 0 "TDP" ;
+VAL_TABLE_ SIM_STATUS 3 "Coasted" 2 "Updated" 1 "New" 0 "Invalid" ;
+VAL_TABLE_ SIM_TRACK_ID 2 "Target_2" 1 "Target_1" 0 "No_Target" ;
+VAL_TABLE_ SIM_FUNCTION 7 "All_Stat_RI_FCW_CMbB" 6 "All_Moving_ACC_FCW_CMbB" 5 "CMbB_Stat" 4 "CMbB_Move" 3 "FCW_Stat" 2 "FCW_Move" 1 "RI" 0 "ACC" ;
+VAL_TABLE_ UPSIDE_DOWN 1 "Upside_Down" 0 "Right_Side_Up" ;
+VAL_TABLE_ MR_LR_MODE 3 "Output MR and LR tracks" 2 "Output only LR-range tracks" 1 "Output only MR-range tracks" 0 "Reserved" ;
+VAL_TABLE_ GROUP 3 "Group4" 2 "Group3" 1 "Group2" 0 "Group1" ;
+VAL_TABLE_ NODETECT_DETECT 1 "Detect" 0 "No_Detect" ;
+VAL_TABLE_ TRACK_STATUS 7 "New_Coasted_Target" 6 "Invalid_Coasted_Target" 5 "Merged_Target" 4 "Coasted_Target" 3 "Updated_Target" 2 "New_Updated_Target" 1 "New_Target" 0 "No_Target" ;
+VAL_TABLE_ NOTCROSSING_CROSSING 1 "Crossing" 0 "Not_Crossing" ;
+VAL_TABLE_ NOTMOVABLE_MOVABLE 1 "Movable" 0 "Not_Movable" ;
+VAL_TABLE_ STATIONARY_MOVING 1 "Moving" 0 "Stationary" ;
+VAL_TABLE_ NOTOVERTEMP_OVERTEMP 1 "OverTemp" 0 "Not OverTemp" ;
+VAL_TABLE_ NOTBLOCKED_BLOCKED 1 "Blocked" 0 "Not Blocked" ;
+VAL_TABLE_ NOTFAIL_FAIL 1 "Failed" 0 "Not Failed" ;
+VAL_TABLE_ UNGROUPED_GROUPED 3 "Group_Moving_Stationary" 2 "Group_Stationary_Only" 1 "Group_Moving_Only" 0 "No_Grouping" ;
+VAL_TABLE_ FILTERED_RAW 1 "Raw" 0 "Filtered" ;
+VAL_TABLE_ OFF_ON 1 "On" 0 "Off" ;
+VAL_TABLE_ SW_SIGN 1 "Clockwise" 0 "Counterclockwise" ;
+VAL_TABLE_ VALIDITY 1 "Valid" 0 "Invalid" ;
+VAL_TABLE_ VEHICLE_SPEED_DIRECTION 1 "Reverse" 0 "Forward" ;
+VAL_TABLE_ vt_sigWheelSlip 3 "Reserved" 2 "Spin (Traction control)" 1 "Lock (Brake control)" 0 "No Slip" ;
+VAL_TABLE_ vt_SF_Update 3 "Cam_Only_Update" 2 "Rdr_Only_Update" 1 "Both_Update" 0 "No_Update" ;
+VAL_TABLE_ vt_SF_Type 5 "FUSION_PED" 4 "RADAR_STAT" 3 "RADAR_MOVE" 2 "FUSION_STAT" 1 "FUSION_MOVE" 0 "NONE" ;
+VAL_TABLE_ vt_SF_Status 4 "CoastingTarget" 3 "UpdatedTarget" 2 "NewUpdatedTarget" 1 "NewTarget" 0 "NoTarget" ;
+
+
+BO_ 1896 LD_Right_Lane_A: 8 Vector__XXX
+ SG_ Rh_LaneMarkType : 0|4@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ Rh_LaneMarkQuality : 4|2@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ Rh_LaneMarkPosition : 8|16@1- (0.00390625,0) [0|0] "" Vector__XXX
+ SG_ Rh_LaneMarkModelA : 24|32@1+ (2.3283064E-010,-0.5) [0|0] "1/Meters" Vector__XXX
+
+BO_ 1897 LD_Right_Lane_B: 8 Vector__XXX
+ SG_ Rh_LaneMarkViewRangeAvail : 31|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ Rh_LaneMarkViewRange : 16|15@1+ (0.00390625,0) [0|0] "" Vector__XXX
+ SG_ Rh_LaneMarkModelDerivA : 32|32@1+ (1.45519E-011,-0.03125) [0|0] "1/Meters^2" Vector__XXX
+ SG_ Rh_LaneMarkHeadAngle : 0|16@1+ (1.52588E-005,-0.5) [0|0] "" Vector__XXX
+
+BO_ 1895 LD_Left_Lane_B: 8 Vector__XXX
+ SG_ Lh_LaneMarkHeadAngle : 0|16@1+ (1.52588E-005,-0.5) [0|0] "" Vector__XXX
+ SG_ Lh_LaneMarkViewRange : 16|15@1+ (0.00390625,0) [0|0] "" Vector__XXX
+ SG_ Lh_LaneMarkViewRangeAvail : 31|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ Lh_LaneMarkModelDerivA : 32|32@1+ (1.45519E-011,-0.03125) [0|0] "1/Meters^2" Vector__XXX
+
+BO_ 1894 LD_Left_Lane_A: 8 Vector__XXX
+ SG_ Lh_LaneMarkQuality : 4|2@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ Lh_LaneMarkPosition : 8|16@1- (0.00390625,0) [0|0] "" Vector__XXX
+ SG_ Lh_LaneMarkModelA : 24|32@1+ (2.3283064E-010,-0.5) [0|0] "1/Meters" Vector__XXX
+ SG_ Lh_LaneMarkType : 0|4@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 1849 Obstacle_Data_A_1: 8 Vector__XXX
+ SG_ ObjectLane_A_1 : 56|4@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ ObjectCipv_A_1 : 60|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ ObjectIdentifier_A_1 : 2|6@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ ObjectAge_A_1 : 8|8@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 1852 Obstacle_Data_A_2: 8 Vector__XXX
+ SG_ ObjectLane_A_2 : 56|4@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ ObjectCipv_A_2 : 60|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ ObjectIdentifier_A_2 : 2|6@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ ObjectAge_A_2 : 8|8@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 1855 Obstacle_Data_A_3: 8 Vector__XXX
+ SG_ ObjectLane_A_3 : 56|4@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ ObjectCipv_A_3 : 60|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ ObjectIdentifier_A_3 : 2|6@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ ObjectAge_A_3 : 8|8@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 1858 Obstacle_Data_A_4: 8 Vector__XXX
+ SG_ ObjectLane_A_4 : 56|4@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ ObjectCipv_A_4 : 60|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ ObjectIdentifier_A_4 : 2|6@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ ObjectAge_A_4 : 8|8@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 1861 Obstacle_Data_A_5: 8 Vector__XXX
+ SG_ ObjectLane_A_5 : 56|4@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ ObjectCipv_A_5 : 60|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ ObjectIdentifier_A_5 : 2|6@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ ObjectAge_A_5 : 8|8@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 1864 Obstacle_Data_A_6: 8 Vector__XXX
+ SG_ ObjectLane_A_6 : 56|4@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ ObjectCipv_A_6 : 60|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ ObjectIdentifier_A_6 : 2|6@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ ObjectAge_A_6 : 8|8@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 1867 Obstacle_Data_A_7: 8 Vector__XXX
+ SG_ ObjectLane_A_7 : 56|4@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ ObjectCipv_A_7 : 60|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ ObjectIdentifier_A_7 : 2|6@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ ObjectAge_A_7 : 8|8@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 1870 Obstacle_Data_A_8: 8 Vector__XXX
+ SG_ ObjectLane_A_8 : 56|4@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ ObjectCipv_A_8 : 60|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ ObjectIdentifier_A_8 : 2|6@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ ObjectAge_A_8 : 8|8@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 1850 Obstacle_Data_B_1: 8 Vector__XXX
+ SG_ Range_B_1 : 2|12@1+ (0.1,0) [0|0] "Meters" Vector__XXX
+ SG_ ObjectValidity_B_1 : 14|2@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ RangeRate_B_1 : 18|12@1+ (0.1,-100) [0|0] "m/s" Vector__XXX
+ SG_ ObjectPostionY_B_1 : 40|10@1- (0.0625,0) [0|0] "Meters" Vector__XXX
+
+BO_ 1853 Obstacle_Data_B_2: 8 Vector__XXX
+ SG_ Range_B_2 : 2|12@1+ (0.1,0) [0|0] "Meters" Vector__XXX
+ SG_ ObjectValidity_B_2 : 14|2@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ RangeRate_B_2 : 18|12@1+ (0.1,-100) [0|0] "m/s" Vector__XXX
+ SG_ ObjectPostionY_B_2 : 40|10@1- (0.0625,0) [0|0] "Meters" Vector__XXX
+
+BO_ 1856 Obstacle_Data_B_3: 8 Vector__XXX
+ SG_ Range_B_3 : 2|12@1+ (0.1,0) [0|0] "Meters" Vector__XXX
+ SG_ ObjectValidity_B_3 : 14|2@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ RangeRate_B_3 : 18|12@1+ (0.1,-100) [0|0] "m/s" Vector__XXX
+ SG_ ObjectPostionY_B_3 : 40|10@1- (0.0625,0) [0|0] "Meters" Vector__XXX
+
+BO_ 1859 Obstacle_Data_B_4: 8 Vector__XXX
+ SG_ Range_B_4 : 2|12@1+ (0.1,0) [0|0] "Meters" Vector__XXX
+ SG_ ObjectValidity_B_4 : 14|2@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ RangeRate_B_4 : 18|12@1+ (0.1,-100) [0|0] "m/s" Vector__XXX
+ SG_ ObjectPostionY_B_4 : 40|10@1- (0.0625,0) [0|0] "Meters" Vector__XXX
+
+BO_ 1862 Obstacle_Data_B_5: 8 Vector__XXX
+ SG_ Range_B_5 : 2|12@1+ (0.1,0) [0|0] "Meters" Vector__XXX
+ SG_ ObjectValidity_B_5 : 14|2@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ RangeRate_B_5 : 18|12@1+ (0.1,-100) [0|0] "m/s" Vector__XXX
+ SG_ ObjectPostionY_B_5 : 40|10@1- (0.0625,0) [0|0] "Meters" Vector__XXX
+
+BO_ 1865 Obstacle_Data_B_6: 8 Vector__XXX
+ SG_ Range_B_6 : 2|12@1+ (0.1,0) [0|0] "Meters" Vector__XXX
+ SG_ ObjectValidity_B_6 : 14|2@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ RangeRate_B_6 : 18|12@1+ (0.1,-100) [0|0] "m/s" Vector__XXX
+ SG_ ObjectPostionY_B_6 : 40|10@1- (0.0625,0) [0|0] "Meters" Vector__XXX
+
+BO_ 1868 Obstacle_Data_B_7: 8 Vector__XXX
+ SG_ Range_B_7 : 2|12@1+ (0.1,0) [0|0] "Meters" Vector__XXX
+ SG_ ObjectValidity_B_7 : 14|2@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ RangeRate_B_7 : 18|12@1+ (0.1,-100) [0|0] "m/s" Vector__XXX
+ SG_ ObjectPostionY_B_7 : 40|10@1- (0.0625,0) [0|0] "Meters" Vector__XXX
+
+BO_ 1871 Obstacle_Data_B_8: 8 Vector__XXX
+ SG_ Range_B_8 : 2|12@1+ (0.1,0) [0|0] "Meters" Vector__XXX
+ SG_ ObjectValidity_B_8 : 14|2@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ RangeRate_B_8 : 18|12@1+ (0.1,-100) [0|0] "m/s" Vector__XXX
+ SG_ ObjectPostionY_B_8 : 40|10@1- (0.0625,0) [0|0] "Meters" Vector__XXX
+
+BO_ 1848 Obstacle_Data_C_1: 6 Vector__XXX
+ SG_ ObstacleWidth_C_1 : 8|8@1+ (0.05,0) [0|0] "m" Vector__XXX
+ SG_ ObjectType_C_1 : 18|4@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 1851 Obstacle_Data_C_2: 6 Vector__XXX
+ SG_ ObstacleWidth_C_2 : 8|8@1+ (0.05,0) [0|0] "m" Vector__XXX
+ SG_ ObjectType_C_2 : 18|4@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 1854 Obstacle_Data_C_3: 6 Vector__XXX
+ SG_ ObstacleWidth_C_3 : 8|8@1+ (0.05,0) [0|0] "m" Vector__XXX
+ SG_ ObjectType_C_3 : 18|4@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 1857 Obstacle_Data_C_4: 6 Vector__XXX
+ SG_ ObstacleWidth_C_4 : 8|8@1+ (0.05,0) [0|0] "m" Vector__XXX
+ SG_ ObjectType_C_4 : 18|4@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 1860 Obstacle_Data_C_5: 6 Vector__XXX
+ SG_ ObstacleWidth_C_5 : 8|8@1+ (0.05,0) [0|0] "m" Vector__XXX
+ SG_ ObjectType_C_5 : 18|4@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 1863 Obstacle_Data_C_6: 6 Vector__XXX
+ SG_ ObstacleWidth_C_6 : 8|8@1+ (0.05,0) [0|0] "m" Vector__XXX
+ SG_ ObjectType_C_6 : 18|4@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 1866 Obstacle_Data_C_7: 6 Vector__XXX
+ SG_ ObstacleWidth_C_7 : 8|8@1+ (0.05,0) [0|0] "m" Vector__XXX
+ SG_ ObjectType_C_7 : 18|4@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 1869 Obstacle_Data_C_8: 6 Vector__XXX
+ SG_ ObstacleWidth_C_8 : 8|8@1+ (0.05,0) [0|0] "m" Vector__XXX
+ SG_ ObjectType_C_8 : 18|4@1+ (1,0) [0|0] "" Vector__XXX
+
+
+
+VAL_ 1896 Rh_LaneMarkType 6 "Invalid" 5 "Botts'Dots" 4 "DoubleLaneMark" 3 "RoadEdge" 2 "Undecided" 1 "Solid" 0 "Dashed" ;
+VAL_ 1894 Lh_LaneMarkType 6 "Invalid" 5 "Botts'Dots" 4 "DoubleLaneMark" 3 "RoadEdge" 2 "Undecided" 1 "Solid" 0 "Dashed" ;
+VAL_ 1849 ObjectLane_A_1 5 "Unknown" 4 "ObjectInFurtherLanesRight" 3 "ObjectInNextLaneRight" 2 "ObjectInFurtherLanesLeft" 1 "ObjectInNextLaneLeft" 0 "ObjectInEGOLane" ;
+VAL_ 1852 ObjectLane_A_2 5 "Unknown" 4 "ObjectInFurtherLanesRight" 3 "ObjectInNextLaneRight" 2 "ObjectInFurtherLanesLeft" 1 "ObjectInNextLaneLeft" 0 "ObjectInEGOLane" ;
+VAL_ 1855 ObjectLane_A_3 5 "Unknown" 4 "ObjectInFurtherLanesRight" 3 "ObjectInNextLaneRight" 2 "ObjectInFurtherLanesLeft" 1 "ObjectInNextLaneLeft" 0 "ObjectInEGOLane" ;
+VAL_ 1858 ObjectLane_A_4 5 "Unknown" 4 "ObjectInFurtherLanesRight" 3 "ObjectInNextLaneRight" 2 "ObjectInFurtherLanesLeft" 1 "ObjectInNextLaneLeft" 0 "ObjectInEGOLane" ;
+VAL_ 1861 ObjectLane_A_5 5 "Unknown" 4 "ObjectInFurtherLanesRight" 3 "ObjectInNextLaneRight" 2 "ObjectInFurtherLanesLeft" 1 "ObjectInNextLaneLeft" 0 "ObjectInEGOLane" ;
+VAL_ 1864 ObjectLane_A_6 5 "Unknown" 4 "ObjectInFurtherLanesRight" 3 "ObjectInNextLaneRight" 2 "ObjectInFurtherLanesLeft" 1 "ObjectInNextLaneLeft" 0 "ObjectInEGOLane" ;
+VAL_ 1867 ObjectLane_A_7 5 "Unknown" 4 "ObjectInFurtherLanesRight" 3 "ObjectInNextLaneRight" 2 "ObjectInFurtherLanesLeft" 1 "ObjectInNextLaneLeft" 0 "ObjectInEGOLane" ;
+VAL_ 1870 ObjectLane_A_8 5 "Unknown" 4 "ObjectInFurtherLanesRight" 3 "ObjectInNextLaneRight" 2 "ObjectInFurtherLanesLeft" 1 "ObjectInNextLaneLeft" 0 "ObjectInEGOLane" ;
+VAL_ 1850 ObjectValidity_B_1 1 "Valid" 0 "Invalid" ;
+VAL_ 1853 ObjectValidity_B_2 1 "Valid" 0 "Invalid" ;
+VAL_ 1856 ObjectValidity_B_3 1 "Valid" 0 "Invalid" ;
+VAL_ 1859 ObjectValidity_B_4 1 "Valid" 0 "Invalid" ;
+VAL_ 1862 ObjectValidity_B_5 1 "Valid" 0 "Invalid" ;
+VAL_ 1865 ObjectValidity_B_6 1 "Valid" 0 "Invalid" ;
+VAL_ 1868 ObjectValidity_B_7 1 "Valid" 0 "Invalid" ;
+VAL_ 1871 ObjectValidity_B_8 1 "Valid" 0 "Invalid" ;
+VAL_ 1848 ObjectType_C_1 4 "Other" 3 "Motorcycle" 2 "Truck" 1 "Car" 0 "Unknown" ;
+VAL_ 1851 ObjectType_C_2 4 "Other" 3 "Motorcycle" 2 "Truck" 1 "Car" 0 "Unknown" ;
+VAL_ 1854 ObjectType_C_3 4 "Other" 3 "Motorcycle" 2 "Truck" 1 "Car" 0 "Unknown" ;
+VAL_ 1857 ObjectType_C_4 4 "Other" 3 "Motorcycle" 2 "Truck" 1 "Car" 0 "Unknown" ;
+VAL_ 1860 ObjectType_C_5 4 "Other" 3 "Motorcycle" 2 "Truck" 1 "Car" 0 "Unknown" ;
+VAL_ 1863 ObjectType_C_6 4 "Other" 3 "Motorcycle" 2 "Truck" 1 "Car" 0 "Unknown" ;
+VAL_ 1866 ObjectType_C_7 4 "Other" 3 "Motorcycle" 2 "Truck" 1 "Car" 0 "Unknown" ;
+VAL_ 1869 ObjectType_C_8 4 "Other" 3 "Motorcycle" 2 "Truck" 1 "Car" 0 "Unknown" ;
+
