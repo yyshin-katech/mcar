@@ -42,6 +42,7 @@ STAT_DISPLAY::STAT_DISPLAY()
     traffic_light_sub = nh.subscribe("/katri_v2x_node/katri_spat", 1, &STAT_DISPLAY::traffic_light_callback, this);
     
     timer_ = nh.createTimer(ros::Duration(1.0), &STAT_DISPLAY::timerCallback, this);
+    diag_timer_ = nh.createTimer(ros::Duration(0.1), &STAT_DISPLAY::diag_timerCallback, this);
 
     gps_status = 2; // 0: 정상 1: warning 2:error
     adcu_status = 2;
@@ -210,6 +211,8 @@ void STAT_DISPLAY::diag_timerCallback(const ros::TimerEvent&)
 {
     this->system_status_check();
 
+    this->TRAFFIC_LIGHT_Text_Gen();
+
     katech_diag_pub.publish(katech_diag_msg);
 }
 
@@ -229,7 +232,7 @@ void STAT_DISPLAY::timerCallback(const ros::TimerEvent&)
 
     this->MODE_Text_Gen();
 
-    this->TRAFFIC_LIGHT_Text_Gen();
+    
 }
 
 void STAT_DISPLAY::GPS_Text_Gen()
@@ -839,7 +842,7 @@ void STAT_DISPLAY::CAM_Text_Gen()
     CAM_text.top = 50+30+30+30+30+30+30;
 
     CAM_AliveCnt_Check(cam_msg.CAM_AliveCount);
-
+    cam_status = 0;
     if(cam_status == 0)
     {   //흰색 정상
         state_color.r = 0;
