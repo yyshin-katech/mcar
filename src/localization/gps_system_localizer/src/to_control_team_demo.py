@@ -390,18 +390,16 @@ class DistanceCalculator(object):
         # 자동차 전용도로 이탈
         if p.LINK_ID == 48 and p.distance_to_lane_end < 98.0:
             p.have_to_LangeChange_right = 1
-
-        if p.LINK_ID in [48, 49, 50, 51] and p.distance_to_lane_end < 50.0:
+        elif p.LINK_ID in [48, 49, 50, 51] and p.distance_to_lane_end < 50.0:
             p.On_ODD = 1
             p.Road_State = 2
-
-        if p.LINK_ID == 52 and p.distance_to_lane_end < 60.0:
+        elif p.LINK_ID == 52 and p.distance_to_lane_end < 60.0:
             p.Speed_Limit = 15
-
-        if p.LINK_ID in [61, 34, 35, 36, 37, 53, 54, 55, 67, 68, 73]:
+        elif p.LINK_ID in [61, 34, 35, 36, 37, 53, 54, 55, 67, 68, 73]:
             p.On_ODD = 1
             p.Road_State = 2
-
+        else:
+            
         # 센서 고장 일때, 어린이 보호구역 안에서
         if self.takeoverreq == 1 or p.Road_State == 2 or p.On_ODD == 1 or p.LINK_ID == 0:
             p.Take_Over_Request = 1
