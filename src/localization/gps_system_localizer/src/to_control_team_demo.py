@@ -399,7 +399,9 @@ class DistanceCalculator(object):
             p.On_ODD = 1
             p.Road_State = 2
         else:
-            
+            p.On_ODD = 0
+            p.Road_State = 0
+
         # 센서 고장 일때, 어린이 보호구역 안에서
         if self.takeoverreq == 1 or p.Road_State == 2 or p.On_ODD == 1 or p.LINK_ID == 0:
             p.Take_Over_Request = 1
