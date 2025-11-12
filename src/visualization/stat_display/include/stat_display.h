@@ -199,6 +199,7 @@ class STAT_DISPLAY{
         // int traffic_light_color;     // 0: 없음, 1: 초록, 2: 주황, 3: 빨강
         int traffic_light_time;      // 남은 시간 (0.1초 단위)
         int traffic_light_color;     // 0: 없음, 1: 초록, 2: 주황, 3: 빨강
+        int intersectionid;
         // Callback 함수
         void traffic_light_callback(const v2x_msgs::intersection_array_msg::ConstPtr& msg);
 

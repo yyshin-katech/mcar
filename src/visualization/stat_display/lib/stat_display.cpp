@@ -64,7 +64,7 @@ void STAT_DISPLAY::traffic_light_callback(const v2x_msgs::intersection_array_msg
 {
     uint16_t target_intersection_id = local_msg.look_at_IntersectionID;
     uint8_t target_signal_group_id = local_msg.look_at_signalGroupID;
-
+    intersectionid = local_msg.look_at_IntersectionID;
     if (target_intersection_id == 0)
     {
         return;
@@ -1194,9 +1194,37 @@ void STAT_DISPLAY::MODE_Text_Gen()
 void STAT_DISPLAY::TRAFFIC_LIGHT_Text_Gen()
 {
     // 신호등이 없으면 표시하지 않음
-    if(traffic_light_color == 0 || traffic_light_time <= 0)
+    if(intersectionid == 0)
     {
-        TRAFFIC_LIGHT_text.action = TRAFFIC_LIGHT_text.DELETE;
+        TRAFFIC_LIGHT_text.text = "N/A";
+
+        std_msgs::ColorRGBA state_color;
+
+        int32_t width = 150;
+        int32_t height = 80;
+
+        TRAFFIC_LIGHT_text.action = TRAFFIC_LIGHT_text.ADD;
+        TRAFFIC_LIGHT_text.font = "DejaVu Sans Mono";
+        TRAFFIC_LIGHT_text.text_size = 50;  // 큰 글씨로
+        TRAFFIC_LIGHT_text.width = width;
+        TRAFFIC_LIGHT_text.height = height;
+        TRAFFIC_LIGHT_text.left = 1100;  // 화면 오른쪽 상단
+        TRAFFIC_LIGHT_text.top = 50;
+
+        state_color.r = 1;
+        state_color.g = 0;
+        state_color.b = 0;
+        state_color.a = 1;
+    
+        TRAFFIC_LIGHT_text.fg_color = state_color;
+
+        // 반투명 검은 배경
+        state_color.r = 0;
+        state_color.g = 0;
+        state_color.b = 0;
+        state_color.a = 0.7;
+        TRAFFIC_LIGHT_text.bg_color = state_color;
+
         traffic_light_pub.publish(TRAFFIC_LIGHT_text);
         return;
     }
@@ -1220,14 +1248,14 @@ void STAT_DISPLAY::TRAFFIC_LIGHT_Text_Gen()
     TRAFFIC_LIGHT_text.top = 50;
 
     // 신호등 색상에 따라 색 설정
-    if(traffic_light_color == 6)  // 초록
+    if(traffic_light_color == 1)  // 초록
     {
         state_color.r = 0;
         state_color.g = 1;
         state_color.b = 0;
         state_color.a = 1;
     }
-    else if(traffic_light_color == 7)  // 주황
+    else if(traffic_light_color == 2)  // 주황
     {
         state_color.r = 1;
         state_color.g = 0.6;
