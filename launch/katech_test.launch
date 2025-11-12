@@ -10,10 +10,10 @@
     <param name="MAPFILE_PATH" 
           value="$(find gps_system_localizer)/mapfiles/K_CITY_20251111" />
 
-   <group ns="sensors/gps">
+   <!-- <group ns="sensors/gps">
         <include file="$(find novatel_gps_driver)/launch/tester_for_usb_eq.launch">
         </include>
-    </group>
+    </group> -->
 
     <node pkg="tf2_ros"                 type="static_transform_publisher" name="gps2base_link" args="0.0 0.0 -1.5 0.0 0.0 0.0 gps base_link" />
 

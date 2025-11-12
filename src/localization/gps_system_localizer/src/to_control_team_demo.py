@@ -29,7 +29,7 @@ MAPFILE_PATH = rospy.get_param('MAPFILE_PATH')
 MIN_LANE_ID = 1
 MAX_LANE_ID = 75
 
-ODD_CNT_THRESHOLD = 10
+ODD_CNT_THRESHOLD = 20
 ODD_OCCUPIED_OFFSET_THRESHOLD = 0.95
 ODD_YAW_ERR_THRESHOLD = np.deg2rad(45)
 
@@ -244,6 +244,7 @@ class DistanceCalculator(object):
         if p.NEXT_LINK_ID in ODD_id_list or p.NEXT_LINK_ID == 0:
             p.Road_State = 1  # 이탈 경고
             p.distance_out_of_ODD = p.distance_to_lane_end  # 이탈 영역까지 남은 거리
+            rospy.loginfo("durlsi")
 
         
         ## 현재 영역에 주행할 경로가 없거나, ODD 이탈 영역에 들어올 때 계속 수동모드 플래그 송출 ##
@@ -273,6 +274,7 @@ class DistanceCalculator(object):
                 if self.occupied_count  <= ODD_CNT_THRESHOLD and self.occupied_count > 0:
                     p.On_ODD = 0
                     p.Road_State = 1
+                    
                 ## 스코어 범위 넘으면 수동모드 전환 ##
                 elif self.occupied_count > ODD_CNT_THRESHOLD:
                     p.On_ODD = 1
@@ -283,7 +285,7 @@ class DistanceCalculator(object):
             ## 차선안에 들어오면 스코어 초기화  ##
             else:
                 self.occupied_count = 0
-
+            rospy.loginfo(f"occupied_count: {self.occupied_count}, Road_State: {p.Road_State}")
             # 20251014
             distances = np.zeros(len(mapx_set))
             for i in range(1, len(mapx_set)):
@@ -346,20 +348,35 @@ class DistanceCalculator(object):
             p.yaw_error_size = yaw_error_size
 
             # # 현재 주행할 경로쪽으로 방향이 제대로 맞으면 오토모드 송출 아니면, 수동모드 송출 ##
-
-            if yaw_error_size < ODD_YAW_ERR_THRESHOLD:
-                # rospy.loginfo("On ODD")
-                p.Wrong_Way_Warn = 0
-            elif yaw_error_size > np.deg2rad(135):  #반대방향
-                p.On_ODD = 1
-                p.Road_State = 2
-                p.Wrong_Way_Warn = 1
-                p.distance_out_of_ODD = 0
-            else:   # 단순 이탈
-                p.On_ODD = 1
-                p.Road_State = 2
-                p.Wrong_Way_Warn = 0
-                p.distance_out_of_ODD = 0
+            if p.On_ODD == 0 and p.Road_State == 0:
+                if p.LINK_ID == 48 and p.distance_to_lane_end < 98.0:
+                    p.have_to_LangeChange_right = 1
+                elif p.LINK_ID in [48, 49, 50, 51] and p.distance_to_lane_end < 50.0:
+                    p.On_ODD = 1
+                    p.Road_State = 2
+                elif p.LINK_ID == 52 and p.distance_to_lane_end < 60.0:
+                    p.Speed_Limit = 15
+                    p.On_ODD = 0
+                    p.Road_State = 0
+                elif p.LINK_ID in [61, 34, 35, 36, 37, 53, 54, 55, 67, 68, 73]:
+                    p.On_ODD = 1
+                    p.Road_State = 2
+                else:
+                    if yaw_error_size < ODD_YAW_ERR_THRESHOLD:
+                        # rospy.loginfo("On ODD")
+                        p.Wrong_Way_Warn = 0
+                        p.On_ODD = 0
+                        p.Road_State = 0
+                    elif yaw_error_size > np.deg2rad(135):  #반대방향
+                        p.On_ODD = 1
+                        p.Road_State = 2
+                        p.Wrong_Way_Warn = 1
+                        p.distance_out_of_ODD = 0
+                    else:   # 단순 이탈
+                        p.On_ODD = 1
+                        p.Road_State = 2
+                        p.Wrong_Way_Warn = 0
+                        p.distance_out_of_ODD = 0
             
         p.lane_name = current_lane_name
         p.host_east = e
@@ -388,21 +405,21 @@ class DistanceCalculator(object):
         # 어린이 보호구역 전에서 ODD 이탈 경고
 
         # 자동차 전용도로 이탈
-        if p.LINK_ID == 48 and p.distance_to_lane_end < 98.0:
-            p.have_to_LangeChange_right = 1
-        elif p.LINK_ID in [48, 49, 50, 51] and p.distance_to_lane_end < 50.0:
-            p.On_ODD = 1
-            p.Road_State = 2
-        elif p.LINK_ID == 52 and p.distance_to_lane_end < 60.0:
-            p.Speed_Limit = 15
-            p.On_ODD = 0
-            p.Road_State = 0
-        elif p.LINK_ID in [61, 34, 35, 36, 37, 53, 54, 55, 67, 68, 73]:
-            p.On_ODD = 1
-            p.Road_State = 2
-        else:
-            p.On_ODD = 0
-            p.Road_State = 0
+        # if p.LINK_ID == 48 and p.distance_to_lane_end < 98.0:
+        #     p.have_to_LangeChange_right = 1
+        # elif p.LINK_ID in [48, 49, 50, 51] and p.distance_to_lane_end < 50.0:
+        #     p.On_ODD = 1
+        #     p.Road_State = 2
+        # elif p.LINK_ID == 52 and p.distance_to_lane_end < 60.0:
+        #     p.Speed_Limit = 15
+        #     p.On_ODD = 0
+        #     p.Road_State = 0
+        # elif p.LINK_ID in [61, 34, 35, 36, 37, 53, 54, 55, 67, 68, 73]:
+        #     p.On_ODD = 1
+        #     p.Road_State = 2
+        # else:
+        #     p.On_ODD = 0
+        #     p.Road_State = 0
 
         # 센서 고장 일때, 어린이 보호구역 안에서
         if self.takeoverreq == 1 or p.Road_State == 2 or p.On_ODD == 1 or p.LINK_ID == 0:

@@ -18,6 +18,7 @@ STAT_DISPLAY::STAT_DISPLAY()
     local_text_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/local_info_stat", 1);
     mode_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/mode_text", 1);
     odd_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/odd_text", 1);
+    speed_limit_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/speed_limit_text", 1);
 
     sound_pub = nh.advertise<sound_play::SoundRequest>("/robotsound", 1);
 
@@ -233,7 +234,8 @@ void STAT_DISPLAY::timerCallback(const ros::TimerEvent&)
 
     this->MODE_Text_Gen();
 
-    
+    this->ODD_Text_Gen();
+    this->SPEED_LIMIT_Text_Gen();
 }
 
 void STAT_DISPLAY::GPS_Text_Gen()
@@ -1219,13 +1221,6 @@ void STAT_DISPLAY::TRAFFIC_LIGHT_Text_Gen()
     
         TRAFFIC_LIGHT_text.fg_color = state_color;
 
-        // 반투명 검은 배경
-        state_color.r = 0;
-        state_color.g = 0;
-        state_color.b = 0;
-        state_color.a = 0.7;
-        TRAFFIC_LIGHT_text.bg_color = state_color;
-
         traffic_light_pub.publish(TRAFFIC_LIGHT_text);
         return;
     }
@@ -1272,13 +1267,6 @@ void STAT_DISPLAY::TRAFFIC_LIGHT_Text_Gen()
     }
     
     TRAFFIC_LIGHT_text.fg_color = state_color;
-
-    // 반투명 검은 배경
-    state_color.r = 0;
-    state_color.g = 0;
-    state_color.b = 0;
-    state_color.a = 0.7;
-    TRAFFIC_LIGHT_text.bg_color = state_color;
     
     traffic_light_pub.publish(TRAFFIC_LIGHT_text);
 }
@@ -1334,6 +1322,41 @@ void STAT_DISPLAY::ODD_Text_Gen()
     state_color.a = 0.5;
     ODD_text.bg_color = state_color;
     odd_pub.publish(ODD_text);
+
+
+}
+
+void STAT_DISPLAY::SPEED_LIMIT_Text_Gen()
+{
+    ros::Time now = ros::Time::now();
+
+    SPEED_LIMIT_text.text = std::to_string(local_msg.Speed_Limit);;
+
+    std_msgs::ColorRGBA state_color;
+
+    int32_t width = 200;
+    int32_t height = 60;
+
+    SPEED_LIMIT_text.action = SPEED_LIMIT_text.ADD;
+    SPEED_LIMIT_text.font = "DejaVu Sans Mono";
+    SPEED_LIMIT_text.text_size = 40;
+    SPEED_LIMIT_text.width = width;
+    SPEED_LIMIT_text.height = height;
+    SPEED_LIMIT_text.left = 1100;
+    SPEED_LIMIT_text.top = 120;
+
+    state_color.r = 1;
+    state_color.g = 0;
+    state_color.b = 0;
+    state_color.a = 1;
+    SPEED_LIMIT_text.fg_color = state_color;
+    
+    // state_color.r = 0.4;
+    // state_color.g = 0.4;
+    // state_color.b = 0.4;
+    // state_color.a = 0.5;
+    // SPEED_LIMIT_text.bg_color = state_color;
+    speed_limit_pub.publish(SPEED_LIMIT_text);
 
 
 }

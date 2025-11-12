@@ -75,6 +75,7 @@ class STAT_DISPLAY{
         ros::Publisher ipc_pub;
         ros::Publisher local_text_pub;
         ros::Publisher odd_pub;
+        ros::Publisher speed_limit_pub;
 
         ros::Publisher mode_pub;
 
@@ -141,6 +142,7 @@ class STAT_DISPLAY{
         jsk_rviz_plugins::OverlayText LOCAL_text;
         jsk_rviz_plugins::OverlayText MANUAL_text;
         jsk_rviz_plugins::OverlayText ODD_text;
+        jsk_rviz_plugins::OverlayText SPEED_LIMIT_text;
 
         void diagnostic_gps_callback(const katech_diagnostic_msgs::cpt7_gps_diagnostic_msg::ConstPtr& msg);
         void diagnostic_adcu_callback(const katech_diagnostic_msgs::k_adcu_diagnostic_msg::ConstPtr& msg);
@@ -212,6 +214,8 @@ class STAT_DISPLAY{
         jsk_rviz_plugins::OverlayText TRAFFIC_LIGHT_text;
 
         void ODD_Text_Gen();
+
+        void SPEED_LIMIT_Text_Gen();
 };
 
 #endif
