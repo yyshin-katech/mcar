@@ -17,6 +17,7 @@ STAT_DISPLAY::STAT_DISPLAY()
     ipc_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/ipc_stat", 1);
     local_text_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/local_info_stat", 1);
     mode_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/mode_text", 1);
+    odd_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/odd_text", 1);
 
     sound_pub = nh.advertise<sound_play::SoundRequest>("/robotsound", 1);
 
@@ -1280,4 +1281,59 @@ void STAT_DISPLAY::TRAFFIC_LIGHT_Text_Gen()
     TRAFFIC_LIGHT_text.bg_color = state_color;
     
     traffic_light_pub.publish(TRAFFIC_LIGHT_text);
+}
+
+void STAT_DISPLAY::ODD_Text_Gen()
+{
+    ros::Time now = ros::Time::now();
+
+    ODD_text.text = "ODD";
+
+    std_msgs::ColorRGBA state_color;
+
+    int32_t width = 200;
+    int32_t height = 30;
+
+    ODD_text.action = ODD_text.ADD;
+    ODD_text.font = "DejaVu Sans Mono";
+    ODD_text.text_size = 20;
+    ODD_text.width = width;
+    ODD_text.height = height;
+    ODD_text.left = 20;
+    ODD_text.top = 50+30+30+30+30+30+30+30+30;
+
+    if(local_msg.Road_State == 0)
+    {   //흰색 정상
+        state_color.r = 0;
+        state_color.g = 0.8;
+        state_color.b = 0;
+        state_color.a = 1;
+        ODD_text.fg_color = state_color;
+    }
+    else if(local_msg.Road_State == 1)
+    {   // 주황 warning
+        state_color.r = 1;
+        state_color.g = 0.5;
+        state_color.b = 0;
+        state_color.a = 1;
+        ODD_text.fg_color = state_color;
+    }
+    else
+    {   // 빨강 error
+        state_color.r = 1;
+        state_color.g = 0;
+        state_color.b = 0;
+        state_color.a = 1;
+        ODD_text.fg_color = state_color;
+    }
+
+
+    state_color.r = 0.4;
+    state_color.g = 0.4;
+    state_color.b = 0.4;
+    state_color.a = 0.5;
+    ODD_text.bg_color = state_color;
+    odd_pub.publish(ODD_text);
+
+
 }
