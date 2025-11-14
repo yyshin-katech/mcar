@@ -211,11 +211,11 @@ void STAT_DISPLAY::local_callback(const mmc_msgs::to_control_team_from_local_msg
 
 void STAT_DISPLAY::diag_timerCallback(const ros::TimerEvent&)
 {
-    this->system_status_check();
+    
 
     this->TRAFFIC_LIGHT_Text_Gen();
 
-    katech_diag_pub.publish(katech_diag_msg);
+    
 }
 
 void STAT_DISPLAY::timerCallback(const ros::TimerEvent&)
@@ -235,6 +235,9 @@ void STAT_DISPLAY::timerCallback(const ros::TimerEvent&)
     this->MODE_Text_Gen();
 
     this->ODD_Text_Gen();
+
+    this->system_status_check();
+    katech_diag_pub.publish(katech_diag_msg);
     this->SPEED_LIMIT_Text_Gen();
 }
 
