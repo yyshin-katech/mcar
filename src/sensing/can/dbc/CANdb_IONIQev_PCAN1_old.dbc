@@ -46,15 +46,6 @@ VAL_TABLE_ VtSIg_eventState_1 9 "caution-Conflicting-Traffic" 8 "protected-clear
 VAL_TABLE_ Value_Table_Track_Status 7 "New Coasting Target" 6 "Invalid Coasting Target" 5 "Merged Target" 4 "Coasting Target" 3 "Updated Target" 2 "New Updated Target" 1 "New Target" 0 "No Target" ;
 
 
-BO_ 16 GPSTimestamp: 8 NUC
- SG_ GPS_mSecond : 48|10@1+ (1,0) [0|999] "" Vector__XXX
- SG_ GPS_Second : 40|8@1+ (1,0) [0|59] "" Vector__XXX
- SG_ GPS_Minute : 32|8@1+ (1,0) [0|59] "" Vector__XXX
- SG_ GPS_Hour : 24|8@1+ (1,0) [0|23] "" Vector__XXX
- SG_ GPS_Day : 16|8@1+ (1,0) [0|31] "" Vector__XXX
- SG_ GPS_Month : 8|8@1+ (1,0) [0|12] "" Vector__XXX
- SG_ GPS_Year : 0|8@1+ (1,0) [0|255] "" Vector__XXX
-
 BO_ 512 from_Control: 8 ADCU
  SG_ AEB_flag : 0|2@1+ (1,0) [0|3] "" Vector__XXX
 
@@ -1710,7 +1701,6 @@ BA_DEF_DEF_  "BusType" "CAN";
 BA_DEF_DEF_  "GenMsgCycleTime" 0;
 BA_DEF_DEF_  "SigType" "Default";
 BA_ "BusType" "CAN";
-BA_ "GenMsgCycleTime" BO_ 16 50;
 BA_ "GenMsgCycleTime" BO_ 512 20;
 BA_ "GenMsgCycleTime" BO_ 529 100;
 BA_ "GenMsgCycleTime" BO_ 528 100;
