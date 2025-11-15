@@ -1,0 +1,9 @@
+<library path="lib/libcontrol_panel">
+  <class name="control_panel/ModePanel" 
+         type="control_panel::ModePanel" 
+         base_class_type="rviz::Panel">
+    <description>
+      Driving Mode Control Panel (AUTO/MANUAL)
+    </description>
+  </class>
+</library>
