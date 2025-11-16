@@ -244,8 +244,6 @@ class DistanceCalculator(object):
         if p.NEXT_LINK_ID in ODD_id_list or p.NEXT_LINK_ID == 0:
             p.Road_State = 1  # 이탈 경고
             p.distance_out_of_ODD = p.distance_to_lane_end  # 이탈 영역까지 남은 거리
-            rospy.loginfo("durlsi")
-
         
         ## 현재 영역에 주행할 경로가 없거나, ODD 이탈 영역에 들어올 때 계속 수동모드 플래그 송출 ##
         if p.lane_id == 0 or not (p.lane_id in ODD_id_list):
@@ -285,7 +283,7 @@ class DistanceCalculator(object):
             ## 차선안에 들어오면 스코어 초기화  ##
             else:
                 self.occupied_count = 0
-            rospy.loginfo(f"occupied_count: {self.occupied_count}, Road_State: {p.Road_State}")
+            
             # 20251014
             distances = np.zeros(len(mapx_set))
             for i in range(1, len(mapx_set)):
