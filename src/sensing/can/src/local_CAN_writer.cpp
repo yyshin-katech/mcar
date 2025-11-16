@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <fstream>
 #include <iostream>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
 
 #include <ros/ros.h>
 #include <ros/package.h>
@@ -18,6 +21,8 @@
 #include <mmc_msgs/chassis_msg.h>
 #include <mmc_msgs/motor_rpm_msg.h>
 #include <mmc_msgs/to_control_team_from_local_msg.h>
+#include <novatel_gps_msgs/NovatelMessageHeader.h>
+#include <novatel_gps_msgs/NovatelPosition.h>
 
 #include <algorithm>
 #include <math.h>
@@ -52,6 +57,7 @@ class LOCAL_CAN_WRITER{
     LOCAL_CAN_WRITER();
     void CALLBACK_LOCAL(const mmc_msgs::to_control_team_from_local_msg& msg);
     void CALLBACK_RPM(const mmc_msgs::motor_rpm_msg& msg);
+    void CALLBACK_TimeStamp(const novatel_gps_msgs::NovatelPosition& msg);
     short FIND_MSG_IDX(char* target_msg, vector<tuple<char*, vector<char*>>>* msg_list);
     canStatus OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num, char *filename, bool init_access_flag);
     void LOOP();
@@ -102,10 +108,81 @@ LOCAL_CAN_WRITER::LOCAL_CAN_WRITER(){
   msg_list.push_back(make_tuple((char*)"CAR_EGO_A_Ex",  vector<char*> {(char*)"X_High",\
                                                                      (char*)"Y_High"}));
 
-  msg_list.push_back(make_tuple((char*)"MOTOR_RPM", vector<char *>{(char *)"N"}));                                                                   
+  msg_list.push_back(make_tuple((char*)"MOTOR_RPM", vector<char *>{(char *)"N"}));
+  
+  msg_list.push_back(make_tuple((char*)"GPSTimestamp",  vector<char*> {(char*)"GPS_mSecond",\
+                                                                    (char*)"GPS_Second",\
+                                                                    (char*)"GPS_Minute",\
+                                                                    (char*)"GPS_Hour",\
+                                                                    (char*)"GPS_Day",\
+                                                                    (char*)"GPS_Month",\
+                                                                    (char*)"GPS_Year"}));
 
 }
  
+void LOCAL_CAN_WRITER::CALLBACK_TimeStamp(const novatel_gps_msgs::NovatelPosition& msg)
+{
+  unsigned char can_data[dlc];
+  char* target_msg;
+  unsigned short msg_idx;
+  KvaDbMessageHnd mh = 0;
+  KvaDbSignalHnd sh = 0;
+  vector<double> temp_data;
+  unsigned int id_write, flag = 0;
+  int re_value = 0;
+
+  // GPS 시간 추출
+  uint32_t gps_week_num = msg.novatel_msg_header.gps_week_num;
+  double gps_seconds = msg.novatel_msg_header.gps_seconds;
+  
+  // GPS 기준 시간: 1980년 1월 6일 00:00:00 UTC
+  // Unix timestamp로 변환 (1980-01-06 00:00:00 = 315964800초)
+  const time_t GPS_EPOCH = 315964800;
+  
+  // GPS Week를 초로 변환 (1주 = 7일 * 24시간 * 3600초)
+  time_t weeks_in_seconds = gps_week_num * 7 * 24 * 3600;
+  
+  // 총 경과 시간 계산
+  time_t total_seconds = GPS_EPOCH + weeks_in_seconds + static_cast<time_t>(gps_seconds);
+  
+  // Leap seconds 보정 (GPS 시간은 윤초를 포함하지 않음)
+  // 2024년 기준 GPS와 UTC의 차이는 18초
+  total_seconds -= 18;
+  
+  // time_t를 tm 구조체로 변환 (UTC 기준)
+  struct tm* timeinfo = gmtime(&total_seconds);
+  
+  // 년, 월, 일, 시, 분, 초 추출
+  int year = timeinfo->tm_year + 1900;
+  int month = timeinfo->tm_mon + 1;
+  int day = timeinfo->tm_mday;
+  int hour = timeinfo->tm_hour;
+  int minute = timeinfo->tm_min;
+  int second = timeinfo->tm_sec;
+  
+  // 밀리초 계산 (gps_seconds의 소수점 부분)
+  int millisecond = static_cast<int>((gps_seconds - static_cast<int>(gps_seconds)) * 1000);
+
+  target_msg = (char*)"GPSTimestamp";
+  temp_data = {millisecond, second, minute, hour, day, month, year-2000};
+   
+  msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
+  kvaDbGetMsgByName(dh, target_msg, &mh);
+  kvaDbGetMsgId(mh, &id_write, &flag);
+
+  for(int j=0; j!=get<1>(msg_list[msg_idx]).size(); j++){
+    kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[j], &sh);
+    kvaDbStoreSignalValuePhys(sh, &can_data, sizeof(can_data), temp_data[j]);
+  }
+
+  re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
+  memset(can_data, 0, sizeof(can_data));
+
+  // ROS_INFO("GPS Time - Week: %u, Seconds: %.3f", gps_week_num, gps_seconds);
+  // ROS_INFO("Current Time: %04d-%02d-%02d %02d:%02d:%02d.%03d UTC",
+  //         year, month, day, hour, minute, second, millisecond);
+}
+
 void LOCAL_CAN_WRITER::CALLBACK_RPM(const mmc_msgs::motor_rpm_msg& msg)
 {
   unsigned char can_data[dlc];
