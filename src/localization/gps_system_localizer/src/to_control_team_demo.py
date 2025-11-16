@@ -386,6 +386,10 @@ class DistanceCalculator(object):
         p.station = current_s
         p.lateral_offset = current_d
 
+        # speed limit 
+        if p.LINK_ID in [5, 8, 12, 15, 18, 24, 28, 58, 60, 63]:
+            p.Speed_Limit = 15
+        
         # 터널 진입 구간    
         # if p.LINK_ID == 56:
         #     if p.distance_to_lane_end < 60.0:
