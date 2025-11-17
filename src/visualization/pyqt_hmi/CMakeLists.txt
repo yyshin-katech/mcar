@@ -16,3 +16,10 @@ catkin_install_python(PROGRAMS
   scripts/main_display.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+
+# Python 모듈 설치
+install(DIRECTORY scripts/widgets scripts/utils
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  USE_SOURCE_PERMISSIONS
+  FILES_MATCHING PATTERN "*.py"
+)
