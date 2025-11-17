@@ -388,6 +388,9 @@ class DistanceCalculator(object):
         if p.LINK_ID in [5, 8, 12, 15, 18, 24, 28, 58, 60, 63]:
             p.Speed_Limit = 15
 
+        if p.LINK_ID == 20:
+            p.look_at_signalGroupID = 3
+            p.look_at_IntersectionID = 1300
         # 터널 진입 구간    
         # if p.LINK_ID == 56:
         #     if p.distance_to_lane_end < 60.0:

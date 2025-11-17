@@ -211,7 +211,9 @@ void STAT_DISPLAY::local_callback(const mmc_msgs::to_control_team_from_local_msg
 
 void STAT_DISPLAY::diag_timerCallback(const ros::TimerEvent&)
 {
-    
+    this->CAM_Text_Gen();
+    this->RADAR_Text_Gen();
+
 
     this->TRAFFIC_LIGHT_Text_Gen();
 
@@ -220,16 +222,16 @@ void STAT_DISPLAY::diag_timerCallback(const ros::TimerEvent&)
 
 void STAT_DISPLAY::timerCallback(const ros::TimerEvent&)
 {
+
     this->GPS_Text_Gen();
     this->ADCU_Text_Gen();
     this->LIDAR_Text_Gen();
-    this->RADAR_Text_Gen();
+    
     this->V2X_Text_Gen();
     this->HMI_Text_Gen();
     this->VCU_Text_Gen();
-    this->CAM_Text_Gen();
+    
     this->IPC_Text_Gen();
-
     this->Local_Text_Gen();
 
     this->MODE_Text_Gen();
@@ -494,7 +496,7 @@ void STAT_DISPLAY::LIDAR_AliveCnt_Check(uint8_t current_cnt)
         last_lidar_cnt = current_lidar_cnt;
     }
 
-    if(unchanged_lidar_cnt > 5)
+    if(unchanged_lidar_cnt > 10)
     {
         lidar_status = 2;
     }
@@ -899,7 +901,7 @@ void STAT_DISPLAY::CAM_AliveCnt_Check(uint8_t current_cnt)
         last_cam_cnt = current_cam_cnt;
     }
 
-    if(unchanged_cam_cnt > 10)
+    if(unchanged_cam_cnt > 2)
     {
         cam_status = 2;
     }
