@@ -25,6 +25,7 @@ void LIDAR_DIAGNOSTIC_PUB::timer_callback(const ros::TimerEvent&)
     if(count % 3 == 0)
     {
         connection_stat.Center = this->checkCenterLidarConnection();
+        ROS_INFO("Cennter Connection check");
     }
     else if(count % 3 == 1)
     {
@@ -71,7 +72,7 @@ void LIDAR_DIAGNOSTIC_PUB::percept_callback(const perception_ros_msg::RsPercepti
 {
     static uint8_t callback_count = 0;
 
-    if(callback_count++ > 9)
+    // if(callback_count++ > 9)
     {
         lidar_msg.LIDAR_AliveCount++;
         callback_count = 0;

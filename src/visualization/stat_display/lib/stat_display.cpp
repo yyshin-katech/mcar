@@ -213,30 +213,30 @@ void STAT_DISPLAY::diag_timerCallback(const ros::TimerEvent&)
 {
     this->CAM_Text_Gen();
     this->RADAR_Text_Gen();
-
-
+    this->LIDAR_Text_Gen();
+    this->IPC_Text_Gen();
     this->TRAFFIC_LIGHT_Text_Gen();
 
-    
-}
-
-void STAT_DISPLAY::timerCallback(const ros::TimerEvent&)
-{
-
     this->GPS_Text_Gen();
-    this->ADCU_Text_Gen();
-    this->LIDAR_Text_Gen();
+    
+ 
     
     this->V2X_Text_Gen();
     this->HMI_Text_Gen();
     this->VCU_Text_Gen();
     
-    this->IPC_Text_Gen();
+
     this->Local_Text_Gen();
 
     this->MODE_Text_Gen();
 
     this->ODD_Text_Gen();
+}
+
+void STAT_DISPLAY::timerCallback(const ros::TimerEvent&)
+{
+    this->ADCU_Text_Gen();
+
     
     this->system_status_check();
     katech_diag_pub.publish(katech_diag_msg);
@@ -658,7 +658,7 @@ void STAT_DISPLAY::V2X_AliveCnt_Check(uint8_t current_cnt)
         last_v2x_cnt = current_v2x_cnt;
     }
 
-    if(unchanged_v2x_cnt > 2)
+    if(unchanged_v2x_cnt > 5)
     {
         v2x_status = 2;
     }
@@ -850,7 +850,7 @@ void STAT_DISPLAY::CAM_Text_Gen()
     CAM_text.top = 50+30+30+30+30+30+30;
 
     CAM_AliveCnt_Check(cam_msg.CAM_AliveCount);
-    cam_status = 0;
+
     if(cam_status == 0)
     {   //흰색 정상
         state_color.r = 0;
