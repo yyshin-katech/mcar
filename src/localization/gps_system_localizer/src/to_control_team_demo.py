@@ -241,10 +241,10 @@ class DistanceCalculator(object):
         p.lane_id = current_lane_id + 1
         ## 지금 주행중인 링크랑 연결된 다음 링크가 ODD 이탈 영역 혹은 도로가 끊긴 경우 ##
 
-        if p.NEXT_LINK_ID in ODD_id_list or p.NEXT_LINK_ID == 0:
+        if not (p.NEXT_LINK_ID in ODD_id_list) or p.NEXT_LINK_ID == 0:
             p.Road_State = 1  # 이탈 경고
             p.distance_out_of_ODD = p.distance_to_lane_end  # 이탈 영역까지 남은 거리
-        
+            
         ## 현재 영역에 주행할 경로가 없거나, ODD 이탈 영역에 들어올 때 계속 수동모드 플래그 송출 ##
         if p.lane_id == 0 or not (p.lane_id in ODD_id_list):
             p.left_LaneChange_avail = 0
@@ -387,7 +387,7 @@ class DistanceCalculator(object):
         # speed limit 
         if p.LINK_ID in [5, 8, 12, 15, 18, 24, 28, 58, 60, 63]:
             p.Speed_Limit = 15
-        
+
         # 터널 진입 구간    
         # if p.LINK_ID == 56:
         #     if p.distance_to_lane_end < 60.0:

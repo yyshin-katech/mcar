@@ -92,9 +92,9 @@ void STAT_DISPLAY::traffic_light_callback(const v2x_msgs::intersection_array_msg
             
             switch(movement.MovementPhaseStatus)
             {
-                case 3:  traffic_light_color = 1; break;  // 초록
+                case 3:  traffic_light_color = 3; break;  // 초록
                 case 8:  traffic_light_color = 2; break;  // 주황
-                case 6:  traffic_light_color = 3; break;  // 빨강
+                case 6:  traffic_light_color = 1; break;  // 빨강
                 default: traffic_light_color = 0; break;  // 알 수 없음
             }
             
@@ -235,7 +235,7 @@ void STAT_DISPLAY::timerCallback(const ros::TimerEvent&)
     this->MODE_Text_Gen();
 
     this->ODD_Text_Gen();
-
+    
     this->system_status_check();
     katech_diag_pub.publish(katech_diag_msg);
     this->SPEED_LIMIT_Text_Gen();
@@ -1270,7 +1270,7 @@ void STAT_DISPLAY::TRAFFIC_LIGHT_Text_Gen()
     }
     
     TRAFFIC_LIGHT_text.fg_color = state_color;
-    
+
     traffic_light_pub.publish(TRAFFIC_LIGHT_text);
 }
 
@@ -1295,7 +1295,7 @@ void STAT_DISPLAY::ODD_Text_Gen()
 
     if(local_msg.Road_State == 0)
     {   //흰색 정상
-        state_color.r = 0;
+    state_color.r = 0;
         state_color.g = 0.8;
         state_color.b = 0;
         state_color.a = 1;
@@ -1312,8 +1312,8 @@ void STAT_DISPLAY::ODD_Text_Gen()
     else
     {   // 빨강 error
         state_color.r = 1;
-        state_color.g = 0;
-        state_color.b = 0;
+    state_color.g = 0;
+    state_color.b = 0;
         state_color.a = 1;
         ODD_text.fg_color = state_color;
     }
