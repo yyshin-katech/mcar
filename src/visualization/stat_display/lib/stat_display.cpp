@@ -224,7 +224,7 @@ void STAT_DISPLAY::diag_timerCallback(const ros::TimerEvent&)
     this->V2X_Text_Gen();
     this->HMI_Text_Gen();
     this->VCU_Text_Gen();
-    
+
 
     this->Local_Text_Gen();
 
@@ -1030,11 +1030,11 @@ void STAT_DISPLAY::system_status_check()
     }
     else if (abnormal_count >= 2)
     {
-        oss << "🚨 시스템 고장 (" << abnormal_count << "개 시스템 오류)";
-        std::string str = oss.str();
+       oss << "🚨 시스템 고장 (" << abnormal_count << "개 시스템 오류)";
+       std::string str = oss.str();
 
-        this->POPUP_Text_Gen(str);
-        this->sound_play("ADS");
+       this->POPUP_Text_Gen(str);
+       this->sound_play("ADS");
     }
     else if (local_msg.Road_State == 1)
     {
