@@ -44,7 +44,7 @@ void V2X_DIAGNOSTIC_PUB::timer_callback(const ros::TimerEvent&)
         ret = this->checkConnection(ip, port);
     }
 
-    if(ret == false) v2x_msg.V2X_StatCode = 2;
+    // if(ret == false) v2x_msg.V2X_StatCode = 2;
     
     v2x_msg.time = ros::Time::now();
 
