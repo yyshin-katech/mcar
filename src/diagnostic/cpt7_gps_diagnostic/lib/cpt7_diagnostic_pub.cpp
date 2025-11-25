@@ -19,6 +19,8 @@ CPT7_DIAGNOSTIC_PUB::CPT7_DIAGNOSTIC_PUB()
     cpt7_msg.GPSRTK_StatCode = 0;
     cpt7_msg.GPS_INS_SolutionStat = 0x01;
     cpt7_msg.GPS_INS_AliveCnt = 0;
+    cpt7_msg.lon_std = 0;
+    cpt7_msg.lat_std = 0;
 }
 
 CPT7_DIAGNOSTIC_PUB::~CPT7_DIAGNOSTIC_PUB()
