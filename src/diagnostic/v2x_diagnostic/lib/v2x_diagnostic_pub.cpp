@@ -26,11 +26,21 @@ void V2X_DIAGNOSTIC_PUB::timer_callback(const ros::TimerEvent&)
     std::string ip = v2x_obu[0].ip;
     uint16_t port = v2x_obu[0].port;
     
-    count++;
+    // count++;
 
     if(v2x_callback_cnt == v2x_callback_cnt_old)
     {
-        v2x_msg.V2X_StatCode = 1;
+        count++;
+        if(count > 30)
+        {
+            v2x_msg.V2X_StatCode = 1;
+            count = 0;
+        }
+        else
+        {
+            v2x_msg.V2X_StatCode = 0;
+        }
+        
     }   
     else
     {
@@ -39,12 +49,12 @@ void V2X_DIAGNOSTIC_PUB::timer_callback(const ros::TimerEvent&)
         v2x_msg.V2X_AliveCount++;
     }
 
-    if(count % 3 == 0)
-    {
-        ret = this->pingCheck(ip);
-    }
+    // if(count % 3 == 0)
+    // {
+    //     ret = this->pingCheck(ip);
+    // }
 
-    if(ret == false) v2x_msg.V2X_StatCode = 2;
+    // if(ret == false) v2x_msg.V2X_StatCode = 2;
     
     v2x_msg.time = ros::Time::now();
 
