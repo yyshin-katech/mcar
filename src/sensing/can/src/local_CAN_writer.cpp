@@ -108,7 +108,8 @@ LOCAL_CAN_WRITER::LOCAL_CAN_WRITER(){
   msg_list.push_back(make_tuple((char*)"CAR_EGO_A_Ex",  vector<char*> {(char*)"X_High",\
                                                                      (char*)"Y_High"}));
 
-  msg_list.push_back(make_tuple((char*)"MOTOR_RPM", vector<char *>{(char *)"N"}));
+  msg_list.push_back(make_tuple((char*)"MOTOR_RPM", vector<char *>{(char *)"Curr_gear",\
+                                                                   (char *)"N"}));
   
   msg_list.push_back(make_tuple((char*)"GPSTimestamp",  vector<char*> {(char*)"GPS_mSecond",\
                                                                     (char*)"GPS_Second",\
@@ -195,7 +196,7 @@ void LOCAL_CAN_WRITER::CALLBACK_RPM(const mmc_msgs::motor_rpm_msg& msg)
   int re_value = 0;
 
   target_msg = (char*)"MOTOR_RPM";
-  temp_data = {(double)msg.N};
+  temp_data = {msg.gear_pos, (double)msg.N};
  
   msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
   kvaDbGetMsgByName(dh, target_msg, &mh);

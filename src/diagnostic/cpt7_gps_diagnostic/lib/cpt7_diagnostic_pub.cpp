@@ -107,6 +107,9 @@ void CPT7_DIAGNOSTIC_PUB::bestpos_callback(const novatel_gps_msgs::NovatelPositi
     {
         cpt7_msg.GPS_INS_SolutionStat = 0x01;
     }
+
+    cpt7_msg.lon_std = msg->lon_sigma;
+    cpt7_msg.lat_std = msg->lat_sigma;
 }
 
 // INS StatCode
