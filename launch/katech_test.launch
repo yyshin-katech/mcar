@@ -31,7 +31,7 @@
   <node name="percept_topic_matcher"       type="percept_topic_matcher"     pkg="can"  respawn="true" />
   <node name="local_CAN_writer"       type="local_CAN_writer" pkg="can" respawn="true"/>
   <node name="vision_CAN_reader"             type="vision_CAN_reader"             pkg="can"  respawn="true" /> 
-
+  <node name="IONIQ_CAN_reader"             type="IONIQ_CAN_reader"             pkg="can"  respawn="true" /> 
   <node name="cpt7_topic_matcher"       type="cpt7_topic_matcher"     pkg="can"  respawn="true" />
   <node name="cpt7_CAN_writer"       type="cpt7_CAN_writer"     pkg="can"  respawn="true" />
 

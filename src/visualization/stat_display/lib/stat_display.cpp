@@ -272,7 +272,7 @@ void STAT_DISPLAY::GPS_Text_Gen()
         state_color.a = 1;
         GPS_text.fg_color = state_color;
     }
-    else if(gps_status == 1 || cpt7_msg.lat_sigma > 0.05 || cpt7_msg.lon_sigma > 0.05)
+    else if(gps_status == 1 || cpt7_msg.lon_std > 0.05 || cpt7_msg.lat_std > 0.05)
     {   // 주황 warning
         state_color.r = 1;
         state_color.g = 0.5;
