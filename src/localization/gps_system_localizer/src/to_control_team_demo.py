@@ -391,6 +391,9 @@ class DistanceCalculator(object):
         if p.LINK_ID == 20:
             p.look_at_signalGroupID = 3
             p.look_at_IntersectionID = 1300
+
+        if p.LINK_ID in [4, 48, 49, 50, 51]:
+            p.NEXT_LINK_ID = 0
         # 터널 진입 구간    
         # if p.LINK_ID == 56:
         #     if p.distance_to_lane_end < 60.0:
