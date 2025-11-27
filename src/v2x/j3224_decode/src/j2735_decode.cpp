@@ -21,8 +21,8 @@
 
 #include <j3224_msgs/sdsm.h>
 
-// #define OUB_IP_ADDR "192.168.1.174"
-#define OUB_IP_ADDR "192.168.170.130"
+#define OUB_IP_ADDR "192.168.1.5"
+// #define OUB_IP_ADDR "192.168.170.130"
 // #define OUB_IP_ADDR "127.0.0.1"
 #define UDP_PORT 9999
 #define BUF_SIZE 2048
