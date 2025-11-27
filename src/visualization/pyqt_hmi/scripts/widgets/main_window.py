@@ -1,0 +1,531 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import rospy
+import signal
+import os
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+
+from std_msgs.msg import UInt8, Bool
+from katech_diagnostic_msgs.msg import *
+from mmc_msgs.msg import chassis_msg, to_control_team_from_local_msg
+from v2x_msgs.msg import intersection_array_msg
+
+from widgets.vehicle_view import VehicleViewWidget
+from widgets.status_indicator import StatusIndicator
+
+class MainDisplayWindow(QMainWindow):
+    """메인 디스플레이 윈도우"""
+    
+    update_sensors_signal = pyqtSignal()
+    update_vehicle_signal = pyqtSignal()
+    
+    def __init__(self):
+        super().__init__()
+        
+        rospy.init_node('pyqt_display', anonymous=True)
+        
+        # 데이터 저장
+        self.gps_status = 2
+        self.adcu_status = 2
+        self.lidar_status = 2
+        self.radar_status = 2
+        self.v2x_status = 2
+        self.hmi_status = 2
+        self.vcu_status = 2
+        self.cam_status = 2
+        self.ipc_status = 2
+        self.odd_status = 2
+        
+        self.eps_status = 0
+        self.traffic_light_color = 0
+        self.traffic_light_time = 0
+        self.speed_limit = 0
+        self.current_speed = 0
+        self.selected_mode = 0
+
+        # UI 초기화
+        self.init_ui()
+        
+        # 지도 로딩
+        map_path = "/home/yuyeong/mcar/src/localization/gps_system_localizer/src/A2_LINK_epsg5179.shp"
+        if os.path.exists(map_path):
+            self.vehicle_view.load_map(map_path)
+            rospy.loginfo(f"Map loaded: {map_path}")
+        else:
+            rospy.logwarn(f"Map file not found: {map_path}")
+
+        # ROS 초기화
+        self.init_ros_subscribers()
+        self.mode_command_pub = rospy.Publisher('/vehicle/mode_command', UInt8, queue_size=1)
+
+        # Signal 연결
+        self.update_sensors_signal.connect(self.update_sensor_display)
+        self.update_vehicle_signal.connect(self.update_vehicle_view)
+        
+        # Ctrl+C 처리
+        signal.signal(signal.SIGINT, self.signal_handler)
+        self.interrupt_timer = QTimer()
+        self.interrupt_timer.timeout.connect(lambda: None)
+        self.interrupt_timer.start(100)
+
+        # 주기적 업데이트
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.periodic_update)
+        self.timer.start(100)
+        
+    def init_ui(self):
+        """UI 초기화"""
+        self.setWindowTitle("Vehicle Display System")
+        self.setGeometry(100, 100, 1600, 900)
+        
+        main_widget = QWidget()
+        self.setCentralWidget(main_widget)
+        
+        main_layout = QHBoxLayout()
+        
+        left_panel = self.create_left_panel()
+        right_panel = self.create_vehicle_view()
+        
+        main_layout.addWidget(left_panel, 30)
+        main_layout.addWidget(right_panel, 70)
+        
+        main_widget.setLayout(main_layout)
+        
+        self.setStyleSheet("""
+            QMainWindow {
+                background-color: #2b2b2b;
+            }
+            QLabel {
+                color: white;
+            }
+            QGroupBox {
+                color: white;
+                border: 2px solid #555;
+                border-radius: 5px;
+                margin-top: 10px;
+                font-weight: bold;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+            }
+        """)
+        
+    def create_left_panel(self):
+        """왼쪽 패널 생성"""
+        panel = QWidget()
+        layout = QVBoxLayout()
+        
+        # 시스템 상태
+        status_group = QGroupBox("System Status")
+        status_layout = QGridLayout()
+        
+        self.gps_indicator = StatusIndicator("GPS RTK")
+        self.adcu_indicator = StatusIndicator("K-ADCU")
+        self.lidar_indicator = StatusIndicator("LIDAR")
+        self.radar_indicator = StatusIndicator("Radar")
+        self.v2x_indicator = StatusIndicator("V2X")
+        self.hmi_indicator = StatusIndicator("HMI")
+        self.vcu_indicator = StatusIndicator("VCU")
+        self.cam_indicator = StatusIndicator("CAM")
+        self.ipc_indicator = StatusIndicator("IPC")
+        self.odd_indicator = StatusIndicator("ODD")
+        
+        indicators = [
+            self.adcu_indicator, self.gps_indicator,
+            self.lidar_indicator, self.radar_indicator,
+            self.v2x_indicator, self.hmi_indicator,
+            self.vcu_indicator, self.cam_indicator,
+            self.ipc_indicator, self.odd_indicator
+        ]
+        
+        for i, indicator in enumerate(indicators):
+            row = i // 2
+            col = i % 2
+            status_layout.addWidget(indicator, row, col)
+            
+        status_group.setLayout(status_layout)
+        layout.addWidget(status_group)
+        
+        # 주행 모드
+        mode_group = self.create_mode_group()
+        layout.addWidget(mode_group)
+        
+        # 속도 정보
+        speed_group = self.create_speed_group()
+        layout.addWidget(speed_group)
+        
+        layout.addStretch()
+        panel.setLayout(layout)
+        return panel
+    
+    def create_mode_group(self):
+        """모드 그룹 생성"""
+        mode_group = QGroupBox("Current Driving Mode")
+        mode_layout = QVBoxLayout()
+        
+        self.mode_display_label = QLabel("Manual")
+        self.mode_display_label.setAlignment(Qt.AlignCenter)
+        self.mode_display_label.setStyleSheet("""
+            QLabel {
+                background-color: #6c757d;
+                font-size: 22px;
+                font-weight: bold;
+                padding: 20px;
+                border-radius: 5px;
+                color: white;
+            }
+        """)
+        mode_layout.addWidget(self.mode_display_label)
+        
+        button_container = QWidget()
+        button_layout = QHBoxLayout()
+        button_layout.setContentsMargins(0, 5, 0, 0)
+        button_layout.setSpacing(0)
+
+        self.auto_button = QPushButton("Autonomous")
+        self.auto_button.setCheckable(True)
+        self.auto_button.setChecked(False)
+        self.auto_button.setFixedHeight(40)
+        self.auto_button.clicked.connect(self.on_auto_button_clicked)
+        self.auto_button.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                color: black;
+                font-size: 14px;
+                font-weight: normal;
+                border: 2px solid #6c757d;
+                border-right: 1px solid #6c757d;
+                border-radius: 0px;
+                padding: 5px;
+            }
+            QPushButton:checked {
+                background-color: #28a745;
+                color: white;
+                font-weight: bold;
+                border: 2px solid #28a745;
+            }
+            QPushButton:hover {
+                background-color: #e9ecef;
+            }
+            QPushButton:checked:hover {
+                background-color: #218838;
+            }
+        """)
+
+        self.manual_button = QPushButton("Manual")
+        self.manual_button.setCheckable(True)
+        self.manual_button.setChecked(True)
+        self.manual_button.setFixedHeight(40)
+        self.manual_button.clicked.connect(self.on_manual_button_clicked)
+        self.manual_button.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                color: black;
+                font-size: 14px;
+                font-weight: normal;
+                border: 2px solid #6c757d;
+                border-left: 1px solid #6c757d;
+                border-radius: 0px;
+                padding: 5px;
+            }
+            QPushButton:checked {
+                background-color: #28a745;
+                color: white;
+                font-weight: bold;
+                border: 2px solid #28a745;
+            }
+            QPushButton:hover {
+                background-color: #e9ecef;
+            }
+            QPushButton:checked:hover {
+                background-color: #218838;
+            }
+        """)
+
+        button_layout.addWidget(self.auto_button)
+        button_layout.addWidget(self.manual_button)
+        button_container.setLayout(button_layout)
+        mode_layout.addWidget(button_container)
+        mode_group.setLayout(mode_layout)
+        
+        return mode_group
+    
+    def create_speed_group(self):
+        """속도 그룹 생성"""
+        speed_group = QGroupBox("Speed Information")
+        speed_main_layout = QVBoxLayout()
+        speed_h_layout = QHBoxLayout()
+        
+        # 속도 제한
+        speed_limit_container = QWidget()
+        speed_limit_layout = QVBoxLayout()
+        
+        speed_limit_title = QLabel("Limit")
+        speed_limit_title.setAlignment(Qt.AlignCenter)
+        speed_limit_title.setStyleSheet("""
+            QLabel {
+                font-size: 14px;
+                font-weight: bold;
+                color: white;
+                background-color: transparent;
+                padding: 5px;
+            }
+        """)
+        
+        self.speed_label = QLabel("0")
+        self.speed_label.setAlignment(Qt.AlignCenter)
+        self.speed_label.setStyleSheet("""
+            QLabel {
+                background-color: #dc3545;
+                font-size: 32px;
+                font-weight: bold;
+                padding: 20px;
+                border-radius: 10px;
+                color: white;
+                border: 2px solid white;
+            }
+        """)
+        
+        speed_limit_unit = QLabel("km/h")
+        speed_limit_unit.setAlignment(Qt.AlignCenter)
+        speed_limit_unit.setStyleSheet("""
+            QLabel {
+                font-size: 12px;
+                color: #aaa;
+                background-color: transparent;
+                padding: 2px;
+            }
+        """)
+        
+        speed_limit_layout.addWidget(speed_limit_title)
+        speed_limit_layout.addWidget(self.speed_label)
+        speed_limit_layout.addWidget(speed_limit_unit)
+        speed_limit_container.setLayout(speed_limit_layout)
+        
+        # 현재 속도
+        current_speed_container = QWidget()
+        current_speed_layout = QVBoxLayout()
+        
+        current_speed_title = QLabel("Current")
+        current_speed_title.setAlignment(Qt.AlignCenter)
+        current_speed_title.setStyleSheet("""
+            QLabel {
+                font-size: 14px;
+                font-weight: bold;
+                color: white;
+                background-color: transparent;
+                padding: 5px;
+            }
+        """)
+        
+        self.current_speed_label = QLabel("0")
+        self.current_speed_label.setAlignment(Qt.AlignCenter)
+        self.current_speed_label.setStyleSheet("""
+            QLabel {
+                background-color: #007bff;
+                font-size: 32px;
+                font-weight: bold;
+                padding: 20px;
+                border-radius: 10px;
+                color: white;
+                border: 2px solid white;
+            }
+        """)
+        
+        current_speed_unit = QLabel("km/h")
+        current_speed_unit.setAlignment(Qt.AlignCenter)
+        current_speed_unit.setStyleSheet("""
+            QLabel {
+                font-size: 12px;
+                color: #aaa;
+                background-color: transparent;
+                padding: 2px;
+            }
+        """)
+        
+        current_speed_layout.addWidget(current_speed_title)
+        current_speed_layout.addWidget(self.current_speed_label)
+        current_speed_layout.addWidget(current_speed_unit)
+        current_speed_container.setLayout(current_speed_layout)
+        
+        speed_h_layout.addWidget(speed_limit_container)
+        speed_h_layout.addWidget(current_speed_container)
+        
+        speed_main_layout.addLayout(speed_h_layout)
+        speed_group.setLayout(speed_main_layout)
+        
+        return speed_group
+        
+    def create_vehicle_view(self):
+        """차량 뷰 패널 생성"""
+        panel = QWidget()
+        layout = QVBoxLayout()
+        
+        title = QLabel("Vehicle Top View")
+        title.setStyleSheet("font-size: 18px; font-weight: bold; color: white;")
+        title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title)
+        
+        self.vehicle_view = VehicleViewWidget()
+        layout.addWidget(self.vehicle_view)
+        
+        panel.setLayout(layout)
+        return panel
+        
+    def init_ros_subscribers(self):
+        """ROS Subscriber 초기화"""
+        rospy.Subscriber("/diagnostic/cpt7_gps", cpt7_gps_diagnostic_msg, self.gps_callback)
+        rospy.Subscriber("/diagnostic/adcu", k_adcu_diagnostic_msg, self.adcu_callback)
+        rospy.Subscriber("/diagnostic/lidar", lidar_diagnostic_msg, self.lidar_callback)
+        rospy.Subscriber("/diagnostic/radar", radar_diagnostic_msg, self.radar_callback)
+        rospy.Subscriber("/diagnostic/v2x", v2x_diagnostic_msg, self.v2x_callback)
+        rospy.Subscriber("/diagnostic/hmi", hmi_diagnostic_msg, self.hmi_callback)
+        rospy.Subscriber("/diagnostic/vcu", vcu_diagnostic_msg, self.vcu_callback)
+        rospy.Subscriber("/diagnostic/cam", cam_diagnostic_msg, self.cam_callback)
+        rospy.Subscriber("/diagnostic/ipc", ipc_diagnostic_msg, self.ipc_callback)
+        rospy.Subscriber("/sensors/chassis", chassis_msg, self.chassis_callback)
+        rospy.Subscriber("/localization/to_control_team", to_control_team_from_local_msg, self.local_callback)
+        rospy.Subscriber("/katri_v2x_node/katri_spat", intersection_array_msg, self.traffic_light_callback)
+        
+    def gps_callback(self, msg):
+        self.gps_status = 0
+        self.update_sensors_signal.emit()
+        
+    def adcu_callback(self, msg):
+        self.adcu_status = 0
+        self.update_sensors_signal.emit()
+        
+    def lidar_callback(self, msg):
+        self.lidar_status = 0
+        self.update_sensors_signal.emit()
+        
+    def radar_callback(self, msg):
+        self.radar_status = 0
+        self.update_sensors_signal.emit()
+        
+    def v2x_callback(self, msg):
+        self.v2x_status = 0
+        self.update_sensors_signal.emit()
+        
+    def hmi_callback(self, msg):
+        self.hmi_status = 0
+        self.update_sensors_signal.emit()
+        
+    def vcu_callback(self, msg):
+        self.vcu_status = 0
+        self.update_sensors_signal.emit()
+        
+    def cam_callback(self, msg):
+        self.cam_status = 0
+        self.update_sensors_signal.emit()
+        
+    def ipc_callback(self, msg):
+        self.ipc_status = 0
+        self.update_sensors_signal.emit()
+        
+    def chassis_callback(self, msg):
+        self.eps_status = msg.vcu_EPS_Status
+        self.current_speed = getattr(msg, 'vehicle_speed', 0)
+        
+    def local_callback(self, msg):
+        self.speed_limit = msg.Speed_Limit
+        self.odd_status = msg.Road_State
+        
+        ego_x = msg.host_east
+        ego_y = msg.host_north
+        ego_heading = msg.host_yaw
+        
+        self.vehicle_view.set_ego_pose(ego_x, ego_y, ego_heading)
+        
+    def traffic_light_callback(self, msg):
+        pass
+        
+    def update_sensor_display(self):
+        """센서 상태 업데이트"""
+        self.gps_indicator.set_status(self.gps_status)
+        self.adcu_indicator.set_status(self.adcu_status)
+        self.lidar_indicator.set_status(self.lidar_status)
+        self.radar_indicator.set_status(self.radar_status)
+        self.v2x_indicator.set_status(self.v2x_status)
+        self.hmi_indicator.set_status(self.hmi_status)
+        self.vcu_indicator.set_status(self.vcu_status)
+        self.cam_indicator.set_status(self.cam_status)
+        self.ipc_indicator.set_status(self.ipc_status)
+        self.odd_indicator.set_status(self.odd_status)
+        
+    def update_vehicle_view(self):
+        pass
+        
+    def periodic_update(self):
+        """주기적 업데이트"""
+        mode_msg = UInt8()
+        mode_msg.data = self.selected_mode
+        self.mode_command_pub.publish(mode_msg)
+        
+        if self.eps_status == 2:
+            self.mode_display_label.setText("Autonomous")
+            self.mode_display_label.setStyleSheet("""
+                QLabel {
+                    background-color: #28a745;
+                    font-size: 22px;
+                    font-weight: bold;
+                    padding: 20px;
+                    border-radius: 5px;
+                    color: white;
+                }
+            """)
+            if not self.auto_button.isChecked():
+                self.auto_button.setChecked(True)
+                self.manual_button.setChecked(False)
+        else:
+            self.mode_display_label.setText("Manual")
+            self.mode_display_label.setStyleSheet("""
+                QLabel {
+                    background-color: #6c757d;
+                    font-size: 22px;
+                    font-weight: bold;
+                    padding: 20px;
+                    border-radius: 5px;
+                    color: white;
+                }
+            """)
+            if not self.manual_button.isChecked():
+                self.manual_button.setChecked(True)
+                self.auto_button.setChecked(False)
+            
+        self.speed_label.setText(str(self.speed_limit))
+        self.current_speed_label.setText(str(int(self.current_speed)))
+
+    def on_auto_button_clicked(self):
+        if self.auto_button.isChecked():
+            self.manual_button.setChecked(False)
+            self.selected_mode = 1
+            rospy.loginfo("모드 변경: Autonomous")
+        else:
+            self.auto_button.setChecked(True)
+
+    def on_manual_button_clicked(self):
+        if self.manual_button.isChecked():
+            self.auto_button.setChecked(False)
+            self.selected_mode = 0
+            rospy.loginfo("모드 변경: Manual")
+        else:
+            self.manual_button.setChecked(True)
+
+    def signal_handler(self, sig, frame):
+        print("\n시그널을 받았습니다. 프로그램을 종료합니다...")
+        self.cleanup()
+        QApplication.quit()
+        
+    def cleanup(self):
+        print("리소스 정리 중...")
+        rospy.signal_shutdown("User interrupted")
+        
+    def closeEvent(self, event):
+        self.cleanup()
+        event.accept()
