@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+  <node name="pyqt_hmi" pkg="pyqt_hmi" type="main_display.py" output="screen">
+    <env name="PYTHONPATH" value="$(find pyqt_hmi)/scripts:$(env PYTHONPATH)" />
+  </node>
+</launch>
