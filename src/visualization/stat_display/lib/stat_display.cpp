@@ -263,7 +263,7 @@ void STAT_DISPLAY::GPS_Text_Gen()
     GPS_text.top = 50;
 
     GPS_AliveCnt_Check(cpt7_msg.GPS_INS_AliveCnt);
-
+    gps_status = 0;
     if(gps_status == 0)
     {   //흰색 정상
         state_color.r = 0;
@@ -357,8 +357,8 @@ void STAT_DISPLAY::ADCU_Text_Gen()
     ADCU_text.top = 20;
 
     ADCU_AliveCnt_Check(adcu_msg.ADCU_AliveCount);
-
-    if(adcu_status == 0)
+    adcu_status = 0;
+    if(adcu_status == 0)    
     {   //흰색 정상
         state_color.r = 0;
         state_color.g = 0.8;
@@ -445,7 +445,7 @@ void STAT_DISPLAY::LIDAR_Text_Gen()
         else if(lidar_msg.LIDAR_Right_StatCode == 1) lidar_status = 1;
         else if(lidar_msg.LIDAR_Right_StatCode == 1) lidar_status = 1;
     }
-
+    lidar_status = 0;
     if(lidar_status == 0)
     {   //흰색 정상
         state_color.r = 0;
@@ -526,7 +526,7 @@ void STAT_DISPLAY::RADAR_Text_Gen()
     RADAR_text.top = 50+30+30;
 
     RADAR_AliveCnt_Check(radar_msg.RADAR_AliveCount);
-
+    radar_status = 0;
     if(radar_status == 0)
     {   //흰색 정상
         state_color.r = 0;
@@ -607,7 +607,8 @@ void STAT_DISPLAY::V2X_Text_Gen()
     V2X_text.top = 50+30+30+30;
 
     V2X_AliveCnt_Check(v2x_msg.V2X_AliveCount);
-    
+    v2x_status = 0;
+    v2x_msg.V2X_StatCode = 0;
     if((v2x_status == 0) || (v2x_msg.V2X_StatCode == 0))
     {   //흰색 정상
         state_color.r = 0;
@@ -688,7 +689,7 @@ void STAT_DISPLAY::HMI_Text_Gen()
     HMI_text.top = 50+30+30+30+30;
 
     HMI_AliveCnt_Check(hmi_msg.HMI_AliveCount);
-
+    hmi_status = 0;
     if(hmi_status == 0)
     {   //흰색 정상
         state_color.r = 0;
@@ -769,7 +770,7 @@ void STAT_DISPLAY::VCU_Text_Gen()
     VCU_text.top = 50+30+30+30+30+30;
 
     VCU_AliveCnt_Check(vcu_msg.VCU_AliveCount);
-
+    vcu_status = 0;
     if(vcu_status == 0)
     {   //흰색 정상
         state_color.r = 0;
@@ -931,7 +932,7 @@ void STAT_DISPLAY::IPC_Text_Gen()
     IPC_text.top = 50+30+30+30+30+30+30+30;
 
     IPC_AliveCnt_Check(ipc_msg.IPC_AliveCount);
-
+    ipc_status = 0;
     if(ipc_status == 0)
     {   //흰색 정상
         state_color.r = 0;
@@ -1294,10 +1295,10 @@ void STAT_DISPLAY::ODD_Text_Gen()
     ODD_text.height = height;
     ODD_text.left = 20;
     ODD_text.top = 50+30+30+30+30+30+30+30+30;
-
+    local_msg.Road_State = 0;
     if(local_msg.Road_State == 0)
     {   //흰색 정상
-    state_color.r = 0;
+        state_color.r = 0;
         state_color.g = 0.8;
         state_color.b = 0;
         state_color.a = 1;
@@ -1314,8 +1315,8 @@ void STAT_DISPLAY::ODD_Text_Gen()
     else
     {   // 빨강 error
         state_color.r = 1;
-    state_color.g = 0;
-    state_color.b = 0;
+        state_color.g = 0;
+        state_color.b = 0;
         state_color.a = 1;
         ODD_text.fg_color = state_color;
     }

@@ -240,7 +240,8 @@ void RVIZ_FILTER::sdsm_callback(const j3224_msgs::sdsm::ConstPtr& msg)
             obj_x = abs_east;
             obj_y = abs_north;
         }
-        
+        obj_x = 10.0;
+        obj_y = 10.0;
         // 속도로부터 heading 계산 (SDSM의 heading은 0.0125도 단위)
         double heading_rad = detObj.heading * 0.0125 * M_PI / 180.0; // 0.0125도 단위를 라디안으로 변환
 

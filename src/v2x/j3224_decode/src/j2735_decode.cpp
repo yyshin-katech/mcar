@@ -22,7 +22,8 @@
 #include <j3224_msgs/sdsm.h>
 
 // #define OUB_IP_ADDR "192.168.1.174"
-#define OUB_IP_ADDR "127.0.0.1"
+#define OUB_IP_ADDR "192.168.170.130"
+// #define OUB_IP_ADDR "127.0.0.1"
 #define UDP_PORT 9999
 #define BUF_SIZE 2048
 
@@ -99,45 +100,45 @@ class J2735_DECODE{
 
                     j2735SensorDataSharingMessage *sdsm = (j2735SensorDataSharingMessage *)msg;
                     
-                    // std::stringstream id_ss;
-                    // for (size_t i = 0; i < sdsm->sourceID.len; ++i) {
-                    //     id_ss << std::hex << std::setw(2) << std::setfill('0') << (int)sdsm->sourceID.buf[i];
+                    std::stringstream id_ss;
+                    for (size_t i = 0; i < sdsm->sourceID.len; ++i) {
+                        id_ss << std::hex << std::setw(2) << std::setfill('0') << (int)sdsm->sourceID.buf[i];
 
-                    // }
-                    // ROS_INFO("[decoder] Decoded OK");
-                    // ROS_INFO("SDSM Decoded:");
-                    // ROS_INFO("  msgCnt: %d", sdsm->msgCnt);
-                    // ROS_INFO("  sourceID: 0x%s", id_ss.str().c_str());
-                    // ROS_INFO("  year: %d", sdsm->sDSMTimeStamp.year);
-                    // ROS_INFO("  mon: %d", sdsm->sDSMTimeStamp.month);
-                    // ROS_INFO("  day: %d", sdsm->sDSMTimeStamp.day);
-                    // ROS_INFO("  hour: %d", sdsm->sDSMTimeStamp.hour);
-                    // ROS_INFO("  min: %d", sdsm->sDSMTimeStamp.minute);
-                    // ROS_INFO("  sec: %d", sdsm->sDSMTimeStamp.second);    
-                    // ROS_INFO("  refPos.lat: %d", sdsm->refPos.lat);
-                    // ROS_INFO("  refPos.long: %d", sdsm->refPos.Long);
-                    // ROS_INFO("  refPos.ele_option: %d", sdsm->refPos.elevation_option);
-                    // ROS_INFO("  refPos.regional_option: %d", sdsm->refPos.regional_option);
-                    // ROS_INFO("  refPos.regional.count: %ld", sdsm->refPos.regional.count);
-                    // // 객체 수 확인 (필드 이름은 사용 중인 ffasn1 구조체에 따라 다름)
-                    // if (sdsm->objects.count > 0) {
-                    //     ROS_INFO("  objects.count: %ld", sdsm->objects.count);
-                    //     auto &obj = sdsm->objects.tab[0].detObjCommon;
-                    //     ROS_INFO("    measerTime: %d", obj.measurementTime);
-                    //     ROS_INFO("    timeConfidence: %d", obj.timeConfidence);
-                    //     ROS_INFO("    objectID: %d", obj.objectID);
-                    //     ROS_INFO("    objType: %d", obj.objType);
-                    //     ROS_INFO("    objTypeCfd: %d", obj.objTypeCfd);
+                    }
+                    ROS_INFO("[decoder] Decoded OK");
+                    ROS_INFO("SDSM Decoded:");
+                    ROS_INFO("  msgCnt: %d", sdsm->msgCnt);
+                    ROS_INFO("  sourceID: 0x%s", id_ss.str().c_str());
+                    ROS_INFO("  year: %d", sdsm->sDSMTimeStamp.year);
+                    ROS_INFO("  mon: %d", sdsm->sDSMTimeStamp.month);
+                    ROS_INFO("  day: %d", sdsm->sDSMTimeStamp.day);
+                    ROS_INFO("  hour: %d", sdsm->sDSMTimeStamp.hour);
+                    ROS_INFO("  min: %d", sdsm->sDSMTimeStamp.minute);
+                    ROS_INFO("  sec: %d", sdsm->sDSMTimeStamp.second);    
+                    ROS_INFO("  refPos.lat: %d", sdsm->refPos.lat);
+                    ROS_INFO("  refPos.long: %d", sdsm->refPos.Long);
+                    ROS_INFO("  refPos.ele_option: %d", sdsm->refPos.elevation_option);
+                    ROS_INFO("  refPos.regional_option: %d", sdsm->refPos.regional_option);
+                    ROS_INFO("  refPos.regional.count: %ld", sdsm->refPos.regional.count);
+                    // 객체 수 확인 (필드 이름은 사용 중인 ffasn1 구조체에 따라 다름)
+                    if (sdsm->objects.count > 0) {
+                        ROS_INFO("  objects.count: %ld", sdsm->objects.count);
+                        auto &obj = sdsm->objects.tab[0].detObjCommon;
+                        ROS_INFO("    measerTime: %d", obj.measurementTime);
+                        ROS_INFO("    timeConfidence: %d", obj.timeConfidence);
+                        ROS_INFO("    objectID: %d", obj.objectID);
+                        ROS_INFO("    objType: %d", obj.objType);
+                        ROS_INFO("    objTypeCfd: %d", obj.objTypeCfd);
 
-                    //     ROS_INFO("    pos: %d   %d", obj.pos.offsetX, obj.pos.offsetY);
-                    //     ROS_INFO("    posConfidence: %d", obj.posConfidence.pos);
+                        ROS_INFO("    pos: %d   %d", obj.pos.offsetX, obj.pos.offsetY);
+                        ROS_INFO("    posConfidence: %d", obj.posConfidence.pos);
                         
-                    //     ROS_INFO("    speed: %d (0.02m/s unit)", obj.speed);
-                    //     ROS_INFO("    speedConfidence: %d", obj.speedConfidence);
+                        ROS_INFO("    speed: %d (0.02m/s unit)", obj.speed);
+                        ROS_INFO("    speedConfidence: %d", obj.speedConfidence);
                         
-                    //     ROS_INFO("    heading: %d (0.0125deg unit)", obj.heading);
-                    //     ROS_INFO("    headingConf: %d", obj.headingConf);
-                    // }
+                        ROS_INFO("    heading: %d (0.0125deg unit)", obj.heading);
+                        ROS_INFO("    headingConf: %d", obj.headingConf);
+                    }
 
                     ros_msg.msgCnt = sdsm->msgCnt;
 
