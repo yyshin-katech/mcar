@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+    <arg name="sweet_home" default="$(optenv HOME)" />
+
+    <param name="EPSG" value="5179" />
+
+  <node name="j2735_decode_node"       type="j2735_decode_node"     pkg="j2735_decode"  respawn="true" />
+
+</launch>
