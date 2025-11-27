@@ -7,6 +7,7 @@ Panels:
         - /Global Options1
         - /Status1
         - /Grid1/Offset1
+        - /MarkerArray1
         - /MarkerArray1/Namespaces1
         - /OverlayText14
         - /OverlayText15
@@ -90,7 +91,7 @@ Visualization Manager:
       Marker Topic: /rviz_filter_node/visualization_marker_array
       Name: MarkerArray
       Namespaces:
-        {}
+        sdsm_objects: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -315,7 +316,7 @@ Visualization Manager:
       Background Alpha: 0.800000011920929
       Background Color: 0; 0; 0
       Class: jsk_rviz_plugin/OverlayText
-      Enabled: true
+      Enabled: false
       Foreground Alpha: 0.800000011920929
       Foreground Color: 25; 255; 240
       Invert Shadow: false
@@ -324,7 +325,7 @@ Visualization Manager:
       Overtake FG Color Properties: false
       Overtake Position Properties: false
       Topic: /rviz/jsk/local_info_stat
-      Value: true
+      Value: false
       font: DejaVu Sans Mono
       height: 128
       left: 0
@@ -337,14 +338,14 @@ Visualization Manager:
       Marker Topic: /rviz/lanelet_marker
       Name: MarkerArray
       Namespaces:
-        lanelet_A2_LINK_epsg5179.shp: true
+        {}
       Queue Size: 100
       Value: true
     - Align Bottom: false
       Background Alpha: 0.800000011920929
       Background Color: 0; 0; 0
       Class: jsk_rviz_plugin/OverlayText
-      Enabled: true
+      Enabled: false
       Foreground Alpha: 0.800000011920929
       Foreground Color: 25; 255; 240
       Invert Shadow: false
@@ -353,7 +354,7 @@ Visualization Manager:
       Overtake FG Color Properties: false
       Overtake Position Properties: false
       Topic: /rviz/jsk/mode_text
-      Value: true
+      Value: false
       font: DejaVu Sans Mono
       height: 128
       left: 0
@@ -365,7 +366,7 @@ Visualization Manager:
       Background Alpha: 0.800000011920929
       Background Color: 0; 0; 0
       Class: jsk_rviz_plugin/OverlayText
-      Enabled: true
+      Enabled: false
       Foreground Alpha: 0.800000011920929
       Foreground Color: 25; 255; 240
       Invert Shadow: false
@@ -374,7 +375,7 @@ Visualization Manager:
       Overtake FG Color Properties: false
       Overtake Position Properties: false
       Topic: /rviz/jsk/traffic_light_stat
-      Value: true
+      Value: false
       font: DejaVu Sans Mono
       height: 128
       left: 0
@@ -407,7 +408,7 @@ Visualization Manager:
       Background Alpha: 0.800000011920929
       Background Color: 0; 0; 0
       Class: jsk_rviz_plugin/OverlayText
-      Enabled: true
+      Enabled: false
       Foreground Alpha: 0.800000011920929
       Foreground Color: 25; 255; 240
       Invert Shadow: false
@@ -416,7 +417,7 @@ Visualization Manager:
       Overtake FG Color Properties: false
       Overtake Position Properties: false
       Topic: /rviz/jsk/speed_limit_text
-      Value: true
+      Value: false
       font: DejaVu Sans Mono
       height: 128
       left: 0
@@ -488,5 +489,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1848
-  X: 661
-  Y: 169
+  X: 291
+  Y: 269
