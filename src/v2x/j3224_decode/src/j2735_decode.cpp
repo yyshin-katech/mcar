@@ -65,13 +65,13 @@ class J2735_DECODE{
         {
             const uint8_t* payload = rmsg->data.data();
             size_t payload_len = rmsg->len;
-
+            ROS_INFO("%d", payload_len);
             // if(payload[0] == 0x03 && payload[1] == 0x81)
             // {
             //     payload += 4;
             //     payload_len -= 4;
             // }
-            payload_len = rmsg->len - 3;
+            payload_len = rmsg->len - 10;
             uint8_t msgId = payload[1];
             ASN1Error err;
             void* msg = nullptr;
@@ -89,10 +89,10 @@ class J2735_DECODE{
                 case 0x1F: name = "RSA";  type = asn1_type_j2735RoadSideAlert; break;
                 case 0x20: name = "MAP";  type = asn1_type_j2735MapData; break;
             }
-
+            type = asn1_type_j2735SensorDataSharingMessage;
             if(type)
             {
-                asn1_ssize_t ret = asn1_uper_decode(&msg, type, &payload[3], payload_len, &err);
+                asn1_ssize_t ret = asn1_uper_decode(&msg, type, &payload[10], payload_len, &err);
                 // asn1_ssize_t ret = asn1_ber_decode(&msg, type, payload, payload_len, &err);
                 if(ret > 0 && msg)
                 {
@@ -259,7 +259,8 @@ int main(int argc, char** argv)
     struct sockaddr_in addr {};
     addr.sin_family = AF_INET;
     addr.sin_port = htons(UDP_PORT);
-    inet_pton(AF_INET, OUB_IP_ADDR, &addr.sin_addr);
+    addr.sin_addr.s_addr = INADDR_ANY;
+    // inet_pton(AF_INET, OUB_IP_ADDR, &addr.sin_addr);
 
     if (bind(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0) 
     {
