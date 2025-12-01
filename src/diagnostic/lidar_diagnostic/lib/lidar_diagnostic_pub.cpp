@@ -138,12 +138,45 @@ bool LIDAR_DIAGNOSTIC_PUB::checkConnection(const std::string& ip, uint16_t port)
     // return isConnected;
 }
 
+bool LIDAR_DIAGNOSTIC_PUB::pingCheck(const std::string& ip)
+{
+    int sock = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+    if (sock < 0) return false;  // root 권한 필요
+    
+    struct timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = 100000;  // 100ms
+    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    
+    struct sockaddr_in addr;
+    addr.sin_family = AF_INET;
+    inet_pton(AF_INET, ip.c_str(), &addr.sin_addr);
+    
+    // ICMP Echo Request 패킷 구성
+    char packet[64] = {0};
+    struct icmphdr *icmp = (struct icmphdr *)packet;
+    icmp->type = ICMP_ECHO;
+    icmp->code = 0;
+    icmp->un.echo.id = getpid();
+    icmp->un.echo.sequence = 1;
+    
+    sendto(sock, packet, sizeof(packet), 0, 
+           (struct sockaddr*)&addr, sizeof(addr));
+    
+    char buffer[1024];
+    int result = recv(sock, buffer, sizeof(buffer), 0);
+    
+    close(sock);
+    return (result > 0);
+}
+
+
 bool LIDAR_DIAGNOSTIC_PUB::checkCenterLidarConnection()
 {
     std::string ip = lidar[0].ip;
     uint16_t port = static_cast<uint16_t>(lidar[0].port);
 
-    bool result = this->checkConnection(ip, port);
+    bool result = this->pingCheck(ip);
 
     return result;
 }
@@ -153,7 +186,7 @@ bool LIDAR_DIAGNOSTIC_PUB::checkRightLidarConnection()
     std::string ip = lidar[1].ip;
     uint16_t port = static_cast<uint16_t>(lidar[1].port);
 
-    bool result = this->checkConnection(ip, port);
+    bool result = this->pingCheck(ip);
 
     return result;
 }
@@ -163,7 +196,7 @@ bool LIDAR_DIAGNOSTIC_PUB::checkLeftLidarConnection()
     std::string ip = lidar[2].ip;
     uint16_t port = static_cast<uint16_t>(lidar[2].port);
 
-    bool result = this->checkConnection(ip, port);
+    bool result = this->pingCheck(ip);
 
     return result;
 }

@@ -11,6 +11,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <netinet/ip_icmp.h>
 
 #include <ros/ros.h>
 #include <ros/package.h>
@@ -56,6 +57,7 @@ class LIDAR_DIAGNOSTIC_PUB
         void percept_callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& msg);
 
         bool checkConnection(const std::string& ip, uint16_t port);
+        bool pingCheck(const std::string& ip);
 
         bool checkCenterLidarConnection();
         bool checkRightLidarConnection();
