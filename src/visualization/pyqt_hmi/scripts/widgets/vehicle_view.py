@@ -69,11 +69,20 @@ class VehicleViewWidget(QWidget):
         
         try:
             self.objects = []
+            self.refpos = None
             sdsm_count = 0
             
             # MarkerArray에서 'sdsm_objects' namespace의 마커만 추출
             for marker in msg.markers:
                 rospy.loginfo(f"Marker namespace: {marker.ns}, id: {marker.id}")
+                
+                if marker.ns == 'sdsm_refpos':
+                    self.refpos = {
+                        'x': marker.pose.position.x,
+                        'y': marker.pose.position.y,
+                        'z': marker.pose.position.z
+                    }
+                    rospy.loginfo(f"RefPos found: ({self.refpos['x']:.2f}, {self.refpos['y']:.2f})")
                 
                 if marker.ns == 'sdsm_objects':
                     sdsm_count += 1
@@ -184,6 +193,9 @@ class VehicleViewWidget(QWidget):
         # 지도 그리기
         self.draw_map(painter)
 
+        # RefPos 그리기 (객체보다 먼저 그려서 아래에 표시)
+        self.draw_refpos(painter, center_x, center_y)
+
         # 자차 그리기
         self.draw_ego_vehicle(painter, center_x, center_y)
         
@@ -257,6 +269,49 @@ class VehicleViewWidget(QWidget):
         return (x < -margin or x > self.width() + margin or 
                 y < -margin or y > self.height() + margin)
 
+    def draw_refpos(self, painter, cx, cy):
+        """RefPos 마커 그리기"""
+        if not self.refpos:
+            return
+        
+        # RefPos의 화면 좌표 계산
+        refpos_x = self.refpos['x']
+        refpos_y = self.refpos['y']
+        
+        screen_x = cx + refpos_x * self.scale
+        screen_y = cy - refpos_y * self.scale
+        
+        # 화면 밖이면 스킵
+        if self.is_point_out_of_view(screen_x, screen_y, margin=50):
+            return
+        
+        # 파란색 원으로 표시
+        radius = 15
+        painter.setBrush(QBrush(QColor(0, 0, 255, 180)))
+        painter.setPen(QPen(QColor(0, 100, 255), 3))
+        painter.drawEllipse(QPointF(screen_x, screen_y), radius, radius)
+        
+        # 중심점 표시
+        painter.setPen(QPen(QColor(255, 255, 255), 2))
+        painter.drawLine(int(screen_x - 5), int(screen_y), int(screen_x + 5), int(screen_y))
+        painter.drawLine(int(screen_x), int(screen_y - 5), int(screen_x), int(screen_y + 5))
+        
+        # RefPos 텍스트 표시
+        painter.setPen(QPen(QColor(255, 255, 255)))
+        painter.drawText(
+            int(screen_x - 30), 
+            int(screen_y - radius - 5), 
+            "RefPos"
+        )
+        
+        # 거리 표시
+        distance = math.sqrt(refpos_x**2 + refpos_y**2)
+        painter.drawText(
+            int(screen_x - 30), 
+            int(screen_y + radius + 15), 
+            f"{distance:.1f}m"
+        )
+
     def draw_ego_vehicle(self, painter, cx, cy):
         """자차 그리기"""
         ego_cx = self.width() / 2
@@ -316,33 +371,64 @@ class VehicleViewWidget(QWidget):
             
             # 회전 변환을 위한 painter save
             painter.save()
-            painter.translate(screen_x, screen_y)
+
+            try:
+                painter.translate(screen_x, screen_y)
+                
+                # 객체의 heading 회전 적용 (화면 좌표계 고려)
+                painter.rotate(math.degrees(-obj_heading))
+                
+                # 객체 박스 그리기
+                painter.setBrush(QBrush(color))
+                painter.setPen(QPen(color.darker(), 2))
+                
+                rect = QRectF(
+                    -obj_width/2,
+                    -obj_length/2,
+                    obj_width,
+                    obj_length
+                )
+                painter.drawRect(rect)
+                
+                # 방향 표시 (삼각형)
+                painter.setBrush(QBrush(QColor(255, 255, 0)))
+                triangle = QPolygonF([
+                    QPointF(0, -obj_length/2 - 5),
+                    QPointF(-5, -obj_length/2),
+                    QPointF(5, -obj_length/2)
+                ])
+                painter.drawPolygon(triangle)
             
-            # 객체의 heading 회전 적용 (화면 좌표계 고려)
-            painter.rotate(math.degrees(-obj_heading))
+            finally:
+                # 반드시 restore 호출
+                painter.restore()
+            # painter.translate(screen_x, screen_y)
             
-            # 객체 박스 그리기
-            painter.setBrush(QBrush(color))
-            painter.setPen(QPen(color.darker(), 2))
+            # # 객체의 heading 회전 적용 (화면 좌표계 고려)
+            # painter.rotate(math.degrees(-obj_heading))
             
-            rect = QRectF(
-                -obj_width/2,
-                -obj_length/2,
-                obj_width,
-                obj_length
-            )
-            painter.drawRect(rect)
+            # # 객체 박스 그리기
+            # painter.setBrush(QBrush(color))
+            # painter.setPen(QPen(color.darker(), 2))
             
-            # 방향 표시 (삼각형)
-            painter.setBrush(QBrush(QColor(255, 255, 0)))
-            triangle = QPolygonF([
-                QPointF(0, -obj_length/2 - 5),
-                QPointF(-5, -obj_length/2),
-                QPointF(5, -obj_length/2)
-            ])
-            painter.drawPolygon(triangle)
+            # rect = QRectF(
+            #     -obj_width/2,
+            #     -obj_length/2,
+            #     obj_width,
+            #     obj_length
+            # )
+            # painter.drawRect(rect)
             
-            painter.restore()
+            # # 방향 표시 (삼각형)
+            # painter.setBrush(QBrush(QColor(255, 255, 0)))
+            # triangle = QPolygonF([
+            #     QPointF(0, -obj_length/2 - 5),
+            #     QPointF(-5, -obj_length/2),
+            #     QPointF(5, -obj_length/2)
+            # ])
+            # painter.drawPolygon(triangle)
+            
+            # painter.restore()
             
             # 거리 및 ID 표시
             distance = math.sqrt(obj_x**2 + obj_y**2)

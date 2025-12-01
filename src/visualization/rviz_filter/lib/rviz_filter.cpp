@@ -212,8 +212,71 @@ void RVIZ_FILTER::sdsm_callback(const j3224_msgs::sdsm::ConstPtr& msg)
         // ROS_INFO("%lf %lf : %lf %lf", ref_latitude, ref_longitude, ref_east, ref_north);
         // TODO: ref의 heading 정보 필요 (SDSM 구조체에서 확인 필요)
         // 임시로 0도(북쪽)를 기준으로 설정
-        double ref_heading = 0.0; // 라디안, ref가 바라보는 방향
+        double ref_heading = 160*3.14/180;//-2.0817; //-1.2963;// // 라디안, ref가 바라보는 방향
         
+        // host 좌표 기준으로 변환
+        double ref_x, ref_y;
+        if (host_initialized_) {
+            ref_x = ref_east - host_east_;
+            ref_y = ref_north - host_north_;
+        } else {
+            ref_x = ref_east;
+            ref_y = ref_north;
+        }
+
+        // refPos를 구(Sphere)로 표시
+        visualization_msgs::Marker ref_sphere;
+        ref_sphere.header.frame_id = "ego_frame";
+        ref_sphere.header.stamp = now;
+        ref_sphere.ns = "sdsm_refpos";
+        ref_sphere.id = 100; // refPos용 고유 ID
+        ref_sphere.type = visualization_msgs::Marker::SPHERE;
+        ref_sphere.action = visualization_msgs::Marker::ADD;
+
+        ref_sphere.pose.position.x = ref_x;
+        ref_sphere.pose.position.y = ref_y;
+        ref_sphere.pose.position.z = 0.0;
+
+        ref_sphere.scale.x = 1.0;
+        ref_sphere.scale.y = 1.0;
+        ref_sphere.scale.z = 1.0;
+
+        // 파란색으로 표시
+        ref_sphere.color.r = 0.0;
+        ref_sphere.color.g = 0.0;
+        ref_sphere.color.b = 1.0;
+        ref_sphere.color.a = 0.9;
+
+        ref_sphere.lifetime = ros::Duration(1.0);
+        marker_array.markers.push_back(ref_sphere);
+
+        // refPos 텍스트 레이블
+        visualization_msgs::Marker ref_text;
+        ref_text.header.frame_id = "ego_frame";
+        ref_text.header.stamp = now;
+        ref_text.ns = "sdsm_refpos_text";
+        ref_text.id = 101;
+        ref_text.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+        ref_text.action = visualization_msgs::Marker::ADD;
+
+        ref_text.pose.position.x = ref_x;
+        ref_text.pose.position.y = ref_y;
+        ref_text.pose.position.z = 1.5;
+
+        ref_text.scale.z = 0.8;
+        ref_text.color.r = 1.0;
+        ref_text.color.g = 1.0;
+        ref_text.color.b = 1.0;
+        ref_text.color.a = 1.0;
+
+        std::ostringstream ss;
+        ss << "RefPos\nE: " << std::fixed << std::setprecision(1) << ref_east 
+            << "\nN: " << ref_north;
+        ref_text.text = ss.str();
+        ref_text.lifetime = ros::Duration(1.0);
+
+        marker_array.markers.push_back(ref_text);
+
         // 로컬 좌표계 (ref 기준 front-left) -> 글로벌 좌표계 (east-north) 변환
         double local_x = detObj.offsetX * 0.01; // cm to m, ref 기준 전방(+x)
         double local_y = detObj.offsetY * 0.01; // cm to m, ref 기준 좌측(+y)
@@ -229,7 +292,7 @@ void RVIZ_FILTER::sdsm_callback(const j3224_msgs::sdsm::ConstPtr& msg)
         // 절대좌표 계산
         double abs_east = ref_east + global_x_offset;
         double abs_north = ref_north + global_y_offset;
-        
+        // ROS_INFO("x:%.2lf, y:%.2lf",abs_east, abs_north);
         // host 좌표를 기준으로 한 상대좌표로 변환 (ego_frame 기준)
         double obj_x, obj_y;
         if (host_initialized_) {
@@ -240,7 +303,7 @@ void RVIZ_FILTER::sdsm_callback(const j3224_msgs::sdsm::ConstPtr& msg)
             obj_x = abs_east;
             obj_y = abs_north;
         }
-   
+
         // 속도로부터 heading 계산 (SDSM의 heading은 0.0125도 단위)
         double heading_rad = detObj.heading * 0.0125 * M_PI / 180.0; // 0.0125도 단위를 라디안으로 변환
 
