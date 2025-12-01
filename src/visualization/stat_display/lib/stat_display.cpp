@@ -1123,9 +1123,10 @@ void STAT_DISPLAY::sound_play(const std::string& sensor_name)
 void STAT_DISPLAY::Local_Text_Gen()
 {
     ros::Time now = ros::Time::now();
-    
+    std::string code = (cpt7_msg.GPSRTK_StatCode == 56) ? "RTKFIX" : "N/A";
+
     LOCAL_text.text = "Curr LANE: " + std::to_string(local_msg.LINK_ID) +
-                    "\nGPSRTK: " + std::to_string(cpt7_msg.GPSRTK_StatCode);
+                    "\nGPSRTK: " + code;
 
     std_msgs::ColorRGBA state_color;
 
