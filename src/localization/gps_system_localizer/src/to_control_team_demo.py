@@ -394,6 +394,10 @@ class DistanceCalculator(object):
 
         if p.LINK_ID in [4, 48, 49, 50, 51]:
             p.NEXT_LINK_ID = 0
+        
+        if p.LINK_ID in [59, 60]:
+            p.On_ODD = 0
+            p.Road_State = 1
         # 터널 진입 구간    
         # if p.LINK_ID == 56:
         #     if p.distance_to_lane_end < 60.0:
