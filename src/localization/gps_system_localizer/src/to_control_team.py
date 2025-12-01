@@ -287,6 +287,7 @@ class DistanceCalculator(object):
         p.lane_name = current_lane_name
         p.host_east = e
         p.host_north = n
+
         p.host_yaw = yaw  # radian
         p.waypoint_index = current_closest_waypoint_in_MATLAB
         p.station = current_s

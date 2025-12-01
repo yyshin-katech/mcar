@@ -50,7 +50,7 @@ class MainDisplayWindow(QMainWindow):
         self.init_ui()
         
         # 지도 로딩
-        map_path = "/home/yuyeong/mcar/src/localization/gps_system_localizer/src/A2_LINK_epsg5179.shp"
+        map_path = "/home/yuyeong/mcar/src/localization/gps_system_localizer/src/siheung_epsg5179_min.shp"
         if os.path.exists(map_path):
             self.vehicle_view.load_map(map_path)
             rospy.loginfo(f"Map loaded: {map_path}")
