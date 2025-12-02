@@ -27,7 +27,7 @@ from utils_cython import find_closest, compute_current_lane, xy2frenet_with_clos
 MAPFILE_PATH = rospy.get_param('MAPFILE_PATH')
 # MAPFILE_PATH = '/home/katech/mcar_v13/src/localization/gps_system_localizer/mapfiles/K_CITY_20251106'
 MIN_LANE_ID = 1
-MAX_LANE_ID = 83
+MAX_LANE_ID = 79
 
 ODD_CNT_THRESHOLD = 200
 ODD_OCCUPIED_OFFSET_THRESHOLD = 0.95
@@ -401,6 +401,9 @@ class DistanceCalculator(object):
         
         if p.LINK_ID == 65:
             p.Speed_Limit = 10
+        
+        # if p.LINK_ID in [77, 78, 79]:
+            # p.left_LaneChange_avail = 0
             
         # 터널 진입 구간    
         # if p.LINK_ID == 56:
