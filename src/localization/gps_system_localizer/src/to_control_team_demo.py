@@ -347,12 +347,7 @@ class DistanceCalculator(object):
 
             # # 현재 주행할 경로쪽으로 방향이 제대로 맞으면 오토모드 송출 아니면, 수동모드 송출 ##
             if p.On_ODD == 0 and p.Road_State == 0:
-                if p.LINK_ID == 48 and p.distance_to_lane_end < 98.0:
-                    p.have_to_LangeChange_right = 1
-                elif p.LINK_ID in [48, 49, 50, 51] and p.distance_to_lane_end < 50.0:
-                    p.On_ODD = 1
-                    p.Road_State = 2
-                elif p.LINK_ID == 52 and p.distance_to_lane_end < 60.0:
+                if p.LINK_ID == 52 and p.distance_to_lane_end < 60.0:
                     p.Speed_Limit = 15
                     p.On_ODD = 0
                     p.Road_State = 0
@@ -399,11 +394,11 @@ class DistanceCalculator(object):
             p.On_ODD = 0
             p.Road_State = 1
         
-        if p.LINK_ID == 65:
+        if p.LINK_ID in [12, 65]:
             p.Speed_Limit = 10
-        
-        # if p.LINK_ID in [77, 78, 79]:
-            # p.left_LaneChange_avail = 0
+
+        if p.LINK_ID in [48, 49, 50, 51]:
+            p.have_to_LangeChange_right = 1
             
         # 터널 진입 구간    
         # if p.LINK_ID == 56:
