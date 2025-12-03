@@ -69,6 +69,8 @@ void STAT_DISPLAY::traffic_light_callback(const v2x_msgs::intersection_array_msg
     intersectionid = local_msg.look_at_IntersectionID;
     if (target_intersection_id == 0)
     {
+        traffic_light_time = 0;
+        traffic_light_color = 0;
         return;
     }
 
