@@ -8,7 +8,7 @@ from katech_custom_msgs.msg import ped_crosswalk_check_msg, ped_crosswalk_check_
 class PedCrosswalkLogger:
     def __init__(self):
         # CSV 파일 설정
-        self.csv_file = open('/home/yuyeong/ped_crosswalk_data.csv', 'w', newline='')
+        self.csv_file = open('/home/yuyeong/ped_crosswalk_data2.csv', 'w', newline='')
         self.csv_writer = csv.writer(self.csv_file)
         
         # CSV 헤더 작성
