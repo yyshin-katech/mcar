@@ -586,7 +586,7 @@ void VISION_CAN_READER(){
                 break;
               }
             }
-            pub2.publish(msg_obj)
+            pub2.publish(msg_obj);
           break;
 
           case(1): // ObjectIdentifier_B_%d
@@ -622,7 +622,7 @@ void VISION_CAN_READER(){
                 break;
               }
             }
-            pub2.publish(msg_obj)
+            pub2.publish(msg_obj);
           break;
 
           case(2): // ObjectIdentifier_C_%d
