@@ -99,9 +99,9 @@ BO_ 1888 Vehicle_State: 8 Vector__XXX
  SG_ Wipers : 3|1@1+ (1,0) [0|1] "" Vector__XXX
  SG_ Low_Beam : 4|1@1+ (1,0) [0|1] "" Vector__XXX
  SG_ High_Beam : 5|1@1+ (1,0) [0|1] "" Vector__XXX
- 
+
 BO_ 1898 Reference_Points: 8 Vector__XXX
- SG_ Ref_Point1_Validity : 63|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ Ref_Point2_Validity : 63|1@1+ (1,0) [0|1] "" Vector__XXX
  SG_ Ref_Point2_Distance : 48|15@1+ (0.00390625,0) [0|127.99609375] "m" Vector__XXX
  SG_ Ref_Point2_Position : 32|16@1+ (0.00390625,-127.99609375) [-127.99609375|128] "m" Vector__XXX
  SG_ Ref_Point1_Validity : 31|1@1+ (1,0) [0|1] "" Vector__XXX

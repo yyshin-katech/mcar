@@ -305,6 +305,7 @@ void FRONT_LIDAR_CAN_READER(){
 void VISION_CAN_READER(){
   vector<tuple<char*, vector<char*>>> msg_list_lane;
   vector<tuple<char*, vector<char*>>> msg_list_obj;
+  vector<tuple<char*, vector<char*>>> msg_list_sys;
 
   // lane
   msg_list_lane.push_back(make_tuple((char*)"LD_Left_Lane_A",  vector<char*> {(char*)"Lh_LaneMarkType",\
@@ -334,6 +335,25 @@ void VISION_CAN_READER(){
                                                                               (char*)"ObjectPostionY_B_"}));
 
   msg_list_obj.push_back(make_tuple((char*)"Obstacle_Data_C_", vector<char*> {(char*)"ObjectType_C_"}));
+
+  msg_list_sys.push_back(make_tuple((char*)"Vehicle_State", vector<char*> {(char*)"Speed",\
+                                                                            (char*)"Speed_Available",\
+                                                                            (char*)"High_Beam_Available",\
+                                                                            (char*)"Low_Beam_Available",\
+                                                                            (char*)"Wipers_Available",\
+                                                                            (char*)"Brake_Signal",\
+                                                                            (char*)"Left_Signal",\
+                                                                            (char*)"Right_Signal",\
+                                                                            (char*)"Wipers",\
+                                                                            (char*)"Low_Beam",\
+                                                                            (char*)"High_Beam"}));
+
+  msg_list_sys.push_back(make_tuple((char*)"Reference_Points", vector<char*> {(char*)"Ref_Point2_Validity",\
+                                                                                (char*)"Ref_Point2_Distance",\
+                                                                                (char*)"Ref_Point2_Position",\
+                                                                                (char*)"Ref_Point1_Validity",\
+                                                                                (char*)"Ref_Point1_Distance",\
+                                                                                (char*)"Ref_Point1_Position"}));
 
   bool matched_flag_lane = false;
   bool matched_flag_obj = false;
@@ -437,6 +457,7 @@ void VISION_CAN_READER(){
                 break;
               }
             }
+            pub1.publish(msg_lane);
           break;
 
           case(1): // LD_Left_Lane_B 
@@ -459,6 +480,7 @@ void VISION_CAN_READER(){
                   msg_lane.data[0].c = -value;
                 break;
               }
+              pub1.publish(msg_lane);
             }
           break;
 
@@ -535,6 +557,7 @@ void VISION_CAN_READER(){
                 break;
               }
             }
+            pub1.publish(msg_lane);
           break;
         }
 
@@ -563,6 +586,7 @@ void VISION_CAN_READER(){
                 break;
               }
             }
+            pub2.publish(msg_obj)
           break;
 
           case(1): // ObjectIdentifier_B_%d
@@ -598,6 +622,7 @@ void VISION_CAN_READER(){
                 break;
               }
             }
+            pub2.publish(msg_obj)
           break;
 
           case(2): // ObjectIdentifier_C_%d
