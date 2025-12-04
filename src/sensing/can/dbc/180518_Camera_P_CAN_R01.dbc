@@ -87,6 +87,26 @@ VAL_TABLE_ vt_SF_Update 3 "Cam_Only_Update" 2 "Rdr_Only_Update" 1 "Both_Update" 
 VAL_TABLE_ vt_SF_Type 5 "FUSION_PED" 4 "RADAR_STAT" 3 "RADAR_MOVE" 2 "FUSION_STAT" 1 "FUSION_MOVE" 0 "NONE" ;
 VAL_TABLE_ vt_SF_Status 4 "CoastingTarget" 3 "UpdatedTarget" 2 "NewUpdatedTarget" 1 "NewTarget" 0 "NoTarget" ;
 
+BO_ 1888 Vehicle_State: 8 Vector__XXX
+ SG_ Speed : 16|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ Speed_Available : 15|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ High_Beam_Available : 13|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ Low_Beam_Available : 12|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ Wipers_Available : 11|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ Brake_Signal : 0|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ Left_Signal : 1|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ Right_Signal : 2|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ Wipers : 3|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ Low_Beam : 4|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ High_Beam : 5|1@1+ (1,0) [0|1] "" Vector__XXX
+ 
+BO_ 1898 Reference_Points: 8 Vector__XXX
+ SG_ Ref_Point1_Validity : 63|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ Ref_Point2_Distance : 48|15@1+ (0.00390625,0) [0|127.99609375] "m" Vector__XXX
+ SG_ Ref_Point2_Position : 32|16@1+ (0.00390625,-127.99609375) [-127.99609375|128] "m" Vector__XXX
+ SG_ Ref_Point1_Validity : 31|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ Ref_Point1_Distance : 16|15@1+ (0.00390625,0) [0|127.99609375] "m" Vector__XXX
+ SG_ Ref_Point1_Position : 0|16@1+ (0.00390625,-127.99609375) [-127.99609375|128] "m" Vector__XXX
 
 BO_ 1896 LD_Right_Lane_A: 8 Vector__XXX
  SG_ Rh_LaneMarkType : 0|4@1+ (1,0) [0|0] "" Vector__XXX
