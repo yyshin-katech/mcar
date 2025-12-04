@@ -1054,6 +1054,14 @@ void STAT_DISPLAY::system_status_check()
         this->sound_play("AEB");
         this->POPUP_Text_Gen(str);
     }
+    else if (local_msg.On_ODD == 1)
+    {
+        oss << "ODD 이탈 !!!!";
+        std::string str = oss.str();
+
+        this->sound_play("outofODD");
+        this->POPUP_Text_Gen(str);
+    }
     else
     {
         // std::cout << "✅ 모든 센서 정상" << std::endl;
@@ -1087,6 +1095,7 @@ void STAT_DISPLAY::sound_play(const std::string& sensor_name)
     else if (sensor_name == "ODD") path = base_path + "odd_warning.mp3";
     else if (sensor_name == "IPC") path = base_path + "percept_warning.mp3";
     else if (sensor_name == "AEB") path = base_path + "aeb_warning.mp3";
+    else if (sensor_name == "outofODD") path = base_path + "outofodd.mp3";
     else path = base_path + "ad_system_warning.mp3";  // fallback
 
     sound_msg.arg = path;
