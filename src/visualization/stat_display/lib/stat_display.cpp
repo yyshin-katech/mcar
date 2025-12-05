@@ -266,7 +266,7 @@ void STAT_DISPLAY::GPS_Text_Gen()
 
     GPS_AliveCnt_Check(cpt7_msg.GPS_INS_AliveCnt);
 
-    if(gps_status == 0)
+    if (gps_status == 1 || cpt7_msg.GPSRTK_StatCode != 0x038 || cpt7_msg.lon_std > 0.05 || cpt7_msg.lat_std > 0.05)
     {   //흰색 정상
         state_color.r = 0;
         state_color.g = 0.8;
@@ -274,7 +274,7 @@ void STAT_DISPLAY::GPS_Text_Gen()
         state_color.a = 1;
         GPS_text.fg_color = state_color;
     }
-    else if(gps_status == 1 || cpt7_msg.GPSRTK_StatCode != 0x038 || cpt7_msg.lon_std > 0.05 || cpt7_msg.lat_std > 0.05)
+    else if (gps_status == 0)
     {   // 주황 warning
         state_color.r = 1;
         state_color.g = 0.5;

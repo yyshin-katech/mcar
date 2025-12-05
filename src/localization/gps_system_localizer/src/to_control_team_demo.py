@@ -41,6 +41,7 @@ class DistanceCalculator(object):
         self.set_subscriber()
         self.set_publisher()
         self.old_lane_id = 0
+        self.old_waypoint_index = 0
         self.takeoverreq = 0
 
         rospy.spin()
@@ -221,12 +222,11 @@ class DistanceCalculator(object):
         p.left_LaneChange_avail = self.target_roads[current_lane_id]['left_LaneChange_avail'][0][0]
         p.right_LaneChange_avail = self.target_roads[current_lane_id]['right_LaneChange_avail'][0][0]
         p.Speed_Limit = self.target_roads[current_lane_id]['Speed_Limit'][0][0]
-        # print(p.LINK_ID)
-        # if current_lane_id == 24:
-        #     p.is_stop_line = 1
-        #     p.distance_to_lane_end = self.target_roads[current_lane_id]['station'][0][-1] + \
-        #                              self.target_roads[25]['station'][0][-1] - current_s
-        # else:
+
+        if p.LINK_ID == 79 and p.waypoint_index > 87:
+            if self.old_lane_id == 78:
+                p.LINK_ID = 78
+
         p.distance_to_lane_end = self.target_roads[current_lane_id]['station'][0][-1] - current_s
 
         mapx_set = self.target_roads[current_lane_id]['east'][0]
@@ -444,6 +444,7 @@ class DistanceCalculator(object):
         self.to_control_team_pub.publish(p)
 
         self.old_lane_id = p.LINK_ID
+        self.old_waypoint_index = p.waypoint_index
 
 if __name__ == "__main__":
     DistanceCalculator()
