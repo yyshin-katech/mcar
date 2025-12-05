@@ -400,40 +400,20 @@ class DistanceCalculator(object):
         if p.LINK_ID in [48, 49, 50, 51]:
             p.have_to_LangeChange_right = 1
             
-        # 터널 진입 구간    
-        # if p.LINK_ID == 56:
-        #     if p.distance_to_lane_end < 60.0:
-        #         p.host_east = 0
-        #         p.host_north = 0
-        #         p.GPS_Over = 1
+        # 터널 구간
+        if p.LINK_ID == 71 and p.distance_to_lane_end < 95:
+            p.host_east = 0
+            p.host_north = 0
+            p.GPS_Over = 1
 
-        # if p.LINK_ID == 57:
-        #     p.host_east = 0
-        #     p.host_north = 0
-        #     p.GPS_Over = 1
-        #     if p.distance_to_lane_end < 10.0:
-        #         p.host_east = e
-        #         p.host_north = n
-        #         p.GPS_Over = 0
-        
-        # 어린이 보호구역 전에서 ODD 이탈 경고
-
-        # 자동차 전용도로 이탈
-        # if p.LINK_ID == 48 and p.distance_to_lane_end < 98.0:
-        #     p.have_to_LangeChange_right = 1
-        # elif p.LINK_ID in [48, 49, 50, 51] and p.distance_to_lane_end < 50.0:
-        #     p.On_ODD = 1
-        #     p.Road_State = 2
-        # elif p.LINK_ID == 52 and p.distance_to_lane_end < 60.0:
-        #     p.Speed_Limit = 15
-        #     p.On_ODD = 0
-        #     p.Road_State = 0
-        # elif p.LINK_ID in [61, 34, 35, 36, 37, 53, 54, 55, 67, 68, 73]:
-        #     p.On_ODD = 1
-        #     p.Road_State = 2
-        # else:
-        #     p.On_ODD = 0
-        #     p.Road_State = 0
+        if p.LINK_ID == 72:
+            p.host_east = 0
+            p.host_north = 0
+            p.GPS_Over = 1
+            if p.station > 25:
+                p.host_east = e
+                p.host_north = n
+                p.GPS_Over = 0
 
         # 센서 고장 일때, 어린이 보호구역 안에서
         if self.takeoverreq == 1 or p.Road_State == 2 or p.On_ODD == 1 or p.LINK_ID == 0:
