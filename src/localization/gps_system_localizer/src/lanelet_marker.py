@@ -418,6 +418,7 @@ class lanelet_marker(object):
             valid_points = 0
             cos_45 = 0.7071067811865476
             sin_45 = 0.7071067811865476
+            offset_angle = 0 * math.pi / 180   #180/4
 
             for i in range(0, len(wp['e']), step):
                 try:
@@ -426,8 +427,9 @@ class lanelet_marker(object):
                     # point.y = -1 * (wp['e'][i] - self.e_ego)
                     rel_x= 1 * (wp['e'][i] - self.e_ego)
                     rel_y = 1 * (wp['n'][i] - self.n_ego)
-                    rotated_x, rotated_y = self.rotate_point(rel_x, rel_y, -self.vehicle_yaw)
-                        
+                    # rotated_x, rotated_y = self.rotate_point(rel_x, rel_y, -self.vehicle_yaw)
+                    rotated_x, rotated_y = self.rotate_point(rel_x, rel_y, -self.vehicle_yaw - offset_angle)
+            
                     point = Point()
                     point.x = rotated_x
                     point.y = rotated_y
