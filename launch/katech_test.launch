@@ -46,5 +46,5 @@
   <node pkg="can"          type="katech_ped_detector.py"          name="katech_ped_detector_node"             respawn="true" />
   <node name="katech_ped_detector_can_writer_node"       type="ped_detector_can_writer"     pkg="can"  respawn="true" />
   <!-- <node  name="my_rviz"  type="rviz"  pkg="rviz"  args="-d $(arg sweet_home)/mcar_v9/workspace_config/perception.rviz"/> -->
-
+  
 </launch>

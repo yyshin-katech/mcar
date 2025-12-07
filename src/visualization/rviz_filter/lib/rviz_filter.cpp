@@ -203,8 +203,8 @@ void RVIZ_FILTER::sdsm_callback(const j3224_msgs::sdsm::ConstPtr& msg)
         const auto &detObj = obj.detObjCommon;
         
         // SDSM refPos는 이미 EPSG:5179 좌표계 (east, north)
-        double ref_latitude = msg->refPos.latitude * 1e-7;   // EPSG:5179 easting (실제로는 latitude 필드에 저장)
-        double ref_longitude = msg->refPos.longitude * 1e-7; // EPSG:5179 northing (실제로는 longitude 필드에 저장)
+        double ref_latitude = msg->refPos.latitude * 1e-7;
+        double ref_longitude = msg->refPos.longitude * 1e-7;
         
         double ref_east = 0.0;
         double ref_north = 0.0;
@@ -217,19 +217,28 @@ void RVIZ_FILTER::sdsm_callback(const j3224_msgs::sdsm::ConstPtr& msg)
         // host 좌표 기준으로 변환
         double ref_x, ref_y;
         if (host_initialized_) {
-            ref_x = ref_east - host_east_;
-            ref_y = ref_north - host_north_;
+            // ✅ lanelet 방식과 동일: (East, North) 순서!
+            double rel_east = ref_east - host_east_;   // East 먼저
+            double rel_north = ref_north - host_north_; // North 나중
+            
+            // 차량 yaw로 회전
+            double cos_yaw = std::cos(-host_yaw_);
+            double sin_yaw = std::sin(-host_yaw_);
+            
+            // ✅ lanelet과 같은 공식: East*cos - North*sin
+            ref_x = rel_east * cos_yaw - rel_north * sin_yaw;
+            ref_y = rel_east * sin_yaw + rel_north * cos_yaw;
         } else {
-            ref_x = ref_east;
-            ref_y = ref_north;
+            ref_x = ref_north;
+            ref_y = ref_east;
         }
-
-        // refPos를 구(Sphere)로 표시
+        // ROS_INFO_THROTTLE(1.0, "  ROS(x/y): %.2f / %.2f", ref_x, ref_y);
+        // ==================== refPos 구(Sphere) 마커 ====================
         visualization_msgs::Marker ref_sphere;
         ref_sphere.header.frame_id = "ego_frame";
         ref_sphere.header.stamp = now;
         ref_sphere.ns = "sdsm_refpos";
-        ref_sphere.id = 100; // refPos용 고유 ID
+        ref_sphere.id = 100;
         ref_sphere.type = visualization_msgs::Marker::SPHERE;
         ref_sphere.action = visualization_msgs::Marker::ADD;
 
@@ -241,7 +250,6 @@ void RVIZ_FILTER::sdsm_callback(const j3224_msgs::sdsm::ConstPtr& msg)
         ref_sphere.scale.y = 1.0;
         ref_sphere.scale.z = 1.0;
 
-        // 파란색으로 표시
         ref_sphere.color.r = 0.0;
         ref_sphere.color.g = 0.0;
         ref_sphere.color.b = 1.0;
@@ -250,7 +258,7 @@ void RVIZ_FILTER::sdsm_callback(const j3224_msgs::sdsm::ConstPtr& msg)
         ref_sphere.lifetime = ros::Duration(1.0);
         marker_array.markers.push_back(ref_sphere);
 
-        // refPos 텍스트 레이블
+        // ==================== refPos 텍스트 레이블 ====================
         visualization_msgs::Marker ref_text;
         ref_text.header.frame_id = "ego_frame";
         ref_text.header.stamp = now;
@@ -271,7 +279,7 @@ void RVIZ_FILTER::sdsm_callback(const j3224_msgs::sdsm::ConstPtr& msg)
 
         std::ostringstream ss;
         ss << "RefPos\nE: " << std::fixed << std::setprecision(1) << ref_east 
-            << "\nN: " << ref_north;
+           << "\nN: " << ref_north;
         ref_text.text = ss.str();
         ref_text.lifetime = ros::Duration(1.0);
 
@@ -287,10 +295,10 @@ void RVIZ_FILTER::sdsm_callback(const j3224_msgs::sdsm::ConstPtr& msg)
         // 회전 변환: 로컬 -> 글로벌
         // double cos_heading = std::cos(ref_heading);
         // double sin_heading = std::sin(ref_heading);
-        
+
         // double global_x_offset = local_x * cos_heading - local_y * sin_heading;
         // double global_y_offset = local_x * sin_heading + local_y * cos_heading;
-        
+
         // 절대좌표 계산
         // double abs_east = ref_east + global_x_offset;
         // double abs_north = ref_north + global_y_offset;
@@ -299,19 +307,32 @@ void RVIZ_FILTER::sdsm_callback(const j3224_msgs::sdsm::ConstPtr& msg)
         // ROS_INFO("x:%.2lf, y:%.2lf",abs_east, abs_north);
         // host 좌표를 기준으로 한 상대좌표로 변환 (ego_frame 기준)
         double obj_x, obj_y;
+        host_initialized_ = true;
+        
         if (host_initialized_) {
-            obj_x = abs_east - host_east_;
-            obj_y = abs_north - host_north_;
+            // EPSG:5179 → ROS ego_frame 변환
+            // North → x (전방)
+            // East → y (좌측)
+            obj_x = abs_north - host_north_;
+            obj_y = abs_east - host_east_;
         } else {
             ROS_WARN("Host position not initialized, using absolute coordinates");
-            obj_x = abs_east;
-            obj_y = abs_north;
+            obj_x = abs_north;
+            obj_y = abs_east;
         }
 
-        // 속도로부터 heading 계산 (SDSM의 heading은 0.0125도 단위)
-        double heading_rad = detObj.heading * 0.0125 * M_PI / 180.0; // 0.0125도 단위를 라디안으로 변환
+        // ==================== 객체 heading 변환 ====================
+        
+        // SDSM heading: 북쪽=0°, 시계방향, 0.0125도 단위
+        double heading_deg = detObj.heading * 0.0125; // degree
+        double heading_rad = heading_deg * M_PI / 180.0; // radian
+        
+        // ROS yaw: x축(북쪽) 기준, 반시계방향 양수
+        // GPS heading(시계방향) → ROS yaw(반시계방향)
+        double obj_yaw = -heading_rad;
 
-        // =========================== 큐브 마커 (객체 표현) ===========================
+        // ==================== 큐브 마커 (객체 표현) ====================
+        
         visualization_msgs::Marker cube_marker;
         
         cube_marker.header.frame_id = "ego_frame";
@@ -324,10 +345,10 @@ void RVIZ_FILTER::sdsm_callback(const j3224_msgs::sdsm::ConstPtr& msg)
         // 위치 설정
         cube_marker.pose.position.x = obj_x;
         cube_marker.pose.position.y = obj_y;
-        cube_marker.pose.position.z = 0.0;//local_z + 0.5; // 지면에서 약간 위로
+        cube_marker.pose.position.z = 0.0;
         
-        // 방향 설정
-        getOrientationFromDirection(cube_marker, heading_rad);
+        // 방향 설정 (ROS yaw 사용)
+        getOrientationFromDirection(cube_marker, obj_yaw);
         
         // 객체 타입에 따른 크기 설정
         switch(detObj.objType)
@@ -385,13 +406,22 @@ void RVIZ_FILTER::sdsm_callback(const j3224_msgs::sdsm::ConstPtr& msg)
 
         cube_marker.lifetime = ros::Duration(1.0);
         marker_array.markers.push_back(cube_marker);
+
+        // ==================== 디버그 출력 (선택사항) ====================
+        /*
+        ROS_INFO_THROTTLE(1.0, "Object %zu:", i);
+        ROS_INFO_THROTTLE(1.0, "  Offset(E/N): %.2f / %.2f m", offset_east, offset_north);
+        ROS_INFO_THROTTLE(1.0, "  Abs(E/N): %.2f / %.2f", abs_east, abs_north);
+        ROS_INFO_THROTTLE(1.0, "  ROS(x/y): %.2f / %.2f", obj_x, obj_y);
+        ROS_INFO_THROTTLE(1.0, "  Heading: %.1f° (%.2f rad yaw)", heading_deg, obj_yaw);
+        */
     }
 
     // 마커 배열 발행
     if (!marker_array.markers.empty()) 
     {
         marker_pub.publish(marker_array);
-        // ROS_INFO("Published %lu    SDSM markers", marker_array.markers.size());
+        // ROS_INFO("Published %lu SDSM markers", marker_array.markers.size());
     }
 }
 
@@ -399,6 +429,7 @@ void RVIZ_FILTER::local_callback(const mmc_msgs::to_control_team_from_local_msg:
 {
     host_east_ = msg->host_east;
     host_north_ = msg->host_north;
+    host_yaw_ = msg->host_yaw;
     host_initialized_ = true;
     
 }

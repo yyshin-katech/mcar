@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- TF Static Transform Publisher -->
+    <arg name="stp" default="static_transform_publisher" />
+    
+    <!-- LiDAR 위치: ego_frame에서 center로의 변환 -->
+    <!-- x=1.27m (전방), y=0.0m (중앙), z=1.85m (위) -->
+    <!-- <node pkg="tf2_ros" type="$(arg stp)" name="ego2center" 
+          args="1.27 0.0 1.85 0 0.0 0.0 ego_frame center" /> -->
+    
+    <!-- LiDAR Object Detection (TF 지원) -->
+    <node name="lidar_object_detector" 
+          pkg="perception_ros_msg" 
+          type="lidar_object_publisher_top3.py" 
+          output="screen"
+          respawn="false">
+        
+        <!-- 토픽 설정 -->
+        <param name="pointcloud_topic" type="string" value="/rslidar_points/center" />
+        <param name="output_topic" type="string" value="/track_Multi_RS" />
+        
+        <!-- TF 설정 -->
+        <param name="use_tf" type="bool" value="true" />
+        <param name="target_frame" type="string" value="ego_frame" />
+        
+        <!-- 객체 탐지 파라미터 -->
+        <param name="min_confidence" type="double" value="0.70" />
+        <param name="max_absence_frames" type="int" value="20" />
+        
+        <!-- 전처리 파라미터 -->
+        <param name="voxel_size" type="double" value="0.1" />
+        <param name="ground_threshold" type="double" value="0.2" />
+        
+        <!-- 클러스터링 파라미터 -->
+        <param name="cluster_tolerance" type="double" value="0.5" />
+        <param name="min_cluster_size" type="int" value="10" />
+        <param name="max_cluster_size" type="int" value="10000" />
+        
+    </node>
+    
+</launch>
