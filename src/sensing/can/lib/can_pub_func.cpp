@@ -535,6 +535,7 @@ void VISION_CAN_READER(){
                 break;
               }
             }
+            pub1.publish(msg_lane);
           break;
 
           case(3): // LD_Right_Lane_B

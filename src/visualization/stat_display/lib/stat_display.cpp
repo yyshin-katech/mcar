@@ -528,7 +528,7 @@ void STAT_DISPLAY::RADAR_Text_Gen()
     RADAR_text.top = 50+30+30;
 
     RADAR_AliveCnt_Check(radar_msg.RADAR_AliveCount);
-
+    radar_status = 0;
     if(radar_status == 0)
     {   //흰색 정상
         state_color.r = 0;

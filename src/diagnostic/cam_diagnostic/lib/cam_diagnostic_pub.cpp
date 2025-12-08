@@ -37,6 +37,7 @@ void CAM_DIAGNOSTIC_PUB::timer_callback(const ros::TimerEvent&)
 void CAM_DIAGNOSTIC_PUB::cam_lane_callback(const mmc_msgs::lane_array_msg::ConstPtr& msg)
 {
     lane_callback_cnt++;
+
 }
 
 void CAM_DIAGNOSTIC_PUB::cam_obj_callback(const mmc_msgs::object_array_msg::ConstPtr& msg)
