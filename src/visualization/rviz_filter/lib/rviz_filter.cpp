@@ -310,11 +310,20 @@ void RVIZ_FILTER::sdsm_callback(const j3224_msgs::sdsm::ConstPtr& msg)
         host_initialized_ = true;
         
         if (host_initialized_) {
-            // EPSG:5179 → ROS ego_frame 변환
-            // North → x (전방)
-            // East → y (좌측)
-            obj_x = abs_north - host_north_;
-            obj_y = abs_east - host_east_;
+            double rel_east = abs_east - host_east_;
+            double rel_north = abs_north - host_north_;
+            
+            // 2단계: EPSG:5179 → ROS ego_frame 변환
+            double cos_yaw = std::cos(host_yaw_);
+            double sin_yaw = std::sin(host_yaw_);
+            
+            // ✅ 올바른 공식:
+            // x(전방) = North*cos + East*sin
+            // y(좌측) = -East*cos + North*sin
+            obj_x = rel_north * cos_yaw + rel_east * sin_yaw;
+            obj_y = -rel_east * cos_yaw + rel_north * sin_yaw;  
+
+        //    ROS_INFO("x: %.2lf y: %.2lf", abs_east, abs_north);
         } else {
             ROS_WARN("Host position not initialized, using absolute coordinates");
             obj_x = abs_north;
