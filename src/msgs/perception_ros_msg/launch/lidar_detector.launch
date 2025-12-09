@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<launch>
+    <node name="lidar_object_detector" 
+          pkg="perception_ros_msg" 
+          type="lidar_object_publisher_v2.py" 
+          output="screen">
+        
+        <!-- 토픽 -->
+        <param name="pointcloud_topic" value="/rslidar_points/center" />
+        <param name="output_topic" value="/track_Multi_RS" />
+        
+        <!-- 객체 탐지 -->
+        <param name="max_objects" value="14" />
+        <param name="min_confidence" value="0.90" />
+        <param name="max_absence_frames" value="20" />
+        
+        <!-- 전처리 -->
+        <param name="voxel_size" value="0.1" />
+        <param name="ground_threshold" value="0.2" />
+        
+        <!-- 클러스터링 -->
+        <param name="cluster_tolerance" value="0.5" />
+        <param name="min_cluster_size" value="10" />
+        <param name="max_cluster_size" value="10000" />
+    </node>
+</launch>

@@ -47,6 +47,7 @@ class RVIZ_FILTER{
     private:
         double host_east_ = 0.0;
         double host_north_ = 0.0;
+        double host_yaw_ = 0.0;
         bool host_initialized_ = false;
 };
 #endif
