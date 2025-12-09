@@ -379,10 +379,10 @@ class DistanceCalculator(object):
         p.lane_name = current_lane_name
         p.host_east = e
         p.host_north = n
-        # p.host_east = 931307.04615#931276.35
-        # p.host_north = 1931261.0674#1931197.42
+        # p.host_east = 931278.991767177
+        # p.host_north = 1931220.712399526
         p.host_yaw = yaw  # radian
-        # p.host_yaw = 90.0 * 3.141592 / 180
+        # p.host_yaw = 1.046107
         p.waypoint_index = current_closest_waypoint_in_MATLAB
         p.station = current_s
         p.lateral_offset = current_d

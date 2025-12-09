@@ -209,22 +209,15 @@ void RVIZ_FILTER::sdsm_callback(const j3224_msgs::sdsm::ConstPtr& msg)
         double ref_east = 0.0;
         double ref_north = 0.0;
         wgs84_to_epsg5179(ref_latitude, ref_longitude, ref_north, ref_east);
-<<<<<<< HEAD
-        // ROS_INFO("%lf %lf : %lf %lf", ref_latitude, ref_longitude, ref_east, ref_north);
-        // TODO: ref의 heading 정보 필요 (SDSM 구조체에서 확인 필요)
-        // 임시로 0도(북쪽)를 기준으로 설정
-        double ref_heading = 0;//160*3.14/180;//-2.0817; //-1.2963;// // 라디안, ref가 바라보는 방향
-=======
         
         // 하드코딩된 값 (필요시 실제 값으로 대체)
-        ref_east = 931307.04615;
-        ref_north = 1931261.0674;
+        // ref_east = 931307.04615;
+        // ref_north = 1931261.0674;
         // host_east_ = 931307.04615;
         // host_north_ = 1931261.0674;
         
         // refPos의 heading: 북쪽=0°, 시계방향 (라디안으로 변환)
-        double ref_heading = 180 * M_PI / 180.0; // 라디안
->>>>>>> 6353980f6435a3111efe6826710e4cfdc4424a29
+        double ref_heading = 0.0;// 라디안
         
         // host 좌표 기준으로 변환
         double ref_x, ref_y;
@@ -297,7 +290,6 @@ void RVIZ_FILTER::sdsm_callback(const j3224_msgs::sdsm::ConstPtr& msg)
 
         marker_array.markers.push_back(ref_text);
 
-<<<<<<< HEAD
         // 로컬 좌표계 (ref 기준 front-left) -> 글로벌 좌표계 (east-north) 변환
         // double local_x = detObj.offsetX * 0.01; // cm to m, ref 기준 전방(+x)
         // double local_y = detObj.offsetY * 0.01; // cm to m, ref 기준 좌측(+y)
@@ -319,41 +311,24 @@ void RVIZ_FILTER::sdsm_callback(const j3224_msgs::sdsm::ConstPtr& msg)
         double abs_north = ref_north + offset_north;
         // ROS_INFO("x:%.2lf, y:%.2lf",abs_east, abs_north);
         // host 좌표를 기준으로 한 상대좌표로 변환 (ego_frame 기준)
-=======
-        // ==================== 객체 좌표 변환 ====================
-        
-        // ✅ 수정된 SDSM 로컬 좌표계 (refPos 기준):
-        // offsetX: 동쪽 방향 (cm)
-        // offsetY: 북쪽 방향 (cm)
-        double offset_east = detObj.offsetX * 0.01;  // cm to m, 동쪽 성분
-        double offset_north = detObj.offsetY * 0.01; // cm to m, 북쪽 성분
-        double offset_z = detObj.offsetZ * 0.01;     // cm to m
-        
-        // ref_heading만큼 회전 변환 (북쪽=0°, 시계방향)
-        double cos_heading = std::cos(ref_heading);
-        double sin_heading = std::sin(ref_heading);
-        
-        // 회전 변환: 로컬(동/북) → 글로벌(동/북)
-        // 주의: offsetX=East, offsetY=North이므로 순서 주의
-        double global_east_offset = offset_east * cos_heading - offset_north * sin_heading;
-        double global_north_offset = offset_east * sin_heading + offset_north * cos_heading;
-        
-        // refPos에 offset 추가하여 절대 좌표 계산
-        double abs_east = ref_east + global_east_offset;
-        double abs_north = ref_north + global_north_offset;
-        
-        // ==================== ego_frame으로 변환 ====================
-        
->>>>>>> 6353980f6435a3111efe6826710e4cfdc4424a29
         double obj_x, obj_y;
         host_initialized_ = true;
         
         if (host_initialized_) {
-            // EPSG:5179 → ROS ego_frame 변환
-            // North → x (전방)
-            // East → y (좌측)
-            obj_x = abs_north - host_north_;
-            obj_y = abs_east - host_east_;
+            double rel_east = abs_east - host_east_;
+            double rel_north = abs_north - host_north_;
+            
+            // 2단계: EPSG:5179 → ROS ego_frame 변환
+            double cos_yaw = std::cos(host_yaw_);
+            double sin_yaw = std::sin(host_yaw_);
+            
+            // ✅ 올바른 공식:
+            // x(전방) = North*cos + East*sin
+            // y(좌측) = -East*cos + North*sin
+            obj_x = rel_north * cos_yaw + rel_east * sin_yaw;
+            obj_y = -rel_east * cos_yaw + rel_north * sin_yaw;  
+
+        //    ROS_INFO("x: %.2lf y: %.2lf", abs_east, abs_north);
         } else {
             ROS_WARN("Host position not initialized, using absolute coordinates");
             obj_x = abs_north;
