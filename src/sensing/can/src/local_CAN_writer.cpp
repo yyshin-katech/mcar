@@ -440,7 +440,7 @@ int main(int argc, char **argv){
   can_status = LCW.OPEN_CAN_CHANNEL_AND_READ_DB(channel_num, filename, init_access_flag);
 
   ros::Subscriber sub1 = node.subscribe("/localization/to_control_team", 1, &LOCAL_CAN_WRITER::CALLBACK_LOCAL, &LCW);
-  ros::Subscriber sub2 = node.subscribe("/sensros/rpm", 1, &LOCAL_CAN_WRITER::CALLBACK_RPM, &LCW);
+  ros::Subscriber sub2 = node.subscribe("/sensors/rpm", 1, &LOCAL_CAN_WRITER::CALLBACK_RPM, &LCW);
   ros::Subscriber sub3 = node.subscribe("/sensors/gps/bestpos", 1, &LOCAL_CAN_WRITER::CALLBACK_TimeStamp, &LCW);
 
   LCW.pub5 = node.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/local_CAN_status", 10, true);
