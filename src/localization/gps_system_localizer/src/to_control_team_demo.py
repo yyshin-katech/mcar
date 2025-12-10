@@ -379,6 +379,16 @@ class DistanceCalculator(object):
         p.station = current_s
         p.lateral_offset = current_d
 
+        if p.LINK_ID in [39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51]:
+            p.Speed_Limit = 40
+        elif p.LINK_ID == 33:
+            if p.distance_to_lane_end < 20:
+                p.Speed_Limit = 30
+        elif p.LINK_ID == 38:
+            p.Speed_Limit = 30
+        else:
+            p.Speed_Limit = 15
+
         # speed limit 
         if p.LINK_ID in [5, 8, 12, 15, 18, 24, 28, 58, 60, 63]:
             p.Speed_Limit = 15
@@ -397,8 +407,12 @@ class DistanceCalculator(object):
         if p.LINK_ID in [12, 65, 76, 77, 78, 79]:
             p.Speed_Limit = 10
 
-        if p.LINK_ID in [48, 49, 50, 51]:
+        if p.LINK_ID in [49, 50, 51]:
             p.have_to_LangeChange_right = 1
+        
+        if p.LINK_ID == 48:
+            if p.station > 10:
+                p.have_to_LangeChange_right = 1
             
         # 터널 구간
         if p.LINK_ID == 71 and p.distance_to_lane_end < 95:
