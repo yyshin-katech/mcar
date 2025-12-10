@@ -738,7 +738,8 @@ void CHASSIS_CAN_READER(){
                                                                    (char*)"vcu_SAS_Angle",\
                                                                    (char*)"vcu_SAS_Speed",\
                                                                    (char*)"vcu_LONG_ACCEL"}));            
-  msg_list.push_back(make_tuple((char*)"from_Control", vector<char*> {(char*)"AEB_flag"}));
+  msg_list.push_back(make_tuple((char*)"from_Control", vector<char*> {(char*)"LC_flag",\
+                                                                    (char*)"AEB_flag"}));
 
   int msg_num = 5;
   int temp_substring;
@@ -932,9 +933,14 @@ void CHASSIS_CAN_READER(){
 
               switch(i){
 
-                case(0): // AEB_flag
+                case(0): // LC_flag
+                  msg.LC_flag = value;
+                break;
+
+                case(1): // AEB_flag
                   msg.AEB_flag = value;
                 break;
+
               }
             }
           break;

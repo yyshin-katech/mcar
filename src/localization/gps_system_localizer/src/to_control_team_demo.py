@@ -16,7 +16,7 @@ import time
 import pyproj
 
 from katech_diagnostic_msgs.msg import katech_diagnostic_msg
-from mmc_msgs.msg import localization2D_msg, to_control_team_from_local_msg
+from mmc_msgs.msg import localization2D_msg, to_control_team_from_local_msg, chassis_msg
 from sensor_msgs.msg import NavSatFix
 from utils import distance2curve
 
@@ -43,6 +43,7 @@ class DistanceCalculator(object):
         self.old_lane_id = 0
         self.old_waypoint_index = 0
         self.takeoverreq = 0
+        self.LC_flag = 0
 
         rospy.spin()
 
@@ -71,6 +72,7 @@ class DistanceCalculator(object):
         # callback 안에 publish 명령어까지 같이 들어있음
         rospy.Subscriber('/localization/pose_2d_gps', localization2D_msg, self.pose_2d_cb, queue_size=1)
         rospy.Subscriber('/diagnostic/system', katech_diagnostic_msg, self.diag_cb, queue_size=1)
+        rospy.Subscriber('/sensors/chassis', chassis_msg, self.chasis_cb, queue_size=1)
         
     def set_publisher(self):
         self.to_control_team_pub = rospy.Publisher('/localization/to_control_team', to_control_team_from_local_msg, queue_size=1)
@@ -161,6 +163,9 @@ class DistanceCalculator(object):
          
         return value
     
+    def chasis_cb(self, msg):
+        self.LC_flag = msg.LC_flag
+
     def diag_cb(self, msg):
         statuses = [
             msg.gps_status,
@@ -264,8 +269,11 @@ class DistanceCalculator(object):
         
         ## 현재 영역이 이탈 구역이 아닐 때 즉, 경로가 잡혔다면 ---> 제대로 그 경로안에 있고, 방향을 잘 보고 있는지 확인 ##
         else:
+            ## while lane change, 
+            if self.LC_flag:
+                self.occupied_count = 0
             ## 차선 걸쳐있을 때 마다 cnt 스코어 상승 ##
-            if abs(current_d) >= ODD_OCCUPIED_OFFSET_THRESHOLD:
+            elif abs(current_d) >= ODD_OCCUPIED_OFFSET_THRESHOLD:
                 lane_occupied_cnt = self.lane_occupied_check(abs(current_d))
                 self.occupied_count += lane_occupied_cnt
         

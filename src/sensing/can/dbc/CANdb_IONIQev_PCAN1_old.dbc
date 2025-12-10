@@ -58,7 +58,8 @@ BO_ 16 GPSTimestamp: 8 NUC
 BO_ 512 from_Control: 8 ADCU
  SG_ AEB_flag : 0|2@1+ (1,0) [0|3] "" Vector__XXX
 
-BO_ 870 MOTOR_RPM: 8 Vector__XXX
+BO_ 870 MOTOR_RPM: 3 Vector__XXX
+ SG_ Curr_gear : 24|8@1+ (1,0) [0|8] "" Vector__XXX
  SG_ N : 0|16@1+ (0.25,0) [0|16383.75] "rpm" Vector__XXX
 
 BO_ 529 Pedestrian_Stat_1: 8 NUC
@@ -1600,7 +1601,7 @@ BO_ 1264 Vehicle1: 8 Vehicle
 
 BO_ 1829 CAR_EGO_SD: 8 NUC
  SG_ EGO_D : 39|32@0- (0.01,0) [-4|4] "" Vector__XXX
- SG_ EGO_S : 7|32@0+ (0.1,0) [0|5000] "" Vector__XXX
+ SG_ EGO_S : 7|32@0+ (0.01,0) [0|5000] "" Vector__XXX
 
 BO_ 1828 CAR_EGO_B: 8 NUC
  SG_ WAYPOINT : 39|32@0+ (1,0) [0|4294967295] "" Vector__XXX
@@ -1756,6 +1757,7 @@ BA_ "GenMsgCycleTime" BO_ 1828 20;
 BA_ "GenMsgCycleTime" BO_ 1827 20;
 BA_ "GenMsgCycleTime" BO_ 1825 20;
 BA_ "GenMsgCycleTime" BO_ 1826 20;
+VAL_ 870 Curr_gear 7 "R" 6 "N" 5 "D" 0 "P" ;
 VAL_ 64 Road_State 2 "out-of ODD, school-zone etc..." 1 "Forward ODD Departure Warning" 0 "can AD or doing AD" ;
 VAL_ 64 On_ODD 1 "Out of ODD cannot info AD" 0 "On ODD, can into auto-drive mode" ;
 VAL_ 769 eventState_1 9 "caution-Conflicting-Traffic" 8 "protected-clearance : yellow" 7 "permissive-clearance" 6 "protected-Movement-Allowed" 5 "permissive-Movement-Allowed" 4 "pre-Movement : red+yellow partly" 3 "stop-And-Remain : red right" 2 "stop-Then-Proceed : flashing red" 1 "dark" 0 "unavailable" ;

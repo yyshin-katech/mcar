@@ -21,3 +21,4 @@ float64 vcu_SAS_Angle
 float64 vcu_LONG_ACCEL
 
 uint8 AEB_flag
+uint8 LC_flag
