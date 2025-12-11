@@ -432,7 +432,7 @@ class DistanceCalculator(object):
             p.host_east = 0
             p.host_north = 0
             p.GPS_Over = 1
-            if p.station > 25:
+            if p.station > 15:
                 p.host_east = e
                 p.host_north = n
                 p.GPS_Over = 0
