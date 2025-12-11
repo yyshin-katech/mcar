@@ -428,7 +428,7 @@ class DistanceCalculator(object):
                 p.left_LaneChange_avail = 1
 
         if p.LINK_ID == 48:
-            if p.station > 80:
+            if p.station > 75:
                 p.have_to_LangeChange_right = 1
         
         if p.LINK_ID == 52:
