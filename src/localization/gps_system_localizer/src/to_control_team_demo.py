@@ -418,8 +418,13 @@ class DistanceCalculator(object):
         if p.LINK_ID in [49, 50, 51]:
             p.have_to_LangeChange_right = 1
         
+        if p.LINK_ID == 38:
+            if p.station > 40:
+                p.have_to_LangeChange_left = 1
+                p.left_LaneChange_avail = 1
+
         if p.LINK_ID == 48:
-            if p.station > 10:
+            if p.station > 80:
                 p.have_to_LangeChange_right = 1
             
         # 터널 구간
