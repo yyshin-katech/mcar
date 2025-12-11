@@ -426,7 +426,15 @@ class DistanceCalculator(object):
         if p.LINK_ID == 48:
             if p.station > 80:
                 p.have_to_LangeChange_right = 1
-            
+        
+        if p.LINK_ID == 52:
+            if p.station < 150:
+                p.Speed_Limit = 40
+            elif p.station < 250:
+                p.Speed_Limit = 30
+            else:
+                p.Speed_Limit = 15
+                
         # 터널 구간
         if p.LINK_ID == 71 and p.distance_to_lane_end < 95:
             p.host_east = 0
