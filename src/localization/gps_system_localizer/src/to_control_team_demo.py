@@ -387,6 +387,10 @@ class DistanceCalculator(object):
         p.station = current_s
         p.lateral_offset = current_d
 
+        if p.LINK_ID in [73, 74, 75]:
+            p.On_ODD = 1
+            p.Road_State = 2
+            
         if p.LINK_ID in [39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51]:
             p.Speed_Limit = 40
         elif p.LINK_ID == 33:
@@ -434,7 +438,7 @@ class DistanceCalculator(object):
                 p.Speed_Limit = 30
             else:
                 p.Speed_Limit = 15
-                
+
         # 터널 구간
         if p.LINK_ID == 71 and p.distance_to_lane_end < 95:
             p.host_east = 0
@@ -449,6 +453,10 @@ class DistanceCalculator(object):
                 p.host_east = e
                 p.host_north = n
                 p.GPS_Over = 0
+            
+            if p.distance_to_lane_end < 50:
+                p.NEXT_LINK_ID = 0
+                p.Road_State = 1
 
         # 센서 고장 일때, 어린이 보호구역 안에서
         if self.takeoverreq == 1 or p.Road_State == 2 or p.On_ODD == 1 or p.LINK_ID == 0:
