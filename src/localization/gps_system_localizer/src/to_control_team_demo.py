@@ -419,8 +419,8 @@ class DistanceCalculator(object):
         if p.LINK_ID in [12, 65, 76, 77, 78, 79]:
             p.Speed_Limit = 10
 
-        if p.LINK_ID in [49, 50, 51]:
-            p.have_to_LangeChange_right = 1
+        # if p.LINK_ID in [49, 50, 51]:
+        #     p.have_to_LangeChange_right = 1
         
         if p.LINK_ID == 38:
             if p.station > 40:
