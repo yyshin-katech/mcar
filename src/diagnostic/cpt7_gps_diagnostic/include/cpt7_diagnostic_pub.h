@@ -6,6 +6,13 @@
 #include <fstream>
 #include <iostream>
 #include <string.h>
+#include <cstdlib>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <netinet/ip_icmp.h>
 
 #include <ros/ros.h>
 #include <ros/package.h>
@@ -41,7 +48,7 @@ class CPT7_DIAGNOSTIC_PUB
         void bestpos_callback(const novatel_gps_msgs::NovatelPosition::ConstPtr& msg);
         void inspva_callback(const novatel_gps_msgs::Inspva::ConstPtr& msg);
         void timerCallback(const ros::TimerEvent&);
-
+        bool pingCheck(const std::string& ip);
 };
 
 

@@ -300,6 +300,16 @@ void STAT_DISPLAY::GPS_Text_Gen()
         GPS_text.fg_color = state_color; 
     }
 
+    if(cpt7_msg.Network_Status == 1)
+    {
+        gps_status = 2;
+        state_color.r = 1;
+        state_color.g = 0;
+        state_color.b = 0;
+        state_color.a = 1;
+        GPS_text.fg_color = state_color;
+    } 
+
     state_color.r = 0.4;
     state_color.g = 0.4;
     state_color.b = 0.4;
@@ -609,8 +619,7 @@ void STAT_DISPLAY::V2X_Text_Gen()
     V2X_text.top = 50+30+30+30;
 
     V2X_AliveCnt_Check(v2x_msg.V2X_AliveCount);
-    v2x_status = 0;
-    v2x_msg.V2X_StatCode = 0;
+
     if((v2x_status == 0) || (v2x_msg.V2X_StatCode == 0))
     {   //흰색 정상
         state_color.r = 0;

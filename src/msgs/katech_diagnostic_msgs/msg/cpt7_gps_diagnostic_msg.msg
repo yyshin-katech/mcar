@@ -9,3 +9,5 @@ uint8 GPS_INS_SolutionStat
 
 float64 lon_std
 float64 lat_std
+
+uint8 Network_Status

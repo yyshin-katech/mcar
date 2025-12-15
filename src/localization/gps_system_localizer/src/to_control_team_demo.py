@@ -428,12 +428,19 @@ class DistanceCalculator(object):
                 p.left_LaneChange_avail = 1
 
         if p.LINK_ID == 48:
+            if p.station > 40:
+                p.Speed_Limit = 30
+
             if p.station > 75:
                 p.have_to_LangeChange_right = 1
+                p.Speed_Limit = 30
         
+        if p.LINK_ID == 47:
+            p.Speed_Limit = 30
+
         if p.LINK_ID == 52:
             if p.station < 150:
-                p.Speed_Limit = 40
+                p.Speed_Limit = 30
             elif p.station < 250:
                 p.Speed_Limit = 30
             else:
@@ -441,13 +448,13 @@ class DistanceCalculator(object):
 
         # 터널 구간
         if p.LINK_ID == 71 and p.distance_to_lane_end < 95:
-            p.host_east = 0
-            p.host_north = 0
+            # p.host_east = 0
+            # p.host_north = 0
             p.GPS_Over = 1
 
         if p.LINK_ID == 72:
-            p.host_east = 0
-            p.host_north = 0
+            # p.host_east = 0
+            # p.host_north = 0
             p.GPS_Over = 1
             if p.station > 15:
                 p.host_east = e
