@@ -151,7 +151,7 @@ void CPT7_DIAGNOSTIC_PUB::timerCallback(const ros::TimerEvent&)
     static const uint8_t FAIL_THRESHOLD = 3;  // 3번 연속 실패해야 연결 끊김으로 판단
     static bool ret = 0;
 
-    if (callback_cnt % 3 == 0)  // 매 3번째마다 체크
+    if (callback_cnt % 10 == 0)  // 매 3번째마다 체크
     {
         ret = this->pingCheck(ip);
         // ROS_INFO("%d", ret);

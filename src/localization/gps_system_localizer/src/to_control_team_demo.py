@@ -31,7 +31,7 @@ MAX_LANE_ID = 79
 
 ODD_CNT_THRESHOLD = 200
 ODD_OCCUPIED_OFFSET_THRESHOLD = 0.95
-ODD_YAW_ERR_THRESHOLD = np.deg2rad(45)
+ODD_YAW_ERR_THRESHOLD = np.deg2rad(5)
 
 class DistanceCalculator(object):
     def __init__(self):
@@ -428,6 +428,9 @@ class DistanceCalculator(object):
                 p.left_LaneChange_avail = 1
 
         if p.LINK_ID == 48:
+            p.NEXT_LINK_ID = 0
+            p.On_ODD = 0
+            p.Road_State = 1
             if p.station > 40:
                 p.Speed_Limit = 30
 
@@ -435,8 +438,17 @@ class DistanceCalculator(object):
                 p.have_to_LangeChange_right = 1
                 p.Speed_Limit = 30
         
+        if p.LINK_ID in [49, 50, 51]:
+            p.NEXT_LINK_ID = 0
+            if p.station > 50:
+                p.On_ODD = 0
+                p.Road_State = 1
+
         if p.LINK_ID == 47:
             p.Speed_Limit = 30
+
+        if p.LINK_ID == 10:
+            p.Speed_Limit = 40
 
         if p.LINK_ID == 52:
             if p.station < 150:
