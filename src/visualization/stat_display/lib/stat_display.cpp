@@ -457,7 +457,7 @@ void STAT_DISPLAY::LIDAR_Text_Gen()
         else if(lidar_msg.LIDAR_Right_StatCode == 1) lidar_status = 1;
         else if(lidar_msg.LIDAR_Right_StatCode == 1) lidar_status = 1;
     }
-
+    lidar_status = 2;
     if(lidar_status == 0)
     {   //흰색 정상
         state_color.r = 0;
@@ -1023,6 +1023,8 @@ void STAT_DISPLAY::system_status_check()
     std::string abnormal_sensor = "";
     std::ostringstream oss;
 
+    local_msg.Road_State = 1;
+
     for (const auto& s : statuses)
     {
         if (s.second != 0)
@@ -1052,6 +1054,7 @@ void STAT_DISPLAY::system_status_check()
     else if (local_msg.Road_State == 1)
     {
         oss << "전방 ODD 이탈 경고";
+        
         std::string str = oss.str();
 
         this->sound_play("ODD");
