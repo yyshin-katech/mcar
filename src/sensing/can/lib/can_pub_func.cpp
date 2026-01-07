@@ -305,6 +305,7 @@ void FRONT_LIDAR_CAN_READER(){
 void VISION_CAN_READER(){
   vector<tuple<char*, vector<char*>>> msg_list_lane;
   vector<tuple<char*, vector<char*>>> msg_list_obj;
+  vector<tuple<char*, vector<char*>>> msg_list_sys;
 
   // lane
   msg_list_lane.push_back(make_tuple((char*)"LD_Left_Lane_A",  vector<char*> {(char*)"Lh_LaneMarkType",\
@@ -334,6 +335,25 @@ void VISION_CAN_READER(){
                                                                               (char*)"ObjectPostionY_B_"}));
 
   msg_list_obj.push_back(make_tuple((char*)"Obstacle_Data_C_", vector<char*> {(char*)"ObjectType_C_"}));
+
+  msg_list_sys.push_back(make_tuple((char*)"Vehicle_State", vector<char*> {(char*)"Speed",\
+                                                                            (char*)"Speed_Available",\
+                                                                            (char*)"High_Beam_Available",\
+                                                                            (char*)"Low_Beam_Available",\
+                                                                            (char*)"Wipers_Available",\
+                                                                            (char*)"Brake_Signal",\
+                                                                            (char*)"Left_Signal",\
+                                                                            (char*)"Right_Signal",\
+                                                                            (char*)"Wipers",\
+                                                                            (char*)"Low_Beam",\
+                                                                            (char*)"High_Beam"}));
+
+  msg_list_sys.push_back(make_tuple((char*)"Reference_Points", vector<char*> {(char*)"Ref_Point2_Validity",\
+                                                                                (char*)"Ref_Point2_Distance",\
+                                                                                (char*)"Ref_Point2_Position",\
+                                                                                (char*)"Ref_Point1_Validity",\
+                                                                                (char*)"Ref_Point1_Distance",\
+                                                                                (char*)"Ref_Point1_Position"}));
 
   bool matched_flag_lane = false;
   bool matched_flag_obj = false;
@@ -437,6 +457,7 @@ void VISION_CAN_READER(){
                 break;
               }
             }
+            pub1.publish(msg_lane);
           break;
 
           case(1): // LD_Left_Lane_B 
@@ -459,6 +480,7 @@ void VISION_CAN_READER(){
                   msg_lane.data[0].c = -value;
                 break;
               }
+              pub1.publish(msg_lane);
             }
           break;
 
@@ -513,6 +535,7 @@ void VISION_CAN_READER(){
                 break;
               }
             }
+            pub1.publish(msg_lane);
           break;
 
           case(3): // LD_Right_Lane_B
@@ -535,6 +558,7 @@ void VISION_CAN_READER(){
                 break;
               }
             }
+            pub1.publish(msg_lane);
           break;
         }
 
@@ -563,6 +587,7 @@ void VISION_CAN_READER(){
                 break;
               }
             }
+            pub2.publish(msg_obj);
           break;
 
           case(1): // ObjectIdentifier_B_%d
@@ -598,6 +623,7 @@ void VISION_CAN_READER(){
                 break;
               }
             }
+            pub2.publish(msg_obj);
           break;
 
           case(2): // ObjectIdentifier_C_%d
@@ -711,9 +737,11 @@ void CHASSIS_CAN_READER(){
                                                                    (char*)"vcu_VS",\
                                                                    (char*)"vcu_SAS_Angle",\
                                                                    (char*)"vcu_SAS_Speed",\
-                                                                   (char*)"vcu_LONG_ACCEL"}));                                                      
+                                                                   (char*)"vcu_LONG_ACCEL"}));            
+  msg_list.push_back(make_tuple((char*)"from_Control", vector<char*> {(char*)"LC_flag",\
+                                                                    (char*)"AEB_flag"}));
 
-  int msg_num = 4;
+  int msg_num = 5;
   int temp_substring;
   bool matched_flag = false;
   int msg_idx;
@@ -893,6 +921,26 @@ void CHASSIS_CAN_READER(){
                 case(5): // vcu_LONG_ACCEL
                   msg.vcu_LONG_ACCEL = value; 
                 break;
+              }
+            }
+          break;
+
+          case(4): // from_Control
+
+            for(int i=0; i!=get<1>(msg_list[msg_idx]).size(); i++){
+              kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[i], &sh);
+              kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
+
+              switch(i){
+
+                case(0): // LC_flag
+                  msg.LC_flag = value;
+                break;
+
+                case(1): // AEB_flag
+                  msg.AEB_flag = value;
+                break;
+
               }
             }
           break;

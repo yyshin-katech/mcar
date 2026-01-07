@@ -8,10 +8,10 @@ int main(int argc, char **argv){
   ros::NodeHandle node("~");
 
   int channel_num = 4;
-  int channel_list[channel_num] = {0,1,2,3}; // channel 0: chassis, camera, front radar
-                                             // channel 1: front lidar(Ibeo LUX)
-                                             // channel 2: P-CAN(Perception output + Localization output)
-                                             // channel 3: HMI CAN
+  int channel_list[channel_num] = {0,1,2,3}; // channel 0: P-CAN0
+                                             // channel 1: P-CAN1
+                                             // channel 2: C-CAN (ioniq C-CAN)
+                                             // channel 3: 
 
   canInitializeLibrary();
 

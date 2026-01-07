@@ -111,15 +111,15 @@ void KATRI_V2X::loop(void)
             free(p);
         }
 
-        // for(i=0;i<5;i++)
-        // {
-        //     	ROS_INFO("Intersection ID : %d", sig_SPaT[i].Intersection_id);
-		// 		ROS_INFO("signalGroup : %d", sig_SPaT[i].signalGroup);
-		// 		ROS_INFO("movementName : %s", sig_SPaT[i].movementName);
-		// 		ROS_INFO("eventState : %d", sig_SPaT[i].eventState);
-		// 		ROS_INFO("minEndTime : %d", sig_SPaT[i].minEndTime);
-        //         ROS_INFO(" ");
-        // }
+        for(i=0;i<5;i++)
+        {
+            	ROS_INFO("Intersection ID : %d", sig_SPaT[i].Intersection_id);
+				ROS_INFO("signalGroup : %d", sig_SPaT[i].signalGroup);
+				ROS_INFO("movementName : %s", sig_SPaT[i].movementName);
+				ROS_INFO("eventState : %d", sig_SPaT[i].eventState);
+				ROS_INFO("minEndTime : %d", sig_SPaT[i].minEndTime);
+                ROS_INFO(" ");
+        }
         
         // ROS_INFO("%s", &p);
         v2x_msgs::intersection_msg intersection_data;

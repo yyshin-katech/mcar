@@ -7,7 +7,7 @@ CPT7_DIAGNOSTIC_PUB::CPT7_DIAGNOSTIC_PUB()
     sub = nh.subscribe("/sensors/gps/bestpos", 1, &CPT7_DIAGNOSTIC_PUB::bestpos_callback, this);
     sub_inspva = nh.subscribe("/sensors/gps/inspva", 1, &CPT7_DIAGNOSTIC_PUB::inspva_callback, this);
     
-    timer_ = nh.createTimer(ros::Duration(1.0), &CPT7_DIAGNOSTIC_PUB::timerCallback, this);
+    timer_ = nh.createTimer(ros::Duration(0.1), &CPT7_DIAGNOSTIC_PUB::timerCallback, this);
 
     alive_cnt = 0;
     bestpos_cb_cnt = 0;
@@ -19,6 +19,8 @@ CPT7_DIAGNOSTIC_PUB::CPT7_DIAGNOSTIC_PUB()
     cpt7_msg.GPSRTK_StatCode = 0;
     cpt7_msg.GPS_INS_SolutionStat = 0x01;
     cpt7_msg.GPS_INS_AliveCnt = 0;
+    cpt7_msg.lon_std = 0;
+    cpt7_msg.lat_std = 0;
 }
 
 CPT7_DIAGNOSTIC_PUB::~CPT7_DIAGNOSTIC_PUB()
@@ -105,6 +107,9 @@ void CPT7_DIAGNOSTIC_PUB::bestpos_callback(const novatel_gps_msgs::NovatelPositi
     {
         cpt7_msg.GPS_INS_SolutionStat = 0x01;
     }
+
+    cpt7_msg.lon_std = msg->lon_sigma;
+    cpt7_msg.lat_std = msg->lat_sigma;
 }
 
 // INS StatCode
@@ -140,6 +145,49 @@ void CPT7_DIAGNOSTIC_PUB::inspva_callback(const novatel_gps_msgs::Inspva::ConstP
 
 void CPT7_DIAGNOSTIC_PUB::timerCallback(const ros::TimerEvent&)
 {
+    std::string ip = "8.8.8.8";
+    static uint8_t callback_cnt = 0;
+    static uint8_t fail_cnt = 0;  // 실패 카운트 추가
+    static const uint8_t FAIL_THRESHOLD = 3;  // 3번 연속 실패해야 연결 끊김으로 판단
+    static bool ret = 0;
+
+    if (callback_cnt % 10 == 0)  // 매 3번째마다 체크
+    {
+        ret = this->pingCheck(ip);
+        // ROS_INFO("%d", ret);
+        if(ret == 1)
+        {
+            cpt7_msg.Network_Status = 1;
+        }
+        else
+        {
+            cpt7_msg.Network_Status = 0;
+        }
+        // if(ret == 1)  // ping 실패
+        // {
+        //     fail_cnt++;
+        //     if(fail_cnt >= FAIL_THRESHOLD)
+        //     {
+        //         cpt7_msg.Network_Status = 1;  // 연결 끊김
+        //     }
+        // }
+        // else  // ping 성공
+        // {
+        //     fail_cnt = 0;  // 카운트 리셋
+        //     cpt7_msg.Network_Status = 0;  // 연결 정상
+        // }
+    }
+    callback_cnt++;
+
+    if(ret == 0)
+    {
+        cpt7_msg.Network_Status = 0;
+    }
+    else
+    {
+        cpt7_msg.Network_Status = 1;
+    }
+
     if((bestpos_cb_cnt == bestpos_cb_cnt_old) && (inspva_cb_cnt == inspva_cb_cnt_old))
     {
 
@@ -154,4 +202,41 @@ void CPT7_DIAGNOSTIC_PUB::timerCallback(const ros::TimerEvent&)
         inspva_cb_cnt_old = inspva_cb_cnt;
     }
 
+}
+
+bool CPT7_DIAGNOSTIC_PUB::pingCheck(const std::string& ip)
+{
+    // int sock = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+    // if (sock < 0) return 1;  // socket 생성 실패 시 1 리턴 (연결 실패)
+    
+    // struct timeval tv;
+    // tv.tv_sec = 1;
+    // tv.tv_usec = 0;//100000;  // 100ms
+    // setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    
+    // struct sockaddr_in addr;
+    // addr.sin_family = AF_INET;
+    // inet_pton(AF_INET, ip.c_str(), &addr.sin_addr);
+    
+    // // ICMP Echo Request 패킷 구성
+    // char packet[64] = {0};
+    // struct icmphdr *icmp = (struct icmphdr *)packet;
+    // icmp->type = ICMP_ECHO;
+    // icmp->code = 0;
+    // icmp->un.echo.id = getpid();
+    // icmp->un.echo.sequence = 1;
+    
+    // sendto(sock, packet, sizeof(packet), 0, 
+    //        (struct sockaddr*)&addr, sizeof(addr));
+    
+    // char buffer[1024];
+    // int result = recv(sock, buffer, sizeof(buffer), 0);
+    // ROS_INFO("%d", result);
+    // close(sock);
+    
+    // // 연결 성공 시 0, 실패 시 1 리턴
+    // return (result > 0) ? 0 : 1;
+    std::string cmd = "ping -c 1 -W 1 " + ip + " > /dev/null 2>&1";
+    int result = system(cmd.c_str());
+    return (result == 0) ? 0 : 1;  // 성공 시 0, 실패 시 1
 }

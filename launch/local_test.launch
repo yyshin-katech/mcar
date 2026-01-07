@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+    <arg name="sweet_home" default="$(optenv HOME)" />
+
+    <param name="EPSG" value="5179" />
+
+    <param name="MAPFILE_PATH" 
+        value="$(find gps_system_localizer)/mapfiles/K_CITY_2025" />
+
+    <node pkg="tf2_ros"                 type="static_transform_publisher" name="gps2base_link" args="0.0 0.0 -1.5 0.0 0.0 0.0 gps base_link" />
+
+    <!-- for gps/ins 50hz -->
+    <node name="gps_to_pose_2d_node"               type="gps_world_tf_node_send_host_gps" pkg="gps_world_tf" respawn="true"/>
+    <!-- <node pkg="gps_system_localizer"            type="to_control_team_demo.py"            name="to_control_team_node"         respawn="true" output="screen"/>  -->
+
+
+
+</launch>

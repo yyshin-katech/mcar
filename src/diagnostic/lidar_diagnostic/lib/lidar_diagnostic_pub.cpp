@@ -11,7 +11,7 @@ LIDAR_DIAGNOSTIC_PUB::LIDAR_DIAGNOSTIC_PUB()
     pub = nh.advertise<katech_diagnostic_msgs::lidar_diagnostic_msg>("/diagnostic/lidar", 1);
     sub = nh.subscribe("/percept_topic", 5, &LIDAR_DIAGNOSTIC_PUB::percept_callback, this);
 
-    timer_ = nh.createTimer(ros::Duration(1.0), &LIDAR_DIAGNOSTIC_PUB::timer_callback, this);
+    timer_ = nh.createTimer(ros::Duration(0.1), &LIDAR_DIAGNOSTIC_PUB::timer_callback, this);
 }
 
 LIDAR_DIAGNOSTIC_PUB::~LIDAR_DIAGNOSTIC_PUB()
@@ -25,6 +25,7 @@ void LIDAR_DIAGNOSTIC_PUB::timer_callback(const ros::TimerEvent&)
     if(count % 3 == 0)
     {
         connection_stat.Center = this->checkCenterLidarConnection();
+        ROS_INFO("Cennter Connection check");
     }
     else if(count % 3 == 1)
     {
@@ -71,7 +72,7 @@ void LIDAR_DIAGNOSTIC_PUB::percept_callback(const perception_ros_msg::RsPercepti
 {
     static uint8_t callback_count = 0;
 
-    if(callback_count++ > 9)
+    // if(callback_count++ > 9)
     {
         lidar_msg.LIDAR_AliveCount++;
         callback_count = 0;
@@ -109,8 +110,8 @@ bool LIDAR_DIAGNOSTIC_PUB::checkConnection(const std::string& ip, uint16_t port)
     FD_SET(sock, &writefds);
 
     struct timeval tv;
-    tv.tv_sec = 1;
-    tv.tv_usec = 0;
+    tv.tv_sec = 0;
+    tv.tv_usec = 100000;
 
     result = select(sock + 1, nullptr, &writefds, nullptr, &tv);
     if (result > 0) {
@@ -137,12 +138,45 @@ bool LIDAR_DIAGNOSTIC_PUB::checkConnection(const std::string& ip, uint16_t port)
     // return isConnected;
 }
 
+bool LIDAR_DIAGNOSTIC_PUB::pingCheck(const std::string& ip)
+{
+    int sock = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+    if (sock < 0) return false;  // root 권한 필요
+    
+    struct timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = 100000;  // 100ms
+    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    
+    struct sockaddr_in addr;
+    addr.sin_family = AF_INET;
+    inet_pton(AF_INET, ip.c_str(), &addr.sin_addr);
+    
+    // ICMP Echo Request 패킷 구성
+    char packet[64] = {0};
+    struct icmphdr *icmp = (struct icmphdr *)packet;
+    icmp->type = ICMP_ECHO;
+    icmp->code = 0;
+    icmp->un.echo.id = getpid();
+    icmp->un.echo.sequence = 1;
+    
+    sendto(sock, packet, sizeof(packet), 0, 
+           (struct sockaddr*)&addr, sizeof(addr));
+    
+    char buffer[1024];
+    int result = recv(sock, buffer, sizeof(buffer), 0);
+    
+    close(sock);
+    return (result > 0);
+}
+
+
 bool LIDAR_DIAGNOSTIC_PUB::checkCenterLidarConnection()
 {
     std::string ip = lidar[0].ip;
     uint16_t port = static_cast<uint16_t>(lidar[0].port);
 
-    bool result = this->checkConnection(ip, port);
+    bool result = this->pingCheck(ip);
 
     return result;
 }
@@ -152,7 +186,7 @@ bool LIDAR_DIAGNOSTIC_PUB::checkRightLidarConnection()
     std::string ip = lidar[1].ip;
     uint16_t port = static_cast<uint16_t>(lidar[1].port);
 
-    bool result = this->checkConnection(ip, port);
+    bool result = this->pingCheck(ip);
 
     return result;
 }
@@ -162,7 +196,7 @@ bool LIDAR_DIAGNOSTIC_PUB::checkLeftLidarConnection()
     std::string ip = lidar[2].ip;
     uint16_t port = static_cast<uint16_t>(lidar[2].port);
 
-    bool result = this->checkConnection(ip, port);
+    bool result = this->pingCheck(ip);
 
     return result;
 }

@@ -95,18 +95,51 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg 
   int re_value = 0;
   
   // ROS_INFO("SPaT msg CALLBACK@!!!!!!!!");
-    
+  int temp_time =0;
+  unsigned char temp_phase = 0;
+
+  uint16_t temp_intersection_id = 0;
+  uint8_t temp_intersection_id_msg = 0;
+
   for(int i = 0; i<MAX_SPAT_MSG; i++)
   {
-    // g_intersection_id = 500;
-    // g_signalGroup_id = 2;
+    // g_intersection_id = 200;
+    // g_signalGroup_id = 9;
     if(g_intersection_id != 0)
     {
       if(msg.data[i].IntersectionID == g_intersection_id)
       {
+        // ROS_INFO("%d", msg.data[i].IntersectionID);
         if(msg.data[i].Movements.SignalGroupID == g_signalGroup_id)
         {
           target_msg = (char*)"V2X_SPaT_1";
+          temp_intersection_id = msg.data[i].IntersectionID;
+
+          switch(temp_intersection_id){
+            case(200):
+              temp_intersection_id_msg = 2;
+              break;
+
+            case(300):
+              temp_intersection_id_msg = 3;
+              break;
+
+            case(400):
+              temp_intersection_id_msg = 4;
+              break;
+
+            case(610):
+              temp_intersection_id_msg = 6;
+              break;
+
+            case(700):
+              temp_intersection_id_msg = 7;
+              break;
+
+            default:
+              break;
+          }
+        
           temp_data = {(char)0,
           (int)msg.data[i].Movements.TimeChangeDetails,
           (unsigned char)msg.data[i].Movements.MovementPhaseStatus,
@@ -126,8 +159,8 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg 
 
           ROS_INFO("Intersection ID : %d", msg.data[i].IntersectionID);
           ROS_INFO("signalGroup : %d", msg.data[i].Movements.SignalGroupID);
-          ROS_INFO("eventState : %d", msg.data[i].Movements.MovementPhaseStatus);
-          ROS_INFO("minEndTime : %d", msg.data[i].Movements.TimeChangeDetails);
+          ROS_INFO("eventState : %d", temp_phase);
+          ROS_INFO("minEndTime : %d", temp_time);
         }
       }
     }
@@ -151,276 +184,6 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg 
       re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
       memset(can_data, 0, sizeof(can_data));
     }
-    
-    // else if is solo TEST
-    // else if(msg.data[i].IntersectionID == 200)
-    // {
-    //   if(msg.data[i].Movements.SignalGroupID == 1)
-    //   {
-    //     target_msg = (char*)"V2X_SPaT_1";
-    //     temp_data = {(char)0,
-    //     (int)msg.data[i].Movements.TimeChangeDetails,
-    //     (unsigned char)msg.data[i].Movements.MovementPhaseStatus,
-    //     (double)msg.data[i].Movements.SignalGroupID,
-    //     (double)msg.data[i].IntersectionID};
-
-    //     msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
-    //     kvaDbGetMsgByName(dh, target_msg, &mh);
-    //     kvaDbGetMsgId(mh, &id_write, &flag);
-
-    //     for(int j=0; j!=get<1>(msg_list[msg_idx]).size(); j++){
-    //       kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[j], &sh);
-    //       kvaDbStoreSignalValuePhys(sh, &can_data, sizeof(can_data), temp_data[j]);
-    //     }
-    //     re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
-    //     memset(can_data, 0, sizeof(can_data));
-
-    //     ROS_INFO("Intersection ID : %d", msg.data[i].IntersectionID);
-    //     ROS_INFO("signalGroup : %d", msg.data[i].Movements.SignalGroupID);
-    //     ROS_INFO("eventState : %d", msg.data[i].Movements.MovementPhaseStatus);
-    //     ROS_INFO("minEndTime : %d", msg.data[i].Movements.TimeChangeDetails);
-    //   }
-    //   if(msg.data[i].Movements.SignalGroupID == 6)
-    //   {
-    //     target_msg = (char*)"V2X_SPaT_1";
-    //     temp_data = {(char)0,
-    //     (int)msg.data[i].Movements.TimeChangeDetails,
-    //     (unsigned char)msg.data[i].Movements.MovementPhaseStatus,
-    //     (double)msg.data[i].Movements.SignalGroupID,
-    //     (double)msg.data[i].IntersectionID};
-
-    //     msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
-    //     kvaDbGetMsgByName(dh, target_msg, &mh);
-    //     kvaDbGetMsgId(mh, &id_write, &flag);
-
-    //     for(int j=0; j!=get<1>(msg_list[msg_idx]).size(); j++){
-    //       kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[j], &sh);
-    //       kvaDbStoreSignalValuePhys(sh, &can_data, sizeof(can_data), temp_data[j]);
-    //     }
-    //     re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
-    //     memset(can_data, 0, sizeof(can_data));
-
-    //     ROS_INFO("Intersection ID : %d", msg.data[i].IntersectionID);
-    //     ROS_INFO("signalGroup : %d", msg.data[i].Movements.SignalGroupID);
-    //     ROS_INFO("eventState : %d", msg.data[i].Movements.MovementPhaseStatus);
-    //     ROS_INFO("minEndTime : %d", msg.data[i].Movements.TimeChangeDetails);
-    //   }
-    //   if(msg.data[i].Movements.SignalGroupID == 11)
-    //   {
-    //     target_msg = (char*)"V2X_SPaT_1";
-    //     temp_data = {(char)0,
-    //     (int)msg.data[i].Movements.TimeChangeDetails,
-    //     (unsigned char)msg.data[i].Movements.MovementPhaseStatus,
-    //     (double)msg.data[i].Movements.SignalGroupID,
-    //     (double)msg.data[i].IntersectionID};
-
-    //     msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
-    //     kvaDbGetMsgByName(dh, target_msg, &mh);
-    //     kvaDbGetMsgId(mh, &id_write, &flag);
-
-    //     for(int j=0; j!=get<1>(msg_list[msg_idx]).size(); j++){
-    //       kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[j], &sh);
-    //       kvaDbStoreSignalValuePhys(sh, &can_data, sizeof(can_data), temp_data[j]);
-    //     }
-    //     re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
-    //     memset(can_data, 0, sizeof(can_data));
-
-    //     ROS_INFO("Intersection ID : %d", msg.data[i].IntersectionID);
-    //     ROS_INFO("signalGroup : %d", msg.data[i].Movements.SignalGroupID);
-    //     ROS_INFO("eventState : %d", msg.data[i].Movements.MovementPhaseStatus);
-    //     ROS_INFO("minEndTime : %d", msg.data[i].Movements.TimeChangeDetails);
-    //   }
-    // }
-    // else if(msg.data[i].IntersectionID == 300)
-    // {
-    //   if(msg.data[i].Movements.SignalGroupID == 1)
-    //   {
-    //     target_msg = (char*)"V2X_SPaT_1";
-    //     temp_data = {(char)0,
-    //     (int)msg.data[i].Movements.TimeChangeDetails,
-    //     (unsigned char)msg.data[i].Movements.MovementPhaseStatus,
-    //     (double)msg.data[i].Movements.SignalGroupID,
-    //     (double)msg.data[i].IntersectionID};
-
-    //     msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
-    //     kvaDbGetMsgByName(dh, target_msg, &mh);
-    //     kvaDbGetMsgId(mh, &id_write, &flag);
-
-    //     for(int j=0; j!=get<1>(msg_list[msg_idx]).size(); j++){
-    //       kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[j], &sh);
-    //       kvaDbStoreSignalValuePhys(sh, &can_data, sizeof(can_data), temp_data[j]);
-    //     }
-    //     re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
-    //     memset(can_data, 0, sizeof(can_data));
-
-    //     ROS_INFO("Intersection ID : %d", msg.data[i].IntersectionID);
-    //     ROS_INFO("signalGroup : %d", msg.data[i].Movements.SignalGroupID);
-    //     ROS_INFO("eventState : %d", msg.data[i].Movements.MovementPhaseStatus);
-    //     ROS_INFO("minEndTime : %d", msg.data[i].Movements.TimeChangeDetails);
-    //   }
-    //   if(msg.data[i].Movements.SignalGroupID == 6)
-    //   {
-    //     target_msg = (char*)"V2X_SPaT_1";
-    //     temp_data = {(char)0,
-    //     (int)msg.data[i].Movements.TimeChangeDetails,
-    //     (unsigned char)msg.data[i].Movements.MovementPhaseStatus,
-    //     (double)msg.data[i].Movements.SignalGroupID,
-    //     (double)msg.data[i].IntersectionID};
-
-    //     msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
-    //     kvaDbGetMsgByName(dh, target_msg, &mh);
-    //     kvaDbGetMsgId(mh, &id_write, &flag);
-
-    //     for(int j=0; j!=get<1>(msg_list[msg_idx]).size(); j++){
-    //       kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[j], &sh);
-    //       kvaDbStoreSignalValuePhys(sh, &can_data, sizeof(can_data), temp_data[j]);
-    //     }
-    //     re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
-    //     memset(can_data, 0, sizeof(can_data));
-
-    //     ROS_INFO("Intersection ID : %d", msg.data[i].IntersectionID);
-    //     ROS_INFO("signalGroup : %d", msg.data[i].Movements.SignalGroupID);
-    //     ROS_INFO("eventState : %d", msg.data[i].Movements.MovementPhaseStatus);
-    //     ROS_INFO("minEndTime : %d", msg.data[i].Movements.TimeChangeDetails);
-    //   }
-    //   if(msg.data[i].Movements.SignalGroupID == 16)
-    //   {
-    //     target_msg = (char*)"V2X_SPaT_1";
-    //     temp_data = {(char)0,
-    //     (int)msg.data[i].Movements.TimeChangeDetails,
-    //     (unsigned char)msg.data[i].Movements.MovementPhaseStatus,
-    //     (double)msg.data[i].Movements.SignalGroupID,
-    //     (double)msg.data[i].IntersectionID};
-
-    //     msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
-    //     kvaDbGetMsgByName(dh, target_msg, &mh);
-    //     kvaDbGetMsgId(mh, &id_write, &flag);
-
-    //     for(int j=0; j!=get<1>(msg_list[msg_idx]).size(); j++){
-    //       kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[j], &sh);
-    //       kvaDbStoreSignalValuePhys(sh, &can_data, sizeof(can_data), temp_data[j]);
-    //     }
-    //     re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
-    //     memset(can_data, 0, sizeof(can_data));
-
-    //     ROS_INFO("Intersection ID : %d", msg.data[i].IntersectionID);
-    //     ROS_INFO("signalGroup : %d", msg.data[i].Movements.SignalGroupID);
-    //     ROS_INFO("eventState : %d", msg.data[i].Movements.MovementPhaseStatus);
-    //     ROS_INFO("minEndTime : %d", msg.data[i].Movements.TimeChangeDetails);
-    //   }
-    // }
-    // else if(msg.data[i].IntersectionID == 400)
-    // {
-    //   if(msg.data[i].Movements.SignalGroupID == 1)
-    //   {
-    //     target_msg = (char*)"V2X_SPaT_1";
-    //     temp_data = {(char)0,
-    //     (int)msg.data[i].Movements.TimeChangeDetails,
-    //     (unsigned char)msg.data[i].Movements.MovementPhaseStatus,
-    //     (double)msg.data[i].Movements.SignalGroupID,
-    //     (double)msg.data[i].IntersectionID};
-
-    //     msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
-    //     kvaDbGetMsgByName(dh, target_msg, &mh);
-    //     kvaDbGetMsgId(mh, &id_write, &flag);
-
-    //     for(int j=0; j!=get<1>(msg_list[msg_idx]).size(); j++){
-    //       kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[j], &sh);
-    //       kvaDbStoreSignalValuePhys(sh, &can_data, sizeof(can_data), temp_data[j]);
-    //     }
-    //     re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
-    //     memset(can_data, 0, sizeof(can_data));
-
-    //     ROS_INFO("Intersection ID : %d", msg.data[i].IntersectionID);
-    //     ROS_INFO("signalGroup : %d", msg.data[i].Movements.SignalGroupID);
-    //     ROS_INFO("eventState : %d", msg.data[i].Movements.MovementPhaseStatus);
-    //     ROS_INFO("minEndTime : %d", msg.data[i].Movements.TimeChangeDetails);
-    //   }
-    // }
-    // else if(msg.data[i].IntersectionID == 500)
-    // {
-    //   if(msg.data[i].Movements.SignalGroupID == 2)
-    //   {
-    //     target_msg = (char*)"V2X_SPaT_1";
-    //     temp_data = {(char)0,
-    //     (int)msg.data[i].Movements.TimeChangeDetails,
-    //     (unsigned char)msg.data[i].Movements.MovementPhaseStatus,
-    //     (double)msg.data[i].Movements.SignalGroupID,
-    //     (double)msg.data[i].IntersectionID};
-
-    //     msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
-    //     kvaDbGetMsgByName(dh, target_msg, &mh);
-    //     kvaDbGetMsgId(mh, &id_write, &flag);
-
-    //     for(int j=0; j!=get<1>(msg_list[msg_idx]).size(); j++){
-    //       kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[j], &sh);
-    //       kvaDbStoreSignalValuePhys(sh, &can_data, sizeof(can_data), temp_data[j]);
-    //     }
-    //     re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
-    //     memset(can_data, 0, sizeof(can_data));
-
-    //     ROS_INFO("Intersection ID : %d", msg.data[i].IntersectionID);
-    //     ROS_INFO("signalGroup : %d", msg.data[i].Movements.SignalGroupID);
-    //     ROS_INFO("eventState : %d", msg.data[i].Movements.MovementPhaseStatus);
-    //     ROS_INFO("minEndTime : %d", msg.data[i].Movements.TimeChangeDetails);
-    //   }
-    // }
-    // else if(msg.data[i].IntersectionID == 610)
-    // {
-    //   if(msg.data[i].Movements.SignalGroupID == 1)
-    //   {
-    //     target_msg = (char*)"V2X_SPaT_1";
-    //     temp_data = {(char)0,
-    //     (int)msg.data[i].Movements.TimeChangeDetails,
-    //     (unsigned char)msg.data[i].Movements.MovementPhaseStatus,
-    //     (double)msg.data[i].Movements.SignalGroupID,
-    //     (double)msg.data[i].IntersectionID};
-
-    //     msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
-    //     kvaDbGetMsgByName(dh, target_msg, &mh);
-    //     kvaDbGetMsgId(mh, &id_write, &flag);
-
-    //     for(int j=0; j!=get<1>(msg_list[msg_idx]).size(); j++){
-    //       kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[j], &sh);
-    //       kvaDbStoreSignalValuePhys(sh, &can_data, sizeof(can_data), temp_data[j]);
-    //     }
-    //     re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
-    //     memset(can_data, 0, sizeof(can_data));
-
-    //     ROS_INFO("Intersection ID : %d", msg.data[i].IntersectionID);
-    //     ROS_INFO("signalGroup : %d", msg.data[i].Movements.SignalGroupID);
-    //     ROS_INFO("eventState : %d", msg.data[i].Movements.MovementPhaseStatus);
-    //     ROS_INFO("minEndTime : %d", msg.data[i].Movements.TimeChangeDetails);
-    //   }
-    // }
-    // else if(msg.data[i].IntersectionID == 700)
-    // {
-    //   if(msg.data[i].Movements.SignalGroupID == 8)
-    //   {
-    //     target_msg = (char*)"V2X_SPaT_1";
-    //     temp_data = {(char)0,
-    //     (int)msg.data[i].Movements.TimeChangeDetails,
-    //     (unsigned char)msg.data[i].Movements.MovementPhaseStatus,
-    //     (double)msg.data[i].Movements.SignalGroupID,
-    //     (double)msg.data[i].IntersectionID};
-
-    //     msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
-    //     kvaDbGetMsgByName(dh, target_msg, &mh);
-    //     kvaDbGetMsgId(mh, &id_write, &flag);
-
-    //     for(int j=0; j!=get<1>(msg_list[msg_idx]).size(); j++){
-    //       kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[j], &sh);
-    //       kvaDbStoreSignalValuePhys(sh, &can_data, sizeof(can_data), temp_data[j]);
-    //     }
-    //     re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
-    //     memset(can_data, 0, sizeof(can_data));
-
-    //     ROS_INFO("Intersection ID : %d", msg.data[i].IntersectionID);
-    //     ROS_INFO("signalGroup : %d", msg.data[i].Movements.SignalGroupID);
-    //     ROS_INFO("eventState : %d", msg.data[i].Movements.MovementPhaseStatus);
-    //     ROS_INFO("minEndTime : %d", msg.data[i].Movements.TimeChangeDetails);
-    //   }
-    // }
   }
 }
 

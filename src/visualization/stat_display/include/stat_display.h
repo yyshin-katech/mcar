@@ -32,6 +32,9 @@
 #include <mmc_msgs/to_control_team_from_local_msg.h>
 #include <mmc_msgs/chassis_msg.h>
 
+#include <v2x_msgs/intersection_msg.h>
+#include <v2x_msgs/intersection_array_msg.h>
+
 #include <sound_play/SoundRequest.h>
 
 #include <map>
@@ -71,6 +74,8 @@ class STAT_DISPLAY{
         ros::Publisher cam_pub;
         ros::Publisher ipc_pub;
         ros::Publisher local_text_pub;
+        ros::Publisher odd_pub;
+        ros::Publisher speed_limit_pub;
 
         ros::Publisher mode_pub;
 
@@ -78,7 +83,15 @@ class STAT_DISPLAY{
 
         ros::Publisher sound_pub;
 
+
+        // Publisher 추가
+        ros::Publisher traffic_light_pub;
+
+        // Subscriber 추가
+        ros::Subscriber traffic_light_sub;
+
         ros::Timer timer_;
+        ros::Timer diag_timer_;
 
         uint8_t current_gps_cnt, last_gps_cnt, unchanged_gps_cnt;
         uint8_t gps_status;
@@ -112,7 +125,7 @@ class STAT_DISPLAY{
         katech_diagnostic_msgs::katech_diagnostic_msg katech_diag_msg;
 
         mmc_msgs::to_control_team_from_local_msg local_msg;
-        mmc_msgs::chassis_msg chassis_msg;
+        mmc_msgs::chassis_msg lo_chassis_msg;
 
         // visualization_msgs::Marker GPS_text;
 
@@ -128,6 +141,8 @@ class STAT_DISPLAY{
         jsk_rviz_plugins::OverlayText IPC_text;
         jsk_rviz_plugins::OverlayText LOCAL_text;
         jsk_rviz_plugins::OverlayText MANUAL_text;
+        jsk_rviz_plugins::OverlayText ODD_text;
+        jsk_rviz_plugins::OverlayText SPEED_LIMIT_text;
 
         void diagnostic_gps_callback(const katech_diagnostic_msgs::cpt7_gps_diagnostic_msg::ConstPtr& msg);
         void diagnostic_adcu_callback(const katech_diagnostic_msgs::k_adcu_diagnostic_msg::ConstPtr& msg);
@@ -142,6 +157,7 @@ class STAT_DISPLAY{
         void chassis_callback_func(const mmc_msgs::chassis_msg::ConstPtr& msg);
         
         void timerCallback(const ros::TimerEvent&);
+        void diag_timerCallback(const ros::TimerEvent&);
 
         void POPUP_Text_Gen(const std::string& message);
         void POPUP_Text_Clear();
@@ -181,6 +197,25 @@ class STAT_DISPLAY{
 
         void MODE_Text_Gen();
 
+        // 신호등 메시지 변수 (메시지 타입은 실제 사용하는 것으로 변경)
+        // 예: your_msgs::traffic_light_msg traffic_light_msg;
+        // v2x_msgs::intersection_array_msg traffic_light_msg;      // 남은 시간 (0.1초 단위)
+        // int traffic_light_color;     // 0: 없음, 1: 초록, 2: 주황, 3: 빨강
+        int traffic_light_time;      // 남은 시간 (0.1초 단위)
+        int traffic_light_color;     // 0: 없음, 1: 초록, 2: 주황, 3: 빨강
+        int intersectionid;
+        // Callback 함수
+        void traffic_light_callback(const v2x_msgs::intersection_array_msg::ConstPtr& msg);
+
+        // Text 생성 함수
+        void TRAFFIC_LIGHT_Text_Gen();
+
+        // OverlayText 변수
+        jsk_rviz_plugins::OverlayText TRAFFIC_LIGHT_text;
+
+        void ODD_Text_Gen();
+
+        void SPEED_LIMIT_Text_Gen();
 };
 
 #endif

@@ -17,11 +17,16 @@ STAT_DISPLAY::STAT_DISPLAY()
     ipc_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/ipc_stat", 1);
     local_text_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/local_info_stat", 1);
     mode_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/mode_text", 1);
+    odd_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/odd_text", 1);
+    speed_limit_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/speed_limit_text", 1);
 
     sound_pub = nh.advertise<sound_play::SoundRequest>("/robotsound", 1);
 
     katech_diag_pub = nh.advertise<katech_diagnostic_msgs::katech_diagnostic_msg>("/diagnostic/system", 1);
 
+    // 신호등 Publisher 추가
+    traffic_light_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/traffic_light_stat", 1);
+    
     gps_sub = nh.subscribe("/diagnostic/cpt7_gps", 1, &STAT_DISPLAY::diagnostic_gps_callback, this);
     adcu_sub = nh.subscribe("/diagnostic/adcu", 1, &STAT_DISPLAY::diagnostic_adcu_callback, this);
     lidar_sub = nh.subscribe("/diagnostic/lidar", 1, &STAT_DISPLAY::diagnostic_lidar_callback, this);
@@ -33,9 +38,13 @@ STAT_DISPLAY::STAT_DISPLAY()
     ipc_sub = nh.subscribe("/diagnostic/ipc", 1, &STAT_DISPLAY::diagnostic_ipc_callback, this);
 
     local_sub = nh.subscribe("/localization/to_control_team", 1, &STAT_DISPLAY::local_callback, this);
-    chassis_sub_node = nh.subscribe("/sensors/shassis", 1, &STAT_DISPLAY::chassis_callback_func, this);
+    chassis_sub_node = nh.subscribe("/sensors/chassis", 1, &STAT_DISPLAY::chassis_callback_func, this);
 
+    // 신호등 Subscriber 추가 (토픽 이름은 실제 사용하는 것으로 변경)
+    traffic_light_sub = nh.subscribe("/katri_v2x_node/katri_spat", 1, &STAT_DISPLAY::traffic_light_callback, this);
+    
     timer_ = nh.createTimer(ros::Duration(1.0), &STAT_DISPLAY::timerCallback, this);
+    diag_timer_ = nh.createTimer(ros::Duration(0.1), &STAT_DISPLAY::diag_timerCallback, this);
 
     gps_status = 2; // 0: 정상 1: warning 2:error
     adcu_status = 2;
@@ -53,9 +62,59 @@ STAT_DISPLAY::~STAT_DISPLAY()
     
 }
 
+void STAT_DISPLAY::traffic_light_callback(const v2x_msgs::intersection_array_msg::ConstPtr& msg)
+{
+    uint16_t target_intersection_id = local_msg.look_at_IntersectionID;
+    uint8_t target_signal_group_id = local_msg.look_at_signalGroupID;
+    intersectionid = local_msg.look_at_IntersectionID;
+    if (target_intersection_id == 0)
+    {
+        traffic_light_time = 0;
+        traffic_light_color = 0;
+        return;
+    }
+
+    for (const auto& intersection : msg->data)
+    {
+        // 교차로 ID 매칭
+        if (intersection.IntersectionID == target_intersection_id)
+        {
+            // Movements는 단일 객체이므로 직접 접근
+            const auto& movement = intersection.Movements;
+            
+            // SignalGroupID 체크 (0이 아닐 때만)
+            if (target_signal_group_id != 0 && 
+                movement.SignalGroupID != target_signal_group_id)
+            {
+                continue;  // SignalGroupID가 다르면 건너뛰기
+            }
+            
+            // 남은 시간 및 색상 정보 저장
+            traffic_light_time = movement.TimeChangeDetails;
+            
+            switch(movement.MovementPhaseStatus)
+            {
+                case 3:  traffic_light_color = 3; break;  // 초록
+                case 8:  traffic_light_color = 2; break;  // 주황
+                case 6:  traffic_light_color = 1; break;  // 빨강
+                default: traffic_light_color = 0; break;  // 알 수 없음
+            }
+            
+            // ROS_INFO("🚦 [ID:%d, SG:%d] 색상=%d, 남은시간=%.1f초",
+            //          target_intersection_id, 
+            //          target_signal_group_id,
+            //          traffic_light_color, 
+            //          traffic_light_time / 10.0);
+            
+            return;  // 찾았으면 종료
+        }
+    }
+
+}
+
 void STAT_DISPLAY::chassis_callback_func(const mmc_msgs::chassis_msg::ConstPtr& msg)
 {
-    chassis_msg = *msg;
+    lo_chassis_msg = *msg;
 }
 
 void STAT_DISPLAY::POPUP_Text_Gen(const std::string& message)
@@ -152,25 +211,38 @@ void STAT_DISPLAY::local_callback(const mmc_msgs::to_control_team_from_local_msg
     local_msg = *msg;
 }
 
-void STAT_DISPLAY::timerCallback(const ros::TimerEvent&)
+void STAT_DISPLAY::diag_timerCallback(const ros::TimerEvent&)
 {
-    this->GPS_Text_Gen();
-    this->ADCU_Text_Gen();
-    this->LIDAR_Text_Gen();
+    this->CAM_Text_Gen();
     this->RADAR_Text_Gen();
+    this->LIDAR_Text_Gen();
+    this->IPC_Text_Gen();
+    this->TRAFFIC_LIGHT_Text_Gen();
+
+    this->GPS_Text_Gen();
+    
+ 
+    
     this->V2X_Text_Gen();
     this->HMI_Text_Gen();
     this->VCU_Text_Gen();
-    this->CAM_Text_Gen();
-    this->IPC_Text_Gen();
 
-    this->system_status_check();
 
     this->Local_Text_Gen();
 
     this->MODE_Text_Gen();
 
+    this->ODD_Text_Gen();
+}
+
+void STAT_DISPLAY::timerCallback(const ros::TimerEvent&)
+{
+    this->ADCU_Text_Gen();
+
+    
+    this->system_status_check();
     katech_diag_pub.publish(katech_diag_msg);
+    this->SPEED_LIMIT_Text_Gen();
 }
 
 void STAT_DISPLAY::GPS_Text_Gen()
@@ -194,18 +266,18 @@ void STAT_DISPLAY::GPS_Text_Gen()
 
     GPS_AliveCnt_Check(cpt7_msg.GPS_INS_AliveCnt);
 
-    if(gps_status == 0)
-    {   //흰색 정상
-        state_color.r = 0;
-        state_color.g = 0.8;
+    if (gps_status == 1 || cpt7_msg.GPSRTK_StatCode != 0x038 || cpt7_msg.lon_std > 0.05 || cpt7_msg.lat_std > 0.05)
+    {   // 주황 warning
+        state_color.r = 1;
+        state_color.g = 0.5;
         state_color.b = 0;
         state_color.a = 1;
         GPS_text.fg_color = state_color;
     }
-    else if(gps_status == 1)
-    {   // 주황 warning
-        state_color.r = 1;
-        state_color.g = 0.5;
+    else if (gps_status == 0)
+    {   //흰색 정상 
+        state_color.r = 0;
+        state_color.g = 0.8;
         state_color.b = 0;
         state_color.a = 1;
         GPS_text.fg_color = state_color;
@@ -219,6 +291,24 @@ void STAT_DISPLAY::GPS_Text_Gen()
         GPS_text.fg_color = state_color;
     }
 
+    if (local_msg.GPS_Over == 1)
+    {
+        state_color.r = 1;
+        state_color.g = 0.5;
+        state_color.b = 0;
+        state_color.a = 1;
+        GPS_text.fg_color = state_color; 
+    }
+
+    if(cpt7_msg.Network_Status == 1)
+    {
+        gps_status = 2;
+        state_color.r = 1;
+        state_color.g = 0;
+        state_color.b = 0;
+        state_color.a = 1;
+        GPS_text.fg_color = state_color;
+    } 
 
     state_color.r = 0.4;
     state_color.g = 0.4;
@@ -252,6 +342,11 @@ void STAT_DISPLAY::GPS_AliveCnt_Check(uint8_t current_cnt)
     {
         gps_status = 0;
     }
+    
+    // if(local_msg.GPS_Over == 1)
+    // {
+    //     gps_status = 1;
+    // }
 }
 
 void STAT_DISPLAY::ADCU_Text_Gen()
@@ -362,7 +457,7 @@ void STAT_DISPLAY::LIDAR_Text_Gen()
         else if(lidar_msg.LIDAR_Right_StatCode == 1) lidar_status = 1;
         else if(lidar_msg.LIDAR_Right_StatCode == 1) lidar_status = 1;
     }
-
+    lidar_status = 2;
     if(lidar_status == 0)
     {   //흰색 정상
         state_color.r = 0;
@@ -413,7 +508,7 @@ void STAT_DISPLAY::LIDAR_AliveCnt_Check(uint8_t current_cnt)
         last_lidar_cnt = current_lidar_cnt;
     }
 
-    if(unchanged_lidar_cnt > 5)
+    if(unchanged_lidar_cnt > 10)
     {
         lidar_status = 2;
     }
@@ -443,7 +538,7 @@ void STAT_DISPLAY::RADAR_Text_Gen()
     RADAR_text.top = 50+30+30;
 
     RADAR_AliveCnt_Check(radar_msg.RADAR_AliveCount);
-
+    radar_status = 0;
     if(radar_status == 0)
     {   //흰색 정상
         state_color.r = 0;
@@ -524,7 +619,8 @@ void STAT_DISPLAY::V2X_Text_Gen()
     V2X_text.top = 50+30+30+30;
 
     V2X_AliveCnt_Check(v2x_msg.V2X_AliveCount);
-    
+    v2x_status = 0;
+    v2x_msg.V2X_StatCode = 0;
     if((v2x_status == 0) || (v2x_msg.V2X_StatCode == 0))
     {   //흰색 정상
         state_color.r = 0;
@@ -575,7 +671,7 @@ void STAT_DISPLAY::V2X_AliveCnt_Check(uint8_t current_cnt)
         last_v2x_cnt = current_v2x_cnt;
     }
 
-    if(unchanged_v2x_cnt > 2)
+    if(unchanged_v2x_cnt > 5)
     {
         v2x_status = 2;
     }
@@ -767,7 +863,7 @@ void STAT_DISPLAY::CAM_Text_Gen()
     CAM_text.top = 50+30+30+30+30+30+30;
 
     CAM_AliveCnt_Check(cam_msg.CAM_AliveCount);
-
+    
     if(cam_status == 0)
     {   //흰색 정상
         state_color.r = 0;
@@ -818,7 +914,7 @@ void STAT_DISPLAY::CAM_AliveCnt_Check(uint8_t current_cnt)
         last_cam_cnt = current_cam_cnt;
     }
 
-    if(unchanged_cam_cnt > 10)
+    if(unchanged_cam_cnt > 2)
     {
         cam_status = 2;
     }
@@ -927,6 +1023,8 @@ void STAT_DISPLAY::system_status_check()
     std::string abnormal_sensor = "";
     std::ostringstream oss;
 
+    local_msg.Road_State = 1;
+
     for (const auto& s : statuses)
     {
         if (s.second != 0)
@@ -953,15 +1051,35 @@ void STAT_DISPLAY::system_status_check()
        this->POPUP_Text_Gen(str);
        this->sound_play("ADS");
     }
+    else if (local_msg.Road_State == 1)
+    {
+        oss << "전방 ODD 이탈 경고";
+        
+        std::string str = oss.str();
+
+        this->sound_play("ODD");
+        this->POPUP_Text_Gen(str);
+    }
+    else if (lo_chassis_msg.AEB_flag == 1)
+    {
+        oss << "🚨 전방 추돌 경고 🚨";
+        std::string str = oss.str();
+
+        this->sound_play("AEB");
+        this->POPUP_Text_Gen(str);
+    }
+    else if (local_msg.On_ODD == 1)
+    {
+        oss << "ODD 이탈 !!!!";
+        std::string str = oss.str();
+
+        this->sound_play("outofODD");
+        this->POPUP_Text_Gen(str);
+    }
     else
     {
         // std::cout << "✅ 모든 센서 정상" << std::endl;
         this->POPUP_Text_Clear();
-    }
-
-    if(local_msg.Road_State == 1)
-    {
-        this->sound_play("ODD");
     }
 }
 
@@ -990,12 +1108,14 @@ void STAT_DISPLAY::sound_play(const std::string& sensor_name)
     else if (sensor_name == "ADS") path = base_path + "ad_system_warning.mp3";
     else if (sensor_name == "ODD") path = base_path + "odd_warning.mp3";
     else if (sensor_name == "IPC") path = base_path + "percept_warning.mp3";
+    else if (sensor_name == "AEB") path = base_path + "aeb_warning.mp3";
+    else if (sensor_name == "outofODD") path = base_path + "outofodd.mp3";
     else path = base_path + "ad_system_warning.mp3";  // fallback
 
     sound_msg.arg = path;
     sound_msg.arg2 = "";
 
-    if(chassis_msg.vcu_EPS_Status == 2)
+    if(lo_chassis_msg.vcu_EPS_Status == 2)
     {
         if(local_msg.Road_State == 1)
         {
@@ -1028,9 +1148,10 @@ void STAT_DISPLAY::sound_play(const std::string& sensor_name)
 void STAT_DISPLAY::Local_Text_Gen()
 {
     ros::Time now = ros::Time::now();
-    
+    std::string code = (cpt7_msg.GPSRTK_StatCode == 56) ? "RTKFIX" : "N/A";
+
     LOCAL_text.text = "Curr LANE: " + std::to_string(local_msg.LINK_ID) +
-                    "\nGPSRTK: " + std::to_string(cpt7_msg.GPSRTK_StatCode);
+                    "\nGPSRTK: " + code;
 
     std_msgs::ColorRGBA state_color;
 
@@ -1063,7 +1184,7 @@ void STAT_DISPLAY::Local_Text_Gen()
 void STAT_DISPLAY::MODE_Text_Gen()
 {
     // vcu_EPS_Status 값에 따라 텍스트 결정
-    if(chassis_msg.vcu_EPS_Status == 2)
+    if(lo_chassis_msg.vcu_EPS_Status == 2)
     {
         MANUAL_text.text = "AUTO";
     }
@@ -1095,11 +1216,178 @@ void STAT_DISPLAY::MODE_Text_Gen()
     MANUAL_text.fg_color = state_color;
 
     // 완전 투명 배경
-    state_color.r = 0;
-    state_color.g = 0;
-    state_color.b = 0;
-    state_color.a = 0;
+    state_color.r = 0.2;
+    state_color.g = 0.2;
+    state_color.b = 0.2;
+    state_color.a = 0.5;
     MANUAL_text.bg_color = state_color;
     
     mode_pub.publish(MANUAL_text);
+}
+
+void STAT_DISPLAY::TRAFFIC_LIGHT_Text_Gen()
+{
+    // 신호등이 없으면 표시하지 않음
+    if(intersectionid == 0)
+    {
+        TRAFFIC_LIGHT_text.text = "N/A";
+
+        std_msgs::ColorRGBA state_color;
+
+        int32_t width = 150;
+        int32_t height = 80;
+
+        TRAFFIC_LIGHT_text.action = TRAFFIC_LIGHT_text.ADD;
+        TRAFFIC_LIGHT_text.font = "DejaVu Sans Mono";
+        TRAFFIC_LIGHT_text.text_size = 50;  // 큰 글씨로
+        TRAFFIC_LIGHT_text.width = width;
+        TRAFFIC_LIGHT_text.height = height;
+        TRAFFIC_LIGHT_text.left = 1100;  // 화면 오른쪽 상단
+        TRAFFIC_LIGHT_text.top = 50;
+
+        state_color.r = 1;
+        state_color.g = 0;
+        state_color.b = 0;
+        state_color.a = 1;
+    
+        TRAFFIC_LIGHT_text.fg_color = state_color;
+
+        traffic_light_pub.publish(TRAFFIC_LIGHT_text);
+        return;
+    }
+
+    // 초 단위로 변환 (100 -> 10초)
+    int seconds = traffic_light_time / 10;
+    
+    TRAFFIC_LIGHT_text.text = std::to_string(seconds) + "s";
+
+    std_msgs::ColorRGBA state_color;
+
+    int32_t width = 150;
+    int32_t height = 80;
+
+    TRAFFIC_LIGHT_text.action = TRAFFIC_LIGHT_text.ADD;
+    TRAFFIC_LIGHT_text.font = "DejaVu Sans Mono";
+    TRAFFIC_LIGHT_text.text_size = 50;  // 큰 글씨로
+    TRAFFIC_LIGHT_text.width = width;
+    TRAFFIC_LIGHT_text.height = height;
+    TRAFFIC_LIGHT_text.left = 1100;  // 화면 오른쪽 상단
+    TRAFFIC_LIGHT_text.top = 50;
+
+    // 신호등 색상에 따라 색 설정
+    if(traffic_light_color == 1)  // 초록
+    {
+        state_color.r = 0;
+        state_color.g = 1;
+        state_color.b = 0;
+        state_color.a = 1;
+    }
+    else if(traffic_light_color == 2)  // 주황
+    {
+        state_color.r = 1;
+        state_color.g = 0.6;
+        state_color.b = 0;
+        state_color.a = 1;
+    }
+    else if(traffic_light_color == 3)  // 빨강
+    {
+        state_color.r = 1;
+        state_color.g = 0;
+        state_color.b = 0;
+        state_color.a = 1;
+    }
+    
+    TRAFFIC_LIGHT_text.fg_color = state_color;
+
+    traffic_light_pub.publish(TRAFFIC_LIGHT_text);
+}
+
+void STAT_DISPLAY::ODD_Text_Gen()
+{
+    ros::Time now = ros::Time::now();
+
+    ODD_text.text = "ODD";
+
+    std_msgs::ColorRGBA state_color;
+
+    int32_t width = 200;
+    int32_t height = 30;
+
+    ODD_text.action = ODD_text.ADD;
+    ODD_text.font = "DejaVu Sans Mono";
+    ODD_text.text_size = 20;
+    ODD_text.width = width;
+    ODD_text.height = height;
+    ODD_text.left = 20;
+    ODD_text.top = 50+30+30+30+30+30+30+30+30;
+
+    if(local_msg.Road_State == 0)
+    {   //흰색 정상
+    state_color.r = 0;
+        state_color.g = 0.8;
+        state_color.b = 0;
+        state_color.a = 1;
+        ODD_text.fg_color = state_color;
+    }
+    else if(local_msg.Road_State == 1)
+    {   // 주황 warning
+        state_color.r = 1;
+        state_color.g = 0.5;
+        state_color.b = 0;
+        state_color.a = 1;
+        ODD_text.fg_color = state_color;
+    }
+    else
+    {   // 빨강 error
+        state_color.r = 1;
+    state_color.g = 0;
+    state_color.b = 0;
+        state_color.a = 1;
+        ODD_text.fg_color = state_color;
+    }
+
+
+    state_color.r = 0.4;
+    state_color.g = 0.4;
+    state_color.b = 0.4;
+    state_color.a = 0.5;
+    ODD_text.bg_color = state_color;
+    odd_pub.publish(ODD_text);
+
+
+}
+
+void STAT_DISPLAY::SPEED_LIMIT_Text_Gen()
+{
+    ros::Time now = ros::Time::now();
+
+    SPEED_LIMIT_text.text = std::to_string(local_msg.Speed_Limit);;
+
+    std_msgs::ColorRGBA state_color;
+
+    int32_t width = 200;
+    int32_t height = 60;
+
+    SPEED_LIMIT_text.action = SPEED_LIMIT_text.ADD;
+    SPEED_LIMIT_text.font = "DejaVu Sans Mono";
+    SPEED_LIMIT_text.text_size = 40;
+    SPEED_LIMIT_text.width = width;
+    SPEED_LIMIT_text.height = height;
+    SPEED_LIMIT_text.left = 1100;
+    SPEED_LIMIT_text.top = 120;
+
+    state_color.r = 1;
+    state_color.g = 0;
+    state_color.b = 0;
+    state_color.a = 1;
+    SPEED_LIMIT_text.fg_color = state_color;
+    
+    // state_color.r = 0.4;
+    // state_color.g = 0.4;
+    // state_color.b = 0.4;
+    // state_color.a = 0.5;
+    // SPEED_LIMIT_text.bg_color = state_color;
+    speed_limit_pub.publish(SPEED_LIMIT_text);
+
+
 }

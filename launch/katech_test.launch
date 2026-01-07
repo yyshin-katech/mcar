@@ -4,22 +4,12 @@
 
     <param name="EPSG" value="5179" />
 
-    <arg name="use_slope_map" default="false" doc="Use slope map instead of k_city"/>
-
     <!-- using roslaunch launch/katech_test.launch -->
     <!-- using roslaunch launch/katech_test.launch use_slope_map:=true-->
     <!-- 맵 경로 설정 -->
     <param name="MAPFILE_PATH" 
-          value="$(find gps_system_localizer)/mapfiles/K_CITY_SLOPE" 
-          if="$(arg use_slope_map)"/>
-    <param name="MAPFILE_PATH" 
-          value="$(find gps_system_localizer)/mapfiles/K_CITY_20251014" 
-          unless="$(arg use_slope_map)"/>
+          value="$(find gps_system_localizer)/mapfiles/K_CITY_20251201" />
 
-    <!-- USE_SLOPE 플래그 설정 -->
-    <param name="USE_SLOPE" value="1" type="int" if="$(arg use_slope_map)"/>
-    <param name="USE_SLOPE" value="0" type="int" unless="$(arg use_slope_map)"/>
-    
    <group ns="sensors/gps">
         <include file="$(find novatel_gps_driver)/launch/tester_for_usb_eq.launch">
         </include>
@@ -29,7 +19,7 @@
 
     <!-- for gps/ins 50hz -->
     <node name="gps_to_pose_2d_node"               type="gps_world_tf_node_send_host_gps" pkg="gps_world_tf" respawn="true"/>
-    <node pkg="gps_world_tf"            type="sat_to_rviz"                  name="sat_pub"                   respawn="true"/>
+    <!-- <node pkg="gps_world_tf"            type="sat_to_rviz"                  name="sat_pub"                   respawn="true"/> -->
     <node pkg="gps_system_localizer"            type="to_control_team_demo.py"            name="to_control_team_node"         respawn="true" output="screen"/> 
 
 <!--차량 모션 기반 경로 생성기 -->
@@ -41,7 +31,7 @@
   <node name="percept_topic_matcher"       type="percept_topic_matcher"     pkg="can"  respawn="true" />
   <node name="local_CAN_writer"       type="local_CAN_writer" pkg="can" respawn="true"/>
   <node name="vision_CAN_reader"             type="vision_CAN_reader"             pkg="can"  respawn="true" /> 
-
+  <node name="IONIQ_CAN_reader"             type="IONIQ_CAN_reader"             pkg="can"  respawn="true" /> 
   <node name="cpt7_topic_matcher"       type="cpt7_topic_matcher"     pkg="can"  respawn="true" />
   <node name="cpt7_CAN_writer"       type="cpt7_CAN_writer"     pkg="can"  respawn="true" />
 

@@ -46,6 +46,72 @@ VAL_TABLE_ VtSIg_eventState_1 9 "caution-Conflicting-Traffic" 8 "protected-clear
 VAL_TABLE_ Value_Table_Track_Status 7 "New Coasting Target" 6 "Invalid Coasting Target" 5 "Merged Target" 4 "Coasting Target" 3 "Updated Target" 2 "New Updated Target" 1 "New Target" 0 "No Target" ;
 
 
+BO_ 16 GPSTimestamp: 8 NUC
+ SG_ GPS_mSecond : 48|10@1+ (1,0) [0|999] "" Vector__XXX
+ SG_ GPS_Second : 40|8@1+ (1,0) [0|59] "" Vector__XXX
+ SG_ GPS_Minute : 32|8@1+ (1,0) [0|59] "" Vector__XXX
+ SG_ GPS_Hour : 24|8@1+ (1,0) [0|23] "" Vector__XXX
+ SG_ GPS_Day : 16|8@1+ (1,0) [0|31] "" Vector__XXX
+ SG_ GPS_Month : 8|8@1+ (1,0) [0|12] "" Vector__XXX
+ SG_ GPS_Year : 0|8@1+ (1,0) [0|255] "" Vector__XXX
+
+BO_ 512 from_Control: 8 ADCU
+ SG_ AEB_flag : 0|2@1+ (1,0) [0|3] "" Vector__XXX
+
+BO_ 870 MOTOR_RPM: 3 Vector__XXX
+ SG_ Curr_gear : 24|8@1+ (1,0) [0|8] "" Vector__XXX
+ SG_ N : 0|16@1+ (0.25,0) [0|16383.75] "rpm" Vector__XXX
+
+BO_ 529 Pedestrian_Stat_1: 8 NUC
+ SG_ rel_pos_y_3 : 53|10@1- (0.01,0) [-5.12|5.11] "m" Vector__XXX
+ SG_ rel_pos_x_3 : 41|12@1- (0.01,10.24) [-10.24|30.71] "m" Vector__XXX
+ SG_ on_crosswalk_3 : 40|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ obj_type_3 : 36|4@1+ (1,0) [0|7] "" Vector__XXX
+ SG_ ped_obj_id_3 : 32|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ rel_pos_y_2 : 21|10@1- (0.01,0) [-5.12|5.11] "m" Vector__XXX
+ SG_ rel_pos_x_2 : 9|12@1- (0.01,10.24) [-10.24|30.71] "m" Vector__XXX
+ SG_ on_crosswalk_2 : 8|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ obj_type_2 : 4|4@1+ (1,0) [0|7] "" Vector__XXX
+ SG_ ped_obj_id_2 : 0|4@1+ (1,0) [0|15] "" Vector__XXX
+
+BO_ 528 Pedestrian_Stat: 8 NUC
+ SG_ rel_pos_y_1 : 53|10@1- (0.01,0) [-5.12|5.11] "m" Vector__XXX
+ SG_ rel_pos_x_1 : 41|12@1- (0.01,10.24) [-10.24|30.71] "m" Vector__XXX
+ SG_ on_crosswalk_1 : 40|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ obj_type_1 : 36|4@1+ (1,0) [0|7] "" Vector__XXX
+ SG_ ped_obj_id_1 : 32|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ rel_pos_y : 21|10@1- (0.01,0) [-5.12|5.11] "m" Vector__XXX
+ SG_ rel_pos_x : 9|12@1- (0.01,10.24) [-10.24|30.71] "m" Vector__XXX
+ SG_ on_crosswalk : 8|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ obj_type : 4|4@1+ (1,0) [0|7] "" Vector__XXX
+ SG_ ped_obj_id : 0|4@1+ (1,0) [0|15] "" Vector__XXX
+
+BO_ 280 CPT7_Position_RPRate: 8 NUC
+ SG_ cpt7_rollrate : 32|32@1- (1,0) [-3.4E+038|3.4E+038] "" Vector__XXX
+ SG_ cpt7_pitchrate : 0|32@1- (1,0) [-3.4E+038|3.4E+038] "" Vector__XXX
+
+BO_ 279 CPT7_Position_RP: 8 NUC
+ SG_ cpt7_roll : 32|32@1- (1,0) [-3.4E+038|3.4E+038] "" Vector__XXX
+ SG_ cpt7_pitch : 0|32@1- (1,0) [-3.4E+038|3.4E+038] "" Vector__XXX
+
+BO_ 278 CPT7_Vertical_Acc: 8 NUC
+ SG_ cpt7_vertAcc : 0|64@1- (1,0) [-1.7E+308|1.7E+308] "m/s^2" Vector__XXX
+
+BO_ 277 CPT7_Lateral_Acc: 8 NUC
+ SG_ cpt7_latAcc : 0|64@1- (1,0) [-1.7E+308|1.7E+308] "m/s^2" Vector__XXX
+
+BO_ 513 Mornitoring: 4 ADCU
+ SG_ Logging_sig : 16|16@1+ (0.01,-10.23) [-10.23|10.24] "" Vector__XXX
+ SG_ Chasis_VS_KF : 0|16@1- (0.01,0) [-327.68|327.67] "km/h" Vector__XXX
+
+BO_ 1831 LOCAL_POS_SIGMA: 8 NUC
+ SG_ lon_sigma : 39|32@0- (1,0) [-3.4E+038|3.4E+038] "m" Vector__XXX
+ SG_ lat_sigma : 7|32@0- (1,0) [-3.4E+038|3.4E+038] "m" Vector__XXX
+
+BO_ 1830 CAR_EGO_A_Ex: 4 NUC
+ SG_ Y_High : 23|16@0+ (1,0) [0|1000] "" Vector__XXX
+ SG_ X_High : 7|16@0+ (1,0) [0|1000] "" Vector__XXX
+
 BO_ 1824 LOCAL_MAP_INFO: 8 NUC
  SG_ is_stop_line : 41|1@1+ (1,0) [0|1] "" Vector__XXX
  SG_ look_at_signalGroupID : 0|4@1+ (1,0) [0|15] "" Vector__XXX
@@ -60,75 +126,22 @@ BO_ 1824 LOCAL_MAP_INFO: 8 NUC
  SG_ Speed_Limit : 48|8@1+ (1,0) [0|255] "" Vector__XXX
  SG_ guard_zone : 42|2@1+ (1,0) [0|3] "" Vector__XXX
 
-BO_ 64 On_ODD_Stat: 2 NUC
+BO_ 64 On_ODD_Stat: 3 NUC
+ SG_ GPS_Over : 3|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ Take_Over_Request : 16|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ Wrong_Way_Warn : 7|1@1+ (1,0) [0|1] "" Vector__XXX
  SG_ distance_out_of_ODD : 8|8@1+ (1,0) [0|255] "m" Vector__XXX
  SG_ Road_State : 1|2@1+ (1,0) [0|3] "" Vector__XXX
  SG_ On_ODD : 0|1@1+ (1,0) [0|1] "" Vector__XXX
 
-BO_ 777 V2X_SPaT_9: 4 NUC
- SG_ minEndTime_9 : 16|12@1+ (0.1,0) [0|4095] "" Vector__XXX
- SG_ eventState_9 : 12|4@1+ (1,0) [0|9] "" Vector__XXX
- SG_ movementName_9 : 8|4@1+ (1,0) [0|2] "" Vector__XXX
- SG_ signalGroup_9 : 4|4@1+ (1,0) [0|15] "" Vector__XXX
- SG_ Intersection_ID_9 : 0|4@1+ (1,0) [0|9] "" Vector__XXX
-
-BO_ 776 V2X_SPaT_8: 4 NUC
- SG_ minEndTime_8 : 16|12@1+ (0.1,0) [0|4095] "" Vector__XXX
- SG_ eventState_8 : 12|4@1+ (1,0) [0|9] "" Vector__XXX
- SG_ movementName_8 : 8|4@1+ (1,0) [0|2] "" Vector__XXX
- SG_ signalGroup_8 : 4|4@1+ (1,0) [0|15] "" Vector__XXX
- SG_ Intersection_ID_8 : 0|4@1+ (1,0) [0|9] "" Vector__XXX
-
-BO_ 775 V2X_SPaT_7: 4 NUC
- SG_ minEndTime_7 : 16|12@1+ (0.1,0) [0|4095] "" Vector__XXX
- SG_ eventState_7 : 12|4@1+ (1,0) [0|9] "" Vector__XXX
- SG_ movementName_7 : 8|4@1+ (1,0) [0|2] "" Vector__XXX
- SG_ signalGroup_7 : 4|4@1+ (1,0) [0|15] "" Vector__XXX
- SG_ Intersection_ID_7 : 0|4@1+ (1,0) [0|9] "" Vector__XXX
-
-BO_ 774 V2X_SPaT_6: 4 NUC
- SG_ minEndTime_6 : 16|12@1+ (0.1,0) [0|4095] "" Vector__XXX
- SG_ eventState_6 : 12|4@1+ (1,0) [0|9] "" Vector__XXX
- SG_ movementName_6 : 8|4@1+ (1,0) [0|2] "" Vector__XXX
- SG_ signalGroup_6 : 4|4@1+ (1,0) [0|15] "" Vector__XXX
- SG_ Intersection_ID_6 : 0|4@1+ (1,0) [0|9] "" Vector__XXX
-
-BO_ 773 V2X_SPaT_5: 4 NUC
- SG_ minEndTime_5 : 16|12@1+ (0.1,0) [0|4095] "" Vector__XXX
- SG_ eventState_5 : 12|4@1+ (1,0) [0|9] "" Vector__XXX
- SG_ movementName_5 : 8|4@1+ (1,0) [0|2] "" Vector__XXX
- SG_ signalGroup_5 : 4|4@1+ (1,0) [0|15] "" Vector__XXX
- SG_ Intersection_ID_5 : 0|4@1+ (1,0) [0|9] "" Vector__XXX
-
-BO_ 772 V2X_SPaT_4: 4 NUC
- SG_ minEndTime_4 : 16|12@1+ (0.1,0) [0|4095] "" Vector__XXX
- SG_ movementName_4 : 8|4@1+ (1,0) [0|2] "" Vector__XXX
- SG_ eventState_4 : 12|4@1+ (1,0) [0|9] "" Vector__XXX
- SG_ signalGroup_4 : 4|4@1+ (1,0) [0|15] "" Vector__XXX
- SG_ Intersection_ID_4 : 0|4@1+ (1,0) [0|9] "" Vector__XXX
-
-BO_ 771 V2X_SPaT_3: 4 NUC
- SG_ minEndTime_3 : 16|12@1+ (0.1,0) [0|4095] "" Vector__XXX
- SG_ eventState_3 : 12|4@1+ (1,0) [0|9] "" Vector__XXX
- SG_ movementName_3 : 8|4@1+ (1,0) [0|2] "" Vector__XXX
- SG_ signalGroup_3 : 4|4@1+ (1,0) [0|15] "" Vector__XXX
- SG_ Intersection_ID_3 : 0|4@1+ (1,0) [0|9] "" Vector__XXX
-
-BO_ 770 V2X_SPaT_2: 4 NUC
- SG_ minEndTime_2 : 16|12@1+ (0.1,0) [0|4095] "" Vector__XXX
- SG_ eventState_2 : 12|4@1+ (1,0) [0|9] "" Vector__XXX
- SG_ movementName_2 : 8|4@1+ (1,0) [0|2] "" Vector__XXX
- SG_ signalGroup_2 : 4|4@1+ (1,0) [0|15] "" Vector__XXX
- SG_ Intersection_ID_2 : 0|4@1+ (1,0) [0|9] "" Vector__XXX
-
 BO_ 769 V2X_SPaT_1: 4 NUC
- SG_ movementName_1 : 8|4@1+ (1,0) [0|2] "" Vector__XXX
- SG_ minEndTime_1 : 16|12@1+ (0.1,0) [0|4095] "" Vector__XXX
+ SG_ movementName_1 : 24|4@1+ (1,0) [0|2] "" Vector__XXX
+ SG_ minEndTime_1 : 0|12@1+ (1,0) [0|4095] "" Vector__XXX
  SG_ eventState_1 : 12|4@1+ (1,0) [0|9] "" Vector__XXX
- SG_ signalGroup_1 : 4|4@1+ (1,0) [0|15] "" Vector__XXX
- SG_ Intersection_ID_1 : 0|4@1+ (1,0) [0|9] "" Vector__XXX
+ SG_ signalGroup_1 : 16|5@1+ (1,0) [0|16] "" Vector__XXX
+ SG_ Intersection_ID_1 : 28|4@1+ (1,0) [0|9] "" Vector__XXX
 
-BO_ 276 CPT7_Longitude_Acc: 8 IPC
+BO_ 276 CPT7_Longitude_Acc: 8 NUC
  SG_ cpt7_longAcc : 0|64@1- (1,0) [-1.7E+308|1.7E+308] "m/s^2" Vector__XXX
 
 BO_ 1897 LKA_Right_Lane_B: 4 Mobileye
@@ -192,10 +205,13 @@ BO_ 100 DiagnosticOBU: 2 IPC
  SG_ OBU_AliveCnt : 8|8@1+ (1,0) [0|255] "" Vector__XXX
  SG_ OBU_StatCode : 0|3@1+ (1,0) [0|7] "" Vector__XXX
 
-BO_ 99 DiagnosticGPS: 3 IPC
- SG_ GPS_IMU_AliveCnt : 16|8@1+ (1,0) [0|255] "" Vector__XXX
+BO_ 99 DiagnosticGPS: 8 NUC
  SG_ IMU_StatCode : 8|3@1+ (1,0) [0|7] "" Vector__XXX
  SG_ GPS_StatCode : 0|3@1+ (1,0) [0|7] "" Vector__XXX
+ SG_ GPS_INS_AliveCnt : 16|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ INS_StatCode : 56|8@1+ (1,0) [0|14] "" Vector__XXX
+ SG_ GPSRTK_StatCode : 48|8@1+ (1,0) [0|80] "" Vector__XXX
+ SG_ GPS_INS_SolutionStat : 40|8@1+ (1,0) [0|22] "" Vector__XXX
 
 BO_ 98 DiagnosticLiDAR: 3 IPC
  SG_ Left_Lidar_StatCode : 16|3@1+ (1,0) [0|7] "" Vector__XXX
@@ -1585,15 +1601,15 @@ BO_ 1264 Vehicle1: 8 Vehicle
 
 BO_ 1829 CAR_EGO_SD: 8 NUC
  SG_ EGO_D : 39|32@0- (0.01,0) [-4|4] "" Vector__XXX
- SG_ EGO_S : 7|32@0+ (0.1,0) [0|5000] "" Vector__XXX
+ SG_ EGO_S : 7|32@0+ (0.01,0) [0|5000] "" Vector__XXX
 
 BO_ 1828 CAR_EGO_B: 8 NUC
  SG_ WAYPOINT : 39|32@0+ (1,0) [0|4294967295] "" Vector__XXX
- SG_ YAW : 7|32@0- (0.001,0) [-3.142|3.142] "" Vector__XXX
+ SG_ YAW : 7|32@0- (1,0) [-3.4E+038|3.4E+038] "" Vector__XXX
 
 BO_ 1827 CAR_EGO_A: 8 NUC
- SG_ Y : 39|32@0+ (0.01,0) [0|1000000] "" Vector__XXX
- SG_ X : 7|32@0+ (0.01,0) [0|1000000] "" Vector__XXX
+ SG_ Y : 39|32@0- (1,0) [-3.4E+038|3.4E+038] "m" Vector__XXX
+ SG_ X : 7|32@0- (1,0) [-3.4E+038|3.4E+038] "m" Vector__XXX
 
 BO_ 1825 LANE_INFO_A: 8 NUC
  SG_ RIGHT_LINK_ID : 56|8@1+ (1,0) [0|255] "" Vector__XXX
@@ -1609,63 +1625,15 @@ BO_ 1826 LANE_INFO_B: 8 NUC
 
 
 CM_ "CANdb__ADEV_IONIQ__KATECH__ACAN_v10__220919.dbc Generated by EROOMAT";
-CM_ BO_ 777 "V2X SPaT Message 
-On Intersection ID 900";
-CM_ SG_ 777 movementName_9 "movementName
-STRAIGHT
-LEFT";
-CM_ SG_ 777 signalGroup_9 "Origin value is +1, received data via CAN (ex. signalGroup 10 -> CAN data 9)";
-CM_ BO_ 776 "V2X SPaT Message 
-On Intersection ID 800";
-CM_ SG_ 776 movementName_8 "movementName
-STRAIGHT
-LEFT";
-CM_ SG_ 776 signalGroup_8 "Origin value is +1, received data via CAN (ex. signalGroup 10 -> CAN data 9)";
-CM_ BO_ 775 "V2X SPaT Message 
-On Intersection ID 700";
-CM_ SG_ 775 movementName_7 "movementName
-STRAIGHT
-LEFT";
-CM_ SG_ 775 signalGroup_7 "Origin value is +1, received data via CAN (ex. signalGroup 10 -> CAN data 9)";
-CM_ BO_ 774 "V2X SPaT Message 
-On Intersection ID 600";
-CM_ SG_ 774 movementName_6 "movementName
-STRAIGHT
-LEFT";
-CM_ SG_ 774 signalGroup_6 "Origin value is +1, received data via CAN (ex. signalGroup 10 -> CAN data 9)";
-CM_ BO_ 773 "V2X SPaT Message 
-On Intersection ID 500";
-CM_ SG_ 773 movementName_5 "movementName
-STRAIGHT
-LEFT";
-CM_ SG_ 773 signalGroup_5 "Origin value is +1, received data via CAN (ex. signalGroup 10 -> CAN data 9)";
-CM_ BO_ 772 "V2X SPaT Message 
-On Intersection ID 400";
-CM_ SG_ 772 movementName_4 "movementName
-STRAIGHT
-LEFT";
-CM_ SG_ 772 signalGroup_4 "Origin value is +1, received data via CAN (ex. signalGroup 10 -> CAN data 9)";
-CM_ BO_ 771 "V2X SPaT Message 
-On Intersection ID 300
-";
-CM_ SG_ 771 movementName_3 "movementName
-STRAIGHT
-LEFT";
-CM_ SG_ 771 signalGroup_3 "Origin value is +1, received data via CAN (ex. signalGroup 10 -> CAN data 9)";
-CM_ BO_ 770 "V2X SPaT Message 
-On Intersection ID 200
-";
-CM_ SG_ 770 movementName_2 "movementName
-STRAIGHT
-LEFT";
-CM_ SG_ 770 signalGroup_2 "Origin value is +1, received data via CAN (ex. signalGroup 10 -> CAN data 9)";
+CM_ SG_ 512 AEB_flag "0: None
+1: AEB";
+CM_ BO_ 513 "Vehicle State(like vehicle speed)";
 CM_ BO_ 769 "V2X SPaT Message 
 On Intersection ID 100
 ";
 CM_ SG_ 769 movementName_1 "movementName
 STRAIGHT
 LEFT";
-CM_ SG_ 769 signalGroup_1 "Origin value is +1, received data via CAN (ex. signalGroup 10 -> CAN data 9)";
 CM_ BO_ 48 "VCU1_ADCU (Vehicle Control Feedback)";
 CM_ SG_ 48 vcu_EPS_En "Steering control feedback";
 CM_ SG_ 48 vcu_BRK_En "Brake control feedback";
@@ -1743,18 +1711,21 @@ BA_DEF_DEF_  "BusType" "CAN";
 BA_DEF_DEF_  "GenMsgCycleTime" 0;
 BA_DEF_DEF_  "SigType" "Default";
 BA_ "BusType" "CAN";
-BA_ "GenMsgCycleTime" BO_ 1824 200;
+BA_ "GenMsgCycleTime" BO_ 16 50;
+BA_ "GenMsgCycleTime" BO_ 512 20;
+BA_ "GenMsgCycleTime" BO_ 529 100;
+BA_ "GenMsgCycleTime" BO_ 528 100;
+BA_ "GenMsgCycleTime" BO_ 280 200;
+BA_ "GenMsgCycleTime" BO_ 279 20;
+BA_ "GenMsgCycleTime" BO_ 278 200;
+BA_ "GenMsgCycleTime" BO_ 277 200;
+BA_ "GenMsgCycleTime" BO_ 513 20;
+BA_ "GenMsgCycleTime" BO_ 1831 50;
+BA_ "GenMsgCycleTime" BO_ 1830 20;
+BA_ "GenMsgCycleTime" BO_ 1824 20;
 BA_ "GenMsgCycleTime" BO_ 64 200;
-BA_ "GenMsgCycleTime" BO_ 777 100;
-BA_ "GenMsgCycleTime" BO_ 776 100;
-BA_ "GenMsgCycleTime" BO_ 775 100;
-BA_ "GenMsgCycleTime" BO_ 774 100;
-BA_ "GenMsgCycleTime" BO_ 773 100;
-BA_ "GenMsgCycleTime" BO_ 772 100;
-BA_ "GenMsgCycleTime" BO_ 771 100;
-BA_ "GenMsgCycleTime" BO_ 770 100;
 BA_ "GenMsgCycleTime" BO_ 769 100;
-BA_ "GenMsgCycleTime" BO_ 276 100;
+BA_ "GenMsgCycleTime" BO_ 276 200;
 BA_ "GenMsgCycleTime" BO_ 275 100;
 BA_ "GenMsgCycleTime" BO_ 274 100;
 BA_ "GenMsgCycleTime" BO_ 273 100;
@@ -1781,26 +1752,22 @@ BA_ "GenMsgCycleTime" BO_ 51 100;
 BA_ "GenMsgCycleTime" BO_ 32 20;
 BA_ "GenMsgCycleTime" BO_ 33 100;
 BA_ "GenMsgCycleTime" BO_ 34 100;
-BA_ "GenMsgCycleTime" BO_ 1829 200;
-BA_ "GenMsgCycleTime" BO_ 1828 200;
-BA_ "GenMsgCycleTime" BO_ 1827 200;
-BA_ "GenMsgCycleTime" BO_ 1825 200;
-BA_ "GenMsgCycleTime" BO_ 1826 200;
+BA_ "GenMsgCycleTime" BO_ 1829 20;
+BA_ "GenMsgCycleTime" BO_ 1828 20;
+BA_ "GenMsgCycleTime" BO_ 1827 20;
+BA_ "GenMsgCycleTime" BO_ 1825 20;
+BA_ "GenMsgCycleTime" BO_ 1826 20;
+VAL_ 870 Curr_gear 7 "R" 6 "N" 5 "D" 0 "P" ;
 VAL_ 64 Road_State 2 "out-of ODD, school-zone etc..." 1 "Forward ODD Departure Warning" 0 "can AD or doing AD" ;
 VAL_ 64 On_ODD 1 "Out of ODD cannot info AD" 0 "On ODD, can into auto-drive mode" ;
-VAL_ 777 eventState_9 9 "caution-Conflicting-Traffic" 8 "protected-clearance : yellow" 7 "permissive-clearance" 6 "protected-Movement-Allowed" 5 "permissive-Movement-Allowed" 4 "pre-Movement : red+yellow partly" 3 "stop-And-Remain : red right" 2 "stop-Then-Proceed : flashing red" 1 "dark" 0 "unavailable" ;
-VAL_ 776 eventState_8 9 "caution-Conflicting-Traffic" 8 "protected-clearance : yellow" 7 "permissive-clearance" 6 "protected-Movement-Allowed" 5 "permissive-Movement-Allowed" 4 "pre-Movement : red+yellow partly" 3 "stop-And-Remain : red right" 2 "stop-Then-Proceed : flashing red" 1 "dark" 0 "unavailable" ;
-VAL_ 775 eventState_7 9 "caution-Conflicting-Traffic" 8 "protected-clearance : yellow" 7 "permissive-clearance" 6 "protected-Movement-Allowed" 5 "permissive-Movement-Allowed" 4 "pre-Movement : red+yellow partly" 3 "stop-And-Remain : red right" 2 "stop-Then-Proceed : flashing red" 1 "dark" 0 "unavailable" ;
-VAL_ 774 eventState_6 9 "caution-Conflicting-Traffic" 8 "protected-clearance : yellow" 7 "permissive-clearance" 6 "protected-Movement-Allowed" 5 "permissive-Movement-Allowed" 4 "pre-Movement : red+yellow partly" 3 "stop-And-Remain : red right" 2 "stop-Then-Proceed : flashing red" 1 "dark" 0 "unavailable" ;
-VAL_ 773 eventState_5 9 "caution-Conflicting-Traffic" 8 "protected-clearance : yellow" 7 "permissive-clearance" 6 "protected-Movement-Allowed" 5 "permissive-Movement-Allowed" 4 "pre-Movement : red+yellow partly" 3 "stop-And-Remain : red right" 2 "stop-Then-Proceed : flashing red" 1 "dark" 0 "unavailable" ;
-VAL_ 772 eventState_4 9 "caution-Conflicting-Traffic" 8 "protected-clearance : yellow" 7 "permissive-clearance" 6 "protected-Movement-Allowed" 5 "permissive-Movement-Allowed" 4 "pre-Movement : red+yellow partly" 3 "stop-And-Remain : red right" 2 "stop-Then-Proceed : flashing red" 1 "dark" 0 "unavailable" ;
-VAL_ 771 eventState_3 9 "caution-Conflicting-Traffic" 8 "protected-clearance : yellow" 7 "permissive-clearance" 6 "protected-Movement-Allowed" 5 "permissive-Movement-Allowed" 4 "pre-Movement : red+yellow partly" 3 "stop-And-Remain : red right" 2 "stop-Then-Proceed : flashing red" 1 "dark" 0 "unavailable" ;
-VAL_ 770 eventState_2 9 "caution-Conflicting-Traffic" 8 "protected-clearance : yellow" 7 "permissive-clearance" 6 "protected-Movement-Allowed" 5 "permissive-Movement-Allowed" 4 "pre-Movement : red+yellow partly" 3 "stop-And-Remain : red right" 2 "stop-Then-Proceed : flashing red" 1 "dark" 0 "unavailable" ;
 VAL_ 769 eventState_1 9 "caution-Conflicting-Traffic" 8 "protected-clearance : yellow" 7 "permissive-clearance" 6 "protected-Movement-Allowed" 5 "permissive-Movement-Allowed" 4 "pre-Movement : red+yellow partly" 3 "stop-And-Remain : red right" 2 "stop-Then-Proceed : flashing red" 1 "dark" 0 "unavailable" ;
 VAL_ 1897 View_Range_Availability 0 "Not Valid" 1 "Valid" ;
 VAL_ 1896 Model_Degree 0 "Parabolic model" 1 "Linear model" 2 "3rd-degree model" ;
 VAL_ 1896 Quality 0 "Low quality" 1 "Low quality" 2 "High quality" 3 "High quality" ;
 VAL_ 1896 Lane_Type 0 "Dashed" 1 "Solid" 2 "undecided" 3 "Road Edge" 4 "Double Lane" 5 "Bott's Dots" 6 "invalid" ;
+VAL_ 99 INS_StatCode 14 "WAITING_ALIGNMENTORIENTATION" 13 "Reserved" 12 "MOTION_DETECT" 11 "INITIALIZING_BIASES" 10 "WAITING_AZIMUTH" 9 "WAITING_INITIALPOS" 8 "DETERMINING_ORIENTATION" 7 "INS_ALIGNMENT_COMPLETE" 6 "INS_SOLUTION_FREE" 5 "Reserved" 4 "Reserved" 3 "INS_SOLUTION_GOOD" 2 "INS_HIGH_VARIANCE" 1 "INS_ALIGNING" 0 "INS_INACTIVE" ;
+VAL_ 99 GPSRTK_StatCode 80 "INS_PPP_BASIC" 79 "INS_PPP_BASIC_CONVERGING" 78 "PPP_BASIC" 77 "PPP_BASIC_CONVERGING" 76 "Reserved" 75 "Reserved" 74 "INS_PPP" 73 "INS_PPP_CONVERGING" 72 "OUT_OF_BOUNDS" 71 "WARNING" 70 "OPERATIONAL" 69 "PPP" 68 "PPP_CONVERGING" 67 "EXT_CONSTRAINED" 66 "Reserved" 65 "Reserved" 64 "Reserved" 63 "Reserved" 62 "Reserved" 61 "Reserved" 60 "Reserved" 59 "Reserved" 58 "Reserved" 57 "Reserved" 56 "INS_RTKFIXED" 55 "INS_RTKFLOAT" 54 "INS_PSRDIFF" 53 "INS_PSRSP" 52 "INS_SBAS" 51 "RTK_DIRECT_INS" 50 "NARROW_INT" 49 "WIDE_INT" 48 "L1_INT" 47 "Reserved" 46 "Reserved" 45 "Reserved" 44 "Reserved" 43 "Reserved" 42 "Reserved" 41 "Reserved" 40 "Reserved" 39 "Reserved" 38 "Reserved" 37 "Reserved" 36 "Reserved" 35 "Reserved" 34 "NARROW_FLOAT" 33 "Reserved" 32 "L1_FLOAT" 31 "Reserved" 30 "Reserved" 29 "Reserved" 28 "Reserved" 27 "Reserved" 26 "Reserved" 25 "Reserved" 24 "Reserved" 23 "Reserved" 22 "Reserved" 21 "Reserved" 20 "Reserved" 19 "PROGAGATED" 18 "WAAS" 17 "PSRDIFF" 16 "SINGLE" 15 "Reserved" 14 "Reserved" 13 "Reserved" 12 "Reserved" 11 "Reserved" 10 "Reserved" 9 "Reserved" 8 "DOPPLER_VELOCITY" 7 "Reserved" 6 "Reserved" 5 "Reserved" 4 "Reserved" 3 "Reserved" 2 "FIXEDHEIGHT" 1 "FIXEDPOS" 0 "NONE" ;
+VAL_ 99 GPS_INS_SolutionStat 22 "INVALID_RATE" 21 "Reserved" 20 "UNAUTHORIZED" 19 "INVALID_FIX" 18 "PENDING" 17 "Reserved" 16 "Reserved" 15 "Reserved" 14 "Reserved" 13 "INTEGRITY_WARNING" 12 "Reserved" 11 "Reserved" 10 "Reserved" 9 "RESIDUALS" 8 "VARIANCE" 7 "V_H_LIMIT" 6 "COLD_START" 5 "TEST_DIST" 4 "COV_TRACE" 3 "SINGULARITY" 2 "NO_CONVERGENCE" 1 "INSUFFICIENT_OBS" 0 "SOL_COMPUTED" ;
 VAL_ 48 vcu_EPS_Status 0 "_0: Not Ready" 1 "_1: MD" 2 "_2: AD" 3 "_3: Override" 4 "_4: Error" ;
 VAL_ 48 vcu_ACC_Status 0 "_0: Not Ready" 1 "_1: MD" 2 "_2: AD" 3 "_3: Override" 4 "_4: Error" ;
 VAL_ 48 vcu_BRK_Status 0 "_0: Not Ready" 1 "_1: MD" 2 "_2: AD" 3 "_3: Override" 4 "_4: Error" ;
@@ -2334,6 +2301,14 @@ VAL_ 1264 CAN_RX_STEERING_ANGLE_SIGN 1 "Clockwise" 0 "Counterclockwise" ;
 VAL_ 1264 CAN_RX_STEERING_ANGLE_RATE_SIGN 1 "Clockwise" 0 "Counterclockwise" ;
 VAL_ 1264 CAN_RX_YAW_RATE_VALIDITY 1 "Valid" 0 "Invalid" ;
 VAL_ 1264 CAN_RX_VEHICLE_SPEED_DIRECTION 1 "Reverse" 0 "Forward" ;
+SIG_VALTYPE_ 280 cpt7_rollrate : 1;
+SIG_VALTYPE_ 280 cpt7_pitchrate : 1;
+SIG_VALTYPE_ 279 cpt7_roll : 1;
+SIG_VALTYPE_ 279 cpt7_pitch : 1;
+SIG_VALTYPE_ 278 cpt7_vertAcc : 2;
+SIG_VALTYPE_ 277 cpt7_latAcc : 2;
+SIG_VALTYPE_ 1831 lon_sigma : 1;
+SIG_VALTYPE_ 1831 lat_sigma : 1;
 SIG_VALTYPE_ 276 cpt7_longAcc : 2;
 SIG_VALTYPE_ 275 nmea_heading : 2;
 SIG_VALTYPE_ 274 nmea_speed : 2;
@@ -2346,4 +2321,7 @@ SIG_VALTYPE_ 259 cpt7_easting : 2;
 SIG_VALTYPE_ 258 cpt7_northing : 2;
 SIG_VALTYPE_ 257 cpt7_longitude : 2;
 SIG_VALTYPE_ 256 cpt7_latitude : 2;
+SIG_VALTYPE_ 1828 YAW : 1;
+SIG_VALTYPE_ 1827 Y : 1;
+SIG_VALTYPE_ 1827 X : 1;
 
