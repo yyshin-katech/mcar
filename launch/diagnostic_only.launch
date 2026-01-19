@@ -7,7 +7,7 @@
 
     <include file="$(find model_publisher)/launch/genesis.launch" />
 <!--                                                                     x           y          z         yaw       pitch       roll       parent      child      -->
-    <node pkg="tf2_ros" type="$(arg stp)" name="base2ego" args=" 0        0.0        0.0        0.0         0.0         0.0        base_link   ego_frame    "  />
+    <node pkg="tf2_ros" type="$(arg stp)" name="base2ego" args=" 0        0.0        0.0        0         0         0.0        base_link   ego_frame    "  />
     
     <node pkg="rviz_filter"                     type="rviz_filter_node"                 name="rviz_filter_node"             respawn="true" />
     <!-- 시스템 Diagnostic 정보 -->
