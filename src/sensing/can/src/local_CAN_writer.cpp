@@ -57,7 +57,8 @@ class LOCAL_CAN_WRITER{
     LOCAL_CAN_WRITER();
     void CALLBACK_LOCAL(const mmc_msgs::to_control_team_from_local_msg& msg);
     void CALLBACK_RPM(const mmc_msgs::motor_rpm_msg& msg);
-    void CALLBACK_TimeStamp(const novatel_gps_msgs::NovatelPosition& msg);
+    // void CALLBACK_TimeStamp(const novatel_gps_msgs::NovatelPosition& msg);
+    void CALLBACK_TimeStamp(const ublox_msgs::NavPVT::ConstPtr& msg)
     short FIND_MSG_IDX(char* target_msg, vector<tuple<char*, vector<char*>>>* msg_list);
     canStatus OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num, char *filename, bool init_access_flag);
     void LOOP();
@@ -121,7 +122,7 @@ LOCAL_CAN_WRITER::LOCAL_CAN_WRITER(){
 
 }
  
-void LOCAL_CAN_WRITER::CALLBACK_TimeStamp(const novatel_gps_msgs::NovatelPosition& msg)
+void LOCAL_CAN_WRITER::CALLBACK_TimeStamp(const ublox_msgs::NavPVT::ConstPtr& msg)
 {
   unsigned char can_data[dlc];
   char* target_msg;
@@ -132,40 +133,38 @@ void LOCAL_CAN_WRITER::CALLBACK_TimeStamp(const novatel_gps_msgs::NovatelPositio
   unsigned int id_write, flag = 0;
   int re_value = 0;
 
-  // GPS 시간 추출
-  uint32_t gps_week_num = msg.novatel_msg_header.gps_week_num;
-  double gps_seconds = msg.novatel_msg_header.gps_seconds;
+  // u-blox NavPVT 시간 필드 추출
+  // year: 년도 (1999-2099)
+  // month: 월 (1-12)
+  // day: 일 (1-31)
+  // hour: 시 (0-23)
+  // min: 분 (0-59)
+  // sec: 초 (0-60)
+  // nano: 나노초 (UTC)
   
-  // GPS 기준 시간: 1980년 1월 6일 00:00:00 UTC
-  // Unix timestamp로 변환 (1980-01-06 00:00:00 = 315964800초)
-  const time_t GPS_EPOCH = 315964800;
+  int year = msg->year;
+  int month = msg->month;
+  int day = msg->day;
+  int hour = msg->hour;
+  int minute = msg->min;
+  int second = msg->sec;
   
-  // GPS Week를 초로 변환 (1주 = 7일 * 24시간 * 3600초)
-  time_t weeks_in_seconds = gps_week_num * 7 * 24 * 3600;
+  // 나노초를 밀리초로 변환
+  // nano는 -1e9 ~ 1e9 범위를 가질 수 있음
+  int millisecond = msg->nano / 1000000;
   
-  // 총 경과 시간 계산
-  time_t total_seconds = GPS_EPOCH + weeks_in_seconds + static_cast<time_t>(gps_seconds);
+  // nano가 음수인 경우 처리 (초 미만의 음수 보정)
+  if (millisecond < 0) {
+    millisecond += 1000;
+    second -= 1;
+  }
   
-  // Leap seconds 보정 (GPS 시간은 윤초를 포함하지 않음)
-  // 2024년 기준 GPS와 UTC의 차이는 18초
-  total_seconds -= 18;
-  
-  // time_t를 tm 구조체로 변환 (UTC 기준)
-  struct tm* timeinfo = gmtime(&total_seconds);
-  
-  // 년, 월, 일, 시, 분, 초 추출
-  int year = timeinfo->tm_year + 1900;
-  int month = timeinfo->tm_mon + 1;
-  int day = timeinfo->tm_mday;
-  int hour = timeinfo->tm_hour;
-  int minute = timeinfo->tm_min;
-  int second = timeinfo->tm_sec;
-  
-  // 밀리초 계산 (gps_seconds의 소수점 부분)
-  int millisecond = static_cast<int>((gps_seconds - static_cast<int>(gps_seconds)) * 1000);
+  // 밀리초는 0-999 범위로 제한
+  millisecond = std::max(0, std::min(999, millisecond));
 
   target_msg = (char*)"GPSTimestamp";
-  temp_data = {millisecond, second, minute, hour, day, month, year-2000};
+  temp_data = {(double)millisecond, (double)second, (double)minute, 
+               (double)hour, (double)day, (double)month, (double)(year-2000)};
    
   msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
   kvaDbGetMsgByName(dh, target_msg, &mh);
@@ -179,8 +178,7 @@ void LOCAL_CAN_WRITER::CALLBACK_TimeStamp(const novatel_gps_msgs::NovatelPositio
   re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
   memset(can_data, 0, sizeof(can_data));
 
-  // ROS_INFO("GPS Time - Week: %u, Seconds: %.3f", gps_week_num, gps_seconds);
-  // ROS_INFO("Current Time: %04d-%02d-%02d %02d:%02d:%02d.%03d UTC",
+  // ROS_INFO("u-blox Time: %04d-%02d-%02d %02d:%02d:%02d.%03d UTC",
   //         year, month, day, hour, minute, second, millisecond);
 }
 
