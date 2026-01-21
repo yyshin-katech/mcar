@@ -21,8 +21,9 @@
 #include <mmc_msgs/chassis_msg.h>
 #include <mmc_msgs/motor_rpm_msg.h>
 #include <mmc_msgs/to_control_team_from_local_msg.h>
-#include <novatel_gps_msgs/NovatelMessageHeader.h>
-#include <novatel_gps_msgs/NovatelPosition.h>
+// #include <novatel_gps_msgs/NovatelMessageHeader.h>
+// #include <novatel_gps_msgs/NovatelPosition.h>
+#include <ublox_msgs/NavPVT.h>
 
 #include <algorithm>
 #include <math.h>
@@ -58,7 +59,7 @@ class LOCAL_CAN_WRITER{
     void CALLBACK_LOCAL(const mmc_msgs::to_control_team_from_local_msg& msg);
     void CALLBACK_RPM(const mmc_msgs::motor_rpm_msg& msg);
     // void CALLBACK_TimeStamp(const novatel_gps_msgs::NovatelPosition& msg);
-    void CALLBACK_TimeStamp(const ublox_msgs::NavPVT::ConstPtr& msg)
+    void CALLBACK_TimeStamp(const ublox_msgs::NavPVT::ConstPtr& msg);
     short FIND_MSG_IDX(char* target_msg, vector<tuple<char*, vector<char*>>>* msg_list);
     canStatus OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num, char *filename, bool init_access_flag);
     void LOOP();
@@ -439,47 +440,8 @@ int main(int argc, char **argv){
 
   ros::Subscriber sub1 = node.subscribe("/localization/to_control_team", 1, &LOCAL_CAN_WRITER::CALLBACK_LOCAL, &LCW);
   ros::Subscriber sub2 = node.subscribe("/sensors/rpm", 1, &LOCAL_CAN_WRITER::CALLBACK_RPM, &LCW);
-  ros::Subscriber sub3 = node.subscribe("/sensors/gps/bestpos", 1, &LOCAL_CAN_WRITER::CALLBACK_TimeStamp, &LCW);
+  ros::Subscriber sub3 = node.subscribe("/ublox/navpvt", 1, &LOCAL_CAN_WRITER::CALLBACK_TimeStamp, &LCW);
 
-  LCW.pub5 = node.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/local_CAN_status", 10, true);
-  jsk_rviz_plugins::OverlayText msg;
-  string can_status_str;
-
-  if(can_status == canOK){
-    can_status_str = "OK";
-
-  }else{
-    can_status_str = "ERR";
-  }
-
-  msg.text.append("- CAN Local .... " + can_status_str + "\n");
-
-  std_msgs::ColorRGBA state_color;
-  
-  int32_t width = 250;
-  int32_t height = width*2;
-
-  msg.action = msg.ADD;
-  msg.font = "DejaVu Sans Mono";
-  msg.text_size = 12;
-  msg.width = width;
-  msg.height = height;
-  msg.left = 10;
-  msg.top = 540;
-
-  state_color.r = 1;
-  state_color.g = 1;
-  state_color.b = 1;
-  state_color.a = 1;
-  msg.fg_color = state_color;
-
-  state_color.r = 0;
-  state_color.g = 0;
-  state_color.b = 0;
-  state_color.a = 0.0;
-  msg.bg_color = state_color;
-  LCW.pub5.publish(msg);
-  
   ros::waitForShutdown();   
   canBusOff(hCAN);
   canClose(hCAN);
