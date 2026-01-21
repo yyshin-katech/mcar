@@ -22,7 +22,7 @@
 #include <j3224_msgs/sdsm.h>
 
 #define OUB_IP_ADDR "192.168.1.5"
-// #define OUB_IP_ADDR "192.168.170.130"
+// #define OUB_IP_ADDR "192.168.20.2"
 // #define OUB_IP_ADDR "127.0.0.1"
 #define UDP_PORT 9999
 #define BUF_SIZE 2048
@@ -90,10 +90,12 @@ class J2735_DECODE{
                 case 0x20: name = "MAP";  type = asn1_type_j2735MapData; break;
             }
             type = asn1_type_j2735SensorDataSharingMessage;
+            type = asn1_type_j2735TravelerInformation;
             if(type)
             {
-                asn1_ssize_t ret = asn1_uper_decode(&msg, type, &payload[10], payload_len, &err);
-                // asn1_ssize_t ret = asn1_ber_decode(&msg, type, payload, payload_len, &err);
+                // asn1_ssize_t ret = asn1_uper_decode(&msg, type, &payload[10], payload_len, &err);
+                asn1_ssize_t ret = asn1_ber_decode(&msg, type, payload, payload_len, &err);
+                ROS_INFO("%d", ret);
                 if(ret > 0 && msg)
                 {
                     j3224_msgs::sdsm ros_msg;
@@ -232,6 +234,7 @@ void udpReceiverThread(int sockfd, MessageQueue& queue)
     while (ros::ok()) 
     {
         ssize_t len = recvfrom(sockfd, buffer, BUF_SIZE, 0, (struct sockaddr*)&sender_addr, &addrlen);
+        
         if (len > 0) 
         {
             queue.push({std::vector<uint8_t>(buffer, buffer + len), (size_t)len});

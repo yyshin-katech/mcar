@@ -50,10 +50,15 @@ link_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME}_node src/j2735_decode.cpp)
-
-
 target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
   ffasn1-base
   ffasn1-j2735-2020
+)
+
+add_executable(tim_test src/tim_decode_test.cpp)
+target_link_libraries(tim_test 
+    ${catkin_LIBRARIES}
+    ffasn1-base
+    ffasn1-j2735-2020
 )
