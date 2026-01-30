@@ -93,8 +93,8 @@ class J2735_DECODE{
             type = asn1_type_j2735TravelerInformation;
             if(type)
             {
-                // asn1_ssize_t ret = asn1_uper_decode(&msg, type, &payload[10], payload_len, &err);
-                asn1_ssize_t ret = asn1_ber_decode(&msg, type, payload, payload_len, &err);
+                asn1_ssize_t ret = asn1_uper_decode(&msg, type, &payload[10], payload_len, &err);
+                // asn1_ssize_t ret = asn1_ber_decode(&msg, type, payload, payload_len, &err);
                 ROS_INFO("%d", ret);
                 if(ret > 0 && msg)
                 {

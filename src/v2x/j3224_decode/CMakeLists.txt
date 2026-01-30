@@ -56,6 +56,13 @@ target_link_libraries(${PROJECT_NAME}_node
   ffasn1-j2735-2020
 )
 
+add_executable(j2735_universal_node src/j2735_universal_decoder.cpp)
+target_link_libraries(j2735_universal_node
+  ${catkin_LIBRARIES}
+  ffasn1-base
+  ffasn1-j2735-2020
+)
+
 add_executable(tim_test src/tim_decode_test.cpp)
 target_link_libraries(tim_test 
     ${catkin_LIBRARIES}
