@@ -290,23 +290,11 @@ void RVIZ_FILTER::sdsm_callback(const j3224_msgs::sdsm::ConstPtr& msg)
 
         marker_array.markers.push_back(ref_text);
 
-        // 로컬 좌표계 (ref 기준 front-left) -> 글로벌 좌표계 (east-north) 변환
-        // double local_x = detObj.offsetX * 0.01; // cm to m, ref 기준 전방(+x)
-        // double local_y = detObj.offsetY * 0.01; // cm to m, ref 기준 좌측(+y)
-        // double local_z = detObj.offsetZ * 0.01; // cm to m
         double offset_east = detObj.offsetX * 0.01;  // cm to m
         double offset_north = detObj.offsetY * 0.01; // cm to m
         double offset_z = detObj.offsetZ * 0.01;     // cm to m
-        // 회전 변환: 로컬 -> 글로벌
-        // double cos_heading = std::cos(ref_heading);
-        // double sin_heading = std::sin(ref_heading);
-        
-        // double global_x_offset = local_x * cos_heading - local_y * sin_heading;
-        // double global_y_offset = local_x * sin_heading + local_y * cos_heading;
-        
+
         // 절대좌표 계산
-        // double abs_east = ref_east + global_x_offset;
-        // double abs_north = ref_north + global_y_offset;
         double abs_east = ref_east + offset_east;
         double abs_north = ref_north + offset_north;
         // ROS_INFO("x:%.2lf, y:%.2lf",abs_east, abs_north);
