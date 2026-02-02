@@ -90,10 +90,11 @@ class J2735_DECODE{
                 case 0x20: name = "MAP";  type = asn1_type_j2735MapData; break;
             }
             type = asn1_type_j2735SensorDataSharingMessage;
-            type = asn1_type_j2735TravelerInformation;
+            // type = asn1_type_j2735TravelerInformation;
             if(type)
             {
                 asn1_ssize_t ret = asn1_uper_decode(&msg, type, &payload[10], payload_len, &err);
+                // asn1_ssize_t ret = asn1_uper_decode(&msg, type, &payload[29], payload_len, &err);
                 // asn1_ssize_t ret = asn1_ber_decode(&msg, type, payload, payload_len, &err);
                 ROS_INFO("%d", ret);
                 if(ret > 0 && msg)
@@ -119,6 +120,7 @@ class J2735_DECODE{
                     ROS_INFO("  sec: %d", sdsm->sDSMTimeStamp.second);    
                     ROS_INFO("  refPos.lat: %d", sdsm->refPos.lat);
                     ROS_INFO("  refPos.long: %d", sdsm->refPos.Long);
+                    ROS_INFO("  refPosXYConf.orientation: %d", sdsm->refPosXYConf.orientation);
                     ROS_INFO("  refPos.ele_option: %d", sdsm->refPos.elevation_option);
                     ROS_INFO("  refPos.regional_option: %d", sdsm->refPos.regional_option);
                     ROS_INFO("  refPos.regional.count: %ld", sdsm->refPos.regional.count);
