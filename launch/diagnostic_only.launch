@@ -7,8 +7,11 @@
 
     <include file="$(find model_publisher)/launch/genesis.launch" />
 <!--                                                                     x           y          z         yaw       pitch       roll       parent      child      -->
-    <node pkg="tf2_ros" type="$(arg stp)" name="base2ego" args=" 0        0.0        0.0        0.0         0.0         0.0        base_link   ego_frame    "  />
-    
+    <node pkg="tf2_ros" type="$(arg stp)" name="base2ego" args=" 0        0.0        0.0        0.0         0.0         0.0        /base_link   ego_frame    "  />
+    <!-- <node pkg="tf2_ros" type="$(arg stp)" name="base2center" args=" 1.10       0.0        1.78        -1.5708         0         0        /base_link   /center    "  /> -->
+    <!-- <node pkg="tf2_ros" type="$(arg stp)" name="center2left" args=" -0.102       0.605        -0.257        1.58935025702         -0.00279252688         -1.55421574165        center   left    "  /> -->
+    <!-- <node pkg="tf2_ros" type="$(arg stp)" name="center2left" args=" -0.102       0.605        -0.257         0        0        0         /center   /right    "  /> -->
+
     <node pkg="rviz_filter"                     type="rviz_filter_node"                 name="rviz_filter_node"             respawn="true" />
     <!-- 시스템 Diagnostic 정보 -->
     <node pkg="cpt7_gps_diagnostic"             type="cpt7_gps_diagnostic_node"           name="cpt7_gps_diagnostic_node"               respawn="true" />
