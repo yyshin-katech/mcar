@@ -18,7 +18,7 @@
 #include <std_msgs/String.h>
 
 #include <katech_diagnostic_msgs/vcu_diagnostic_msg.h>
-#include <mmc_msgs/chassis_msg.h>
+#include <katech_custom_msgs/v_can_msg.h>
 
 class VCU_DIAGNOSTIC_PUB
 {
@@ -35,12 +35,12 @@ class VCU_DIAGNOSTIC_PUB
         ros::Timer timer_;
 
         katech_diagnostic_msgs::vcu_diagnostic_msg vcu_msg;
-        mmc_msgs::chassis_msg chs_msg;
 
-        uint8_t vcu_callback_cnt, vcu_callback_cnt_old;
+        uint8_t life_count_cur, life_count_old;
+        bool msg_received;
 
         void timer_callback(const ros::TimerEvent&);
-        void vcu_callback(const mmc_msgs::chassis_msg::ConstPtr& msg);
+        void vcu_callback(const katech_custom_msgs::v_can_msg::ConstPtr& msg);
 };
 
 #endif

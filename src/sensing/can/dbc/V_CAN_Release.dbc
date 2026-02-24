@@ -1,0 +1,227 @@
+VERSION "2024.09.19"
+
+
+NS_ : 
+	NS_DESC_
+	CM_
+	BA_DEF_
+	BA_
+	VAL_
+	CAT_DEF_
+	CAT_
+	FILTER
+	BA_DEF_DEF_
+	EV_DATA_
+	ENVVAR_DATA_
+	SGTYPE_
+	SGTYPE_VAL_
+	BA_DEF_SGTYPE_
+	BA_SGTYPE_
+	SIG_TYPE_REF_
+	VAL_TABLE_
+	SIG_GROUP_
+	SIG_VALTYPE_
+	SIGTYPE_VALTYPE_
+	BO_TX_BU_
+	BA_DEF_REL_
+	BA_REL_
+	BA_DEF_DEF_REL_
+	BU_SG_REL_
+	BU_EV_REL_
+	BU_BO_REL_
+	SG_MUL_VAL_
+
+BS_:
+
+BU_: configurator camera_percept service_provider any logger led ignition soc gear dynamic_state accessory longitudinal lateral supervisor A1_driver Vector_XXX
+VAL_TABLE_ CTRL_STATE 1 "AD control activate" 0 "Inactive" ;
+VAL_TABLE_ LAT_CTRL_MODE 2 "Angle control" 1 "Torque control" 0 "Inactive" ;
+VAL_TABLE_ LAT_ACT_STATE 13 "Error MDPS" 12 "Control MDPS" 11 "Wait MDPS" 10 "Ready MDPS" 9 "Free MDPS" 8 "Unknown MDPS" 6 "Actuator warning" 5 "Actuator position control" 4 "Actuator wait read on" 3 "Actuator free wheeling" 2 "Actuator read servo ready" 1 "Actuator wait servo ready" 0 "Inactive" ;
+VAL_TABLE_ LAT_STATE_ERROR 16 "Invalid target angle" 8 "Invalid target torque" 4 "Control command timeout" 2 "Invalid CRC" 1 "Invalid control mode" 0 "N/A" ;
+VAL_TABLE_ LON_CTRL_MODE 0 "Invalid or inactive" 1 "Acceleration control" 2 "Pedal position control" 3 "Pedal torque control" 4 "Accel-pos/Brake-torque" 5 "Accel-torque/Brake-pos" ;
+VAL_TABLE_ LON_ACT_STATE 1 "Longitudinal control activate" 0 "N/A" ;
+VAL_TABLE_ LON_STATE_ERROR 8 "Invalid target accleration" 4 "Control command timeout" 2 "Invalid CRC" 1 "Invalid control mode" 0 "N/A" ;
+VAL_TABLE_ ACS_STATE_ERROR 8 "Invalid target turn-signal" 4 "Control command timeout" 2 "Invalid CRC" 1 "Invalid control mode" 0 "N/A" ;
+VAL_TABLE_ ACS_CTRL_MODE 0 "N/A" 1 "AD" ;
+VAL_TABLE_ TSIG_VAL 0 "N/A" 1 "Left blinking" 2 "Right blinking" 3 "Both blinking" ;
+VAL_TABLE_ GEAR_VAL 4 "D" 3 "N" 2 "R" 1 "P" 0 "Invalid or N/A" ;
+VAL_TABLE_ GEAR_CTRL_MODE 0 "N/A" 1 "AD" ;
+VAL_TABLE_ GEAR_STATE_ERROR 8 "Invalid target gear" 4 "Control command timeout" 2 "Invalid CRC" 1 "Invalid control mode" 0 "N/A" ;
+VAL_TABLE_ CHRG_STATE_ERROR 4 "Control command timeout" 2 "Invalid CRC" 1 "Invalid control mode" 0 "N/A" ;
+VAL_TABLE_ IGN_STATE_ERROR 8 "Invalid target ignition" 4 "Control command timeout" 2 "Invalid CRC" 1 "Invalid control mode" 0 "N/A" ;
+VAL_TABLE_ IGN_VAL 4 "Drive" 3 "Start" 2 "Accessory" 1 "Off" 0 "Invalid or N/A" ;
+VAL_TABLE_ CHARGE_DOOR_CTRL_MODE 0 "Inactive" 1 "AD" ;
+VAL_TABLE_ CHARGE_DOOR_CMD 0 "Hold" 1 "Close" 2 "Open" ;
+VAL_TABLE_ CHARGE_INFO_CONNECTED_STATE 0 "Invaild or N/A" 1 "Disconnected" 2 "Connected" ;
+VAL_TABLE_ CHARGE_INFO_CHARGING_STATE 0 "Invaild or N/A" 1 "Uncharging" 2 "Charging" ;
+VAL_TABLE_ GEAR_CTRL_OVERRIDE 0 "Invaild or N/A" 1 "Overried" ;
+VAL_TABLE_ LAT_CTRL_OVERRIDE 0 "Invaild or N/A" 1 "Overried" ;
+VAL_TABLE_ LON_CTRL_OVERRIDE 0 "Invalid or N/A" 1 "Accel pedal overried" 2 "Brake pedal override" 3 "Both overried" ;
+
+
+BO_ 117 GearInfo: 3 gear
+ SG_ life_count : 8|8@1+ (1,0) [0|0] ""  A1_driver
+ SG_ gear_status : 16|4@1+ (1,0) [0|0] ""  A1_driver
+
+BO_ 116 TurnSignalInfo: 4 accessory
+ SG_ life_count : 8|8@1+ (1,0) [0|0] ""  A1_driver
+ SG_ turn_signal_status : 16|2@1+ (1,0) [0|0] ""  A1_driver
+
+BO_ 115 LongitudinalInfo: 7 longitudinal
+ SG_ brake_pedal_pos : 40|8@1+ (0.5,0) [0|0] "%"  A1_driver
+ SG_ brake_pressure : 48|8@1+ (0.5,0) [0|0] "" Vector__XXX
+ SG_ life_count : 8|8@1+ (1,0) [0|0] ""  A1_driver
+ SG_ motor_rpm : 16|16@1+ (0.25,0) [0|0] ""  A1_driver
+ SG_ acceleration_pedal_pos : 32|8@1+ (0.5,0) [0|0] "%"  A1_driver
+
+BO_ 114 SteeringInfo: 7 lateral
+ SG_ life_count : 8|8@1+ (1,0) [0|0] ""  A1_driver
+ SG_ steering_angle : 16|14@1- (0.1,0) [0|0] "deg"  A1_driver
+ SG_ steering_torque : 30|10@1- (0.01,0) [0|0] "Nm"  A1_driver
+ SG_ steering_angle_rate : 40|12@1+ (4,0) [0|0] "deg/s"  A1_driver
+
+BO_ 113 WheelInfo: 16 longitudinal
+ SG_ life_count : 16|8@1+ (1,0) [0|0] ""  A1_driver
+ SG_ wheel_dir_fl : 24|2@1+ (1,0) [0|0] ""  A1_driver
+ SG_ wheel_dir_fr : 26|2@1+ (1,0) [0|0] ""  A1_driver
+ SG_ wheel_dir_rl : 28|2@1+ (1,0) [0|0] ""  A1_driver
+ SG_ wheel_dir_rr : 30|2@1+ (1,0) [0|0] ""  A1_driver
+ SG_ wheel_pulse_fl : 32|8@1+ (1,0) [0|0] ""  A1_driver
+ SG_ wheel_pulse_fr : 40|8@1+ (1,0) [0|0] ""  A1_driver
+ SG_ wheel_pulse_rl : 48|8@1+ (1,0) [0|0] ""  A1_driver
+ SG_ wheel_pulse_rr : 56|8@1+ (1,0) [0|0] ""  A1_driver
+ SG_ wheel_speed_fl : 64|13@1+ (0.01,0) [0|0] "m/s"  A1_driver
+ SG_ wheel_speed_fr : 77|13@1+ (0.01,0) [0|0] "m/s"  A1_driver
+ SG_ wheel_speed_rl : 90|13@1+ (0.01,0) [0|0] "m/s"  A1_driver
+ SG_ wheel_speed_rr : 103|13@1+ (0.01,0) [0|0] "m/s"  A1_driver
+
+BO_ 112 DynamicInfo: 12 dynamic_state
+ SG_ life_count : 16|8@1+ (1,0) [0|0] ""  A1_driver
+ SG_ long_acceleration : 24|12@1- (0.01,0) [0|0] "m/s^2"  A1_driver
+ SG_ lat_acceleration : 38|10@1- (0.01,0) [0|0] "m/s^2"  A1_driver
+ SG_ roll_rate : 48|10@1- (0.1,0) [0|0] "deg/s"  A1_driver
+ SG_ pitch_rate : 58|10@1- (0.1,0) [0|0] "deg/s"  A1_driver
+ SG_ yaw_rate : 68|12@1- (0.1,0) [0|0] "deg/s"  A1_driver
+
+BO_ 84 TurnSignalControl: 4 supervisor
+ SG_ life_count : 8|8@1+ (1,0) [0|0] ""  ignition
+ SG_ turn_signal_control_mode : 16|2@1+ (1,0) [0|0] ""  ignition
+ SG_ target_turn_signal : 18|2@1+ (1,0) [0|0] ""  ignition
+
+BO_ 83 LateralControl: 7 supervisor
+ SG_ life_count : 8|8@1+ (1,0) [0|0] ""  lateral
+ SG_ steering_control_mode : 16|2@1+ (1,0) [0|0] ""  lateral
+ SG_ target_steering_angle : 34|14@1- (0.1,0) [0|0] "deg"  lateral
+
+BO_ 82 GearControl: 3 supervisor
+ SG_ life_count : 8|8@1+ (1,0) [0|0] ""  gear
+ SG_ gear_control_mode : 16|2@1+ (1,0) [0|0] ""  gear
+ SG_ target_gear : 20|4@1+ (1,0) [0|0] ""  gear
+
+BO_ 81 LongitudinalControl: 8 supervisor
+ SG_ life_count : 8|8@1+ (1,0) [0|0] ""  longitudinal
+ SG_ longitudinal_control_mode : 16|3@1+ (1,0) [0|0] ""  longitudinal
+ SG_ target_acceleration : 19|11@1- (0.01,0) [0|0] "m/s^2"  longitudinal
+
+BO_ 21 GearState: 4 gear
+ SG_ life_count : 8|8@1+ (1,0) [0|0] ""  supervisor
+ SG_ gear_ctrl_state : 16|1@1+ (1,0) [0|0] ""  supervisor
+ SG_ gear_override : 17|1@1+ (1,0) [0|0] ""  supervisor
+ SG_ error_code : 24|8@1+ (1,0) [0|0] ""  supervisor
+
+BO_ 20 TurnSignalState: 4 accessory
+ SG_ life_count : 8|8@1+ (1,0) [0|0] ""  supervisor
+ SG_ turnsignal_ctrl_status : 16|2@1+ (1,0) [0|0] ""  supervisor
+ SG_ turnsignal_override : 22|1@1+ (1,0) [0|0] ""  supervisor
+ SG_ error_code : 24|8@1+ (1,0) [0|0] ""  supervisor
+
+BO_ 19 LongitudinalState: 6 longitudinal
+ SG_ life_count : 8|8@1+ (1,0) [0|0] ""  supervisor
+ SG_ longitudinal_ctrl_state : 16|1@1+ (1,0) [0|0] ""  supervisor
+ SG_ longitudinal_override : 17|2@1+ (1,0) [0|0] ""  supervisor
+ SG_ error_code : 24|8@1+ (1,0) [0|0] ""  supervisor
+
+BO_ 18 LateralState: 5 lateral
+ SG_ life_count : 8|8@1+ (1,0) [0|0] ""  supervisor
+ SG_ lateral_ctrl_state : 16|1@1+ (1,0) [0|0] ""  supervisor
+ SG_ lateral_override : 17|1@1+ (1,0) [0|0] ""  supervisor
+ SG_ error_code : 24|8@1+ (1,0) [0|0] ""  supervisor
+
+
+
+BA_DEF_  "MultiplexExtEnabled" ENUM  "No","Yes";
+BA_DEF_ BO_  "CANFD_BRS" ENUM  "0","1";
+BA_DEF_ BO_  "GenMsgCycleTime" INT 0 2000;
+BA_DEF_  "DBName" STRING ;
+BA_DEF_  "BusType" STRING ;
+BA_DEF_ BU_  "NodeLayerModules" STRING ;
+BA_DEF_ BU_  "ECU" STRING ;
+BA_DEF_ BU_  "CANoeJitterMax" INT 0 0;
+BA_DEF_ BU_  "CANoeJitterMin" INT 0 0;
+BA_DEF_ BU_  "CANoeDrift" INT 0 0;
+BA_DEF_ BU_  "CANoeStartDelay" INT 0 0;
+BA_DEF_ BO_  "VFrameFormat" ENUM  "StandardCAN","ExtendedCAN","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","StandardCAN_FD","ExtendedCAN_FD";
+BA_DEF_DEF_  "MultiplexExtEnabled" "No";
+BA_DEF_DEF_  "CANFD_BRS" "0";
+BA_DEF_DEF_  "GenMsgCycleTime" 0;
+BA_DEF_DEF_  "DBName" "";
+BA_DEF_DEF_  "BusType" "";
+BA_DEF_DEF_  "NodeLayerModules" "";
+BA_DEF_DEF_  "ECU" "";
+BA_DEF_DEF_  "CANoeJitterMax" 0;
+BA_DEF_DEF_  "CANoeJitterMin" 0;
+BA_DEF_DEF_  "CANoeDrift" 0;
+BA_DEF_DEF_  "CANoeStartDelay" 0;
+BA_DEF_DEF_  "VFrameFormat" "StandardCAN";
+BA_ "BusType" "CAN FD";
+BA_ "DBName" "V_CAN";
+BA_ "GenMsgCycleTime" BO_ 117 20;
+BA_ "CANFD_BRS" BO_ 117 0;
+BA_ "GenMsgCycleTime" BO_ 116 200;
+BA_ "CANFD_BRS" BO_ 116 0;
+BA_ "GenMsgCycleTime" BO_ 115 20;
+BA_ "CANFD_BRS" BO_ 115 0;
+BA_ "GenMsgCycleTime" BO_ 114 20;
+BA_ "CANFD_BRS" BO_ 114 0;
+BA_ "GenMsgCycleTime" BO_ 113 10;
+BA_ "CANFD_BRS" BO_ 113 0;
+BA_ "VFrameFormat" BO_ 113 14;
+BA_ "GenMsgCycleTime" BO_ 112 10;
+BA_ "CANFD_BRS" BO_ 112 0;
+BA_ "VFrameFormat" BO_ 112 14;
+BA_ "GenMsgCycleTime" BO_ 84 200;
+BA_ "CANFD_BRS" BO_ 84 0;
+BA_ "GenMsgCycleTime" BO_ 83 20;
+BA_ "CANFD_BRS" BO_ 83 0;
+BA_ "GenMsgCycleTime" BO_ 82 20;
+BA_ "CANFD_BRS" BO_ 82 0;
+BA_ "GenMsgCycleTime" BO_ 81 20;
+BA_ "CANFD_BRS" BO_ 81 0;
+BA_ "GenMsgCycleTime" BO_ 21 20;
+BA_ "CANFD_BRS" BO_ 21 0;
+BA_ "GenMsgCycleTime" BO_ 20 200;
+BA_ "CANFD_BRS" BO_ 20 0;
+BA_ "GenMsgCycleTime" BO_ 19 20;
+BA_ "CANFD_BRS" BO_ 19 0;
+BA_ "GenMsgCycleTime" BO_ 18 20;
+BA_ "CANFD_BRS" BO_ 18 0;
+VAL_ 117 gear_status 4 "D" 3 "N" 2 "R" 1 "P" 0 "Invalid or N/A" ;
+VAL_ 116 turn_signal_status 0 "N/A" 1 "Left blinking" 2 "Right blinking" 3 "Both blinking" ;
+VAL_ 84 turn_signal_control_mode 0 "N/A" 1 "AD" ;
+VAL_ 84 target_turn_signal 0 "N/A" 1 "Left blinking" 2 "Right blinking" 3 "Both blinking" ;
+VAL_ 83 steering_control_mode 2 "Angle control" 1 "Torque control" 0 "Inactive" ;
+VAL_ 82 gear_control_mode 0 "N/A" 1 "AD" ;
+VAL_ 82 target_gear 4 "D" 3 "N" 2 "R" 1 "P" 0 "Invalid or N/A" ;
+VAL_ 81 longitudinal_control_mode 0 "Invalid or inactive" 1 "Acceleration control" 2 "Pedal position control" 3 "Pedal torque control" 4 "Accel-pos/Brake-torque" 5 "Accel-torque/Brake-pos" ;
+VAL_ 21 gear_ctrl_state 1 "AD control activate" 0 "Inactive" ;
+VAL_ 21 gear_override 0 "Invaild or N/A" 1 "Overried" ;
+VAL_ 21 error_code 8 "Invalid target gear" 4 "Control command timeout" 2 "Invalid CRC" 1 "Invalid control mode" 0 "N/A" ;
+VAL_ 20 turnsignal_ctrl_status 0 "N/A" 1 "AD" ;
+VAL_ 20 turnsignal_override 0 "Invaild or N/A" 1 "Overrided" ;
+VAL_ 20 error_code 8 "Invalid target turn-signal" 4 "Control command timeout" 2 "Invalid CRC" 1 "Invalid control mode" 0 "N/A" ;
+VAL_ 19 longitudinal_ctrl_state 1 "AD control activate" 0 "Inactive" ;
+VAL_ 19 longitudinal_override 0 "Invalid or N/A" 1 "Accel pedal overried" 2 "Brake pedal override" 3 "Both overried" ;
+VAL_ 19 error_code 16 "Invalid target angle" 8 "Invalid target torque" 4 "Control command timeout" 2 "Invalid CRC" 1 "Invalid control mode" 0 "N/A" ;
+VAL_ 18 lateral_ctrl_state 1 "AD control activate" 0 "Inactive" ;
+VAL_ 18 lateral_override 0 "Invaild or N/A" 1 "Overried" ;
+

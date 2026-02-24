@@ -703,246 +703,116 @@ void VISION_CAN_READER(){
 void CHASSIS_CAN_READER(){
   vector<tuple<char*, vector<char*>>> msg_list;
 
-  msg_list.push_back(make_tuple((char*)"DiagnosticADCU", vector<char*> {(char*)"ADCU_AliveCount",\
-                                                                  (char*)"ADCU_SWC_StatCode"}));
+  msg_list.push_back(make_tuple((char*)"OperationControl", vector<char*> {(char*)"operation_sw",\
+                                                                          (char*)"autonomous_sw",\
+                                                                          (char*)"emergency_sw"}));
 
-  msg_list.push_back(make_tuple((char*)"VCU1_ADCU", vector<char*> {(char*)"vcu_EPS_En",\
-                                                                   (char*)"vcu_BRK_En",\
-                                                                   (char*)"vcu_ACC_En",\
-                                                                   (char*)"vcu_EPS_Override",\
-                                                                   (char*)"vcu_BRK_Override",\
-                                                                   (char*)"vcu_ACC_Override",\
-                                                                   (char*)"vcu_EPS_Status",\
-                                                                   (char*)"vcu_ACC_Status",\
-                                                                   (char*)"vcu_BRK_Status",\
-                                                                   (char*)"vcu_TargetSteerAngle",\
-                                                                   (char*)"vcu_MaxSteeringSpeed",\
-                                                                   (char*)"vcu_TargetAcceleration",\
-                                                                   (char*)"VCU1_ADCU_AliveCnt"}));
+  msg_list.push_back(make_tuple((char*)"LateralControl", vector<char*> {(char*)"steering_control_mode",\
+                                                                        (char*)"target_steering_angle"}));
 
-  msg_list.push_back(make_tuple((char*)"VCU2_ADCU", vector<char*> {(char*)"vcu_ADMDStatus",\
-                                                                   (char*)"vcu_ADReady",\
-                                                                   (char*)"vcu_Override",\
-                                                                   (char*)"vcu_Estop",\
-                                                                   (char*)"vcu_HazardCtl",\
-                                                                   (char*)"vcu_LeftTurnCtl",\
-                                                                   (char*)"vcu_RightTurnCtl",\
-                                                                   (char*)"vcu_LeftTurnState",\
-                                                                   (char*)"vcu_RightTurnState",\
-                                                                   (char*)"vcu_VB",\
-                                                                   (char*)"VCU2_ADCU_AliveCnt"}));
+  msg_list.push_back(make_tuple((char*)"GearControl", vector<char*> {(char*)"gear_control_mode",\
+                                                                      (char*)"target_gear"}));
 
-  msg_list.push_back(make_tuple((char*)"VCU3_ADCU", vector<char*> {(char*)"vcu_APS",\
-                                                                   (char*)"vcu_BPS",\
-                                                                   (char*)"vcu_VS",\
-                                                                   (char*)"vcu_SAS_Angle",\
-                                                                   (char*)"vcu_SAS_Speed",\
-                                                                   (char*)"vcu_LONG_ACCEL"}));            
-  msg_list.push_back(make_tuple((char*)"from_Control", vector<char*> {(char*)"LC_flag",\
-                                                                    (char*)"AEB_flag"}));
+  msg_list.push_back(make_tuple((char*)"BrainState", vector<char*> {(char*)"life_count",\
+                                                                    (char*)"brain_status"}));
 
-  int msg_num = 5;
-  int temp_substring;
-  bool matched_flag = false;
-  int msg_idx;
-  
-  katech_diagnostic_msgs::k_adcu_diagnostic_msg adcu_msg;
-  mmc_msgs::chassis_msg msg;
+  msg_list.push_back(make_tuple((char*)"AutonomousState", vector<char*> {(char*)"operation_mode",\
+                                                                         (char*)"autonomous_mode",\
+                                                                         (char*)"error_code",\
+                                                                         (char*)"warning_code"}));
+
+  katech_custom_msgs::ioniq5_ad_can_msg msg;
 
   ros::Rate rate(freq_for_channel_0);
 
   while(ros::ok()){
     can_status = canReadWait(hCAN, &temp_id, can_data, &dlc, &canread_flag, &timestamp, timeout_channel_0);
     kvaDb_status = kvaDbGetMsgById(dh, temp_id, &mh);
-    
+
     if(kvaDb_status == kvaDbOK){
-      // 먼저 메시지 이름을 가져옴
       kvaDbGetMsgName(mh, buff, sizeof(buff));
-      
-      // 매칭되는 메시지 찾기
+
       bool matched_flag = false;
       int msg_idx = -1;
-      
+
       for(int i=0; i < msg_list.size(); i++){
         if(strcmp(buff, get<0>(msg_list[i])) == 0){
           matched_flag = true;
           msg_idx = i;
-          break; // 찾았으면 루프 종료
+          break;
         }
       }
-    
-    // for(int i=0; i!=msg_list.size(); i++){
-        
-    //   if(strcmp(buff, get<0>(msg_list[i])) == 0){
-    //     matched_flag = true;
-    //     msg_idx = i;
-    //   }
-    
 
-    //   if(matched_flag == false){
-    //     msg_idx = 0;
-    //   }
-    
-      // if(kvaDb_status == kvaDbOK){
-        // kvaDbGetMsgName(mh, buff, sizeof(buff));
       if(matched_flag){
 
         switch(msg_idx){
 
-          case(0): // DiagnosticADCU
-            msg.time = ros::Time::now();
-
+          case(0): // OperationControl
             for(int i=0; i!=get<1>(msg_list[msg_idx]).size(); i++){
               kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[i], &sh);
               kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
 
               switch(i){
-
-                case(0): // ADCU_AliveCount
-                  adcu_msg.ADCU_AliveCount++;
-                break;
-
-                case(1): // ADCU_SWC_StatCode
-                  adcu_msg.ADCU_SWC_StatCode = value; // PI/180 = 0.0174533, rad
-                break;
-              }
-            }
-            pub0.publish(adcu_msg);
-          break;
-
-          case(1): // VCU1_ADCU
-
-            for(int i=0; i!=get<1>(msg_list[msg_idx]).size(); i++){
-              kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[i], &sh);
-              kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
-
-              switch(i){
-                case(0):
-                case(1):
-                case(2):
-                case(3):
-                case(4):
-                case(5):
-                break;
-
-                case(6): // vcu_EPS_Status
-                  msg.vcu_EPS_Status = value;
-                break;
-
-                case(7): // vcu_ACC_Status
-                  msg.vcu_ACC_Status = value;
-                break;
-
-                case(8): // vcu_BRK_Status
-                  msg.vcu_BRK_Status = value;
-                break;
-
-                case(9):
-                case(10):
-                case(11):
-                break;
-                
-                case(12): // VCU1_ADCU_AliveCnt
-                  msg.VCU1_ADCU_AliveCnt = value;
-                break;
+                case(0): msg.operation_sw = (uint8_t)value; break;
+                case(1): msg.autonomous_sw = (uint8_t)value; break;
+                case(2): msg.emergency_sw = (uint8_t)value; break;
               }
             }
             pub1.publish(msg);
           break;
 
-          case(2): // VCU2_ADCU
-
+          case(1): // LateralControl
             for(int i=0; i!=get<1>(msg_list[msg_idx]).size(); i++){
               kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[i], &sh);
               kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
 
               switch(i){
-
-                case(0): // vcu_ADMDStatus
-                  msg.vcu_ADMDStatus = value;
-                break;
-
-                case(1): // vcu_ADReady
-                  msg.vcu_ADReady = value;
-                break;
-
-                case(2): // vcu_Override
-                  msg.vcu_Override = value;
-                break;
-
-                case(3): // vcu_Estop
-                  msg.vcu_Estop = value;
-                break;
-
-                case(4): // vcu_HazardCtl
-                  msg.vcu_HazardCtl = value;
-                break;
-
-                case(5): // vcu_LeftTurnCtl
-                  msg.vcu_LeftTurnCtl = value;
-                break;
-
-                case(6): // vcu_RightTurnCtl
-                  msg.vcu_RightTurnCtl = value; 
-                break;
-
-                case(7): // vcu_LeftTurnState
-                  msg.vcu_LeftTurnState = value; 
-                break;
-
-                case(8): // vcu_RightTurnState
-                  msg.vcu_RightTurnState = value; 
-                break;
-
-                case(10): // VCU2_ADCU_AliveCnt
-                  msg.VCU2_ADCU_AliveCnt = value; 
-                break;
+                case(0): msg.steering_control_mode = (uint8_t)value; break;
+                case(1): msg.target_steering_angle = value; break;
               }
             }
-          
+            pub1.publish(msg);
           break;
 
-          case(3): // VCU3_ADCU
-
+          case(2): // GearControl
             for(int i=0; i!=get<1>(msg_list[msg_idx]).size(); i++){
               kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[i], &sh);
               kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
 
               switch(i){
-
-                case(2): // vcu_VS
-                  msg.vcu_VS = value;
-                break;
-
-                case(3): // vcu_SAS_Angle
-                  msg.vcu_SAS_Angle = value; 
-                break;
-
-                case(5): // vcu_LONG_ACCEL
-                  msg.vcu_LONG_ACCEL = value; 
-                break;
+                case(0): msg.gear_control_mode = (uint8_t)value; break;
+                case(1): msg.target_gear = (uint8_t)value; break;
               }
             }
+            pub1.publish(msg);
           break;
 
-          case(4): // from_Control
-
+          case(3): // BrainState
             for(int i=0; i!=get<1>(msg_list[msg_idx]).size(); i++){
               kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[i], &sh);
               kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
 
               switch(i){
-
-                case(0): // LC_flag
-                  msg.LC_flag = value;
-                break;
-
-                case(1): // AEB_flag
-                  msg.AEB_flag = value;
-                break;
-
+                case(0): msg.brain_life_count = (uint8_t)value; break;
+                case(1): msg.brain_status = (uint8_t)value; break;
               }
             }
+            pub1.publish(msg);
+          break;
+
+          case(4): // AutonomousState
+            for(int i=0; i!=get<1>(msg_list[msg_idx]).size(); i++){
+              kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[i], &sh);
+              kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
+
+              switch(i){
+                case(0): msg.operation_mode = (uint8_t)value; break;
+                case(1): msg.autonomous_mode = (uint8_t)value; break;
+                case(2): msg.error_code = (uint16_t)value; break;
+                case(3): msg.warning_code = (uint16_t)value; break;
+              }
+            }
+            pub1.publish(msg);
           break;
         }
       }

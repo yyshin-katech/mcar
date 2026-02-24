@@ -11,9 +11,7 @@
 #include <vector>
 #include <tuple>
 
-#include <mmc_msgs/V2V.h>
-
-#include <mmc_msgs/motor_rpm_msg.h>
+#include <katech_custom_msgs/v_can_msg.h>
 
 #include <algorithm>
 #include <math.h>
@@ -25,21 +23,15 @@
 
 using namespace std;
 
-#define PI 3.141592
-
-ros::Timer timer_;
 ros::Publisher pub1;
 
 canHandle hCAN;
 canStatus can_status;
 
-double tire_radius = 0.326;
-double gear_ratio = 7.412;
-
 long temp_id;
 unsigned long timestamp;
-unsigned int id_write, flag, dlc = 8, canread_flag = 0;
-unsigned char can_data[8]; // CAN standard
+unsigned int id_write, flag, dlc = 64, canread_flag = 0;
+unsigned char can_data[64]; // CAN FD
 
 KvaDbStatus kvaDb_status;
 KvaDbHnd dh = 0;
@@ -50,59 +42,10 @@ unsigned int kvaDb_flags = 0;
 unsigned short freq_for_channel_0 = 4000; // Hz
 unsigned short timeout_channel_0 = 100;   // ms
 
-unsigned short id;
 char buff[50];
 double value;
 
-typedef struct{
-  double wheel_spd_fl;
-  double wheel_spd_fr;
-  double wheel_spd_rl;
-  double wheel_spd_rr;
-  unsigned char AliveCnt_LSB;
-  unsigned char AliveCnt_MSB;
-  unsigned char Checksum_LSB;
-  unsigned char Checksum_MSB;
-} structWHL_SPD11;
-
-structWHL_SPD11 sWheel_SPD;
-unsigned char gear_pos;
-
-mmc_msgs::motor_rpm_msg msgRPM;
-
-void timerCallback(const ros::TimerEvent&)
-{
-  double wheel_rpm = 0;
-  double motor_rpm = 0;
-
-  wheel_rpm = (sWheel_SPD.wheel_spd_fl * 1000) / (60 * 2 * PI * tire_radius);
-  motor_rpm = wheel_rpm * gear_ratio;
-
-  msgRPM.N = motor_rpm;
-  msgRPM.gear_pos = gear_pos;
-  
-  pub1.publish(msgRPM);
-}
-
-short FIND_MSG_IDX(char* target_msg, vector<tuple<char*, vector<char*>>>* msg_list){
-  short idx = -1;
-
-  for(short i=0; i!=msg_list->size(); i++){
-
-    if(strcmp(target_msg, get<0>(msg_list->at(i))) == 0){
-      idx = i;
-      break;
-    }
-  }
-
-  if(idx != -1){
-    return idx;
-
-  }else{
-    cout<<"No matched message! : "<<target_msg<<endl;
-    return -1;
-  }
-}
+katech_custom_msgs::v_can_msg vcan_msg;
 
 canStatus OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num, char *filename, bool init_access_flag)
 {
@@ -111,11 +54,11 @@ canStatus OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num, char *filename, bool ini
 
   if (init_access_flag == true)
   {
-    open_flag = canOPEN_REQUIRE_INIT_ACCESS;
+    open_flag = canOPEN_REQUIRE_INIT_ACCESS | canOPEN_CAN_FD;
   }
   else
   {
-    open_flag = canOPEN_NO_INIT_ACCESS;
+    open_flag = canOPEN_NO_INIT_ACCESS | canOPEN_CAN_FD;
   }
 
   hCAN = canOpenChannel(channel_num, open_flag);
@@ -128,6 +71,7 @@ canStatus OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num, char *filename, bool ini
   }
 
   can_status = canSetBusParams(hCAN, canBITRATE_500K, 0, 0, 0, 0, 0);
+  can_status = canSetBusParamsFd(hCAN, canFD_BITRATE_1M_80P, 0, 0, 0);
   can_status = canSetBusOutputControl(hCAN, canDRIVER_NORMAL);
   can_status = canBusOn(hCAN);
 
@@ -151,108 +95,233 @@ canStatus OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num, char *filename, bool ini
 void IONIQ_CAN_READER()
 {
   ros::Rate rate(freq_for_channel_0);
-  ros::Time time_last_pub = ros::Time::now();
-
-  short MsgCount = 0;
 
   vector<tuple<char *, vector<char *>>> msg_list;
 
-  msg_list.push_back(make_tuple((char *)"WHL_SPD11", vector<char *>{(char *)"WHL_SPD_FL",
-                                                                    (char *)"WHL_SPD_FR",
-                                                                    (char *)"WHL_SPD_RL",
-                                                                    (char *)"WHL_SPD_RR",
-                                                                    (char *)"WHL_SPD_AliveCounter_LSB",
-                                                                    (char *)"WHL_SPD_AliveCounter_MSB",
-                                                                    (char *)"WHL_SPD_Checksum_LSB",
-                                                                    (char *)"WHL_SPD_Checksum_MSB",}));
+  // 0: GearInfo (ID 117)
+  msg_list.push_back(make_tuple((char *)"GearInfo", vector<char *>{(char *)"life_count",
+                                                                    (char *)"gear_status"}));
 
-  msg_list.push_back(make_tuple((char *)"ELECT_GEAR", vector<char *>{(char *)"Elect_Gear_Shifter",
-                                                                    (char *)"SLC_ON",
-                                                                    (char *)"SLC_SET_SPEED",}));
-  
+  // 1: TurnSignalInfo (ID 116)
+  msg_list.push_back(make_tuple((char *)"TurnSignalInfo", vector<char *>{(char *)"turn_signal_status"}));
+
+  // 2: LongitudinalInfo (ID 115)
+  msg_list.push_back(make_tuple((char *)"LongitudinalInfo", vector<char *>{(char *)"motor_rpm",
+                                                                           (char *)"acceleration_pedal_pos",
+                                                                           (char *)"brake_pedal_pos",
+                                                                           (char *)"brake_pressure"}));
+
+  // 3: SteeringInfo (ID 114)
+  msg_list.push_back(make_tuple((char *)"SteeringInfo", vector<char *>{(char *)"steering_angle",
+                                                                       (char *)"steering_torque",
+                                                                       (char *)"steering_angle_rate"}));
+
+  // 4: WheelInfo (ID 113, CAN FD 16 bytes)
+  msg_list.push_back(make_tuple((char *)"WheelInfo", vector<char *>{(char *)"wheel_dir_fl",
+                                                                     (char *)"wheel_dir_fr",
+                                                                     (char *)"wheel_dir_rl",
+                                                                     (char *)"wheel_dir_rr",
+                                                                     (char *)"wheel_pulse_fl",
+                                                                     (char *)"wheel_pulse_fr",
+                                                                     (char *)"wheel_pulse_rl",
+                                                                     (char *)"wheel_pulse_rr",
+                                                                     (char *)"wheel_speed_fl",
+                                                                     (char *)"wheel_speed_fr",
+                                                                     (char *)"wheel_speed_rl",
+                                                                     (char *)"wheel_speed_rr"}));
+
+  // 5: DynamicInfo (ID 112, CAN FD 12 bytes)
+  msg_list.push_back(make_tuple((char *)"DynamicInfo", vector<char *>{(char *)"long_acceleration",
+                                                                      (char *)"lat_acceleration",
+                                                                      (char *)"roll_rate",
+                                                                      (char *)"pitch_rate",
+                                                                      (char *)"yaw_rate"}));
+
+  // 6: TurnSignalControl (ID 84)
+  msg_list.push_back(make_tuple((char *)"TurnSignalControl", vector<char *>{(char *)"turn_signal_control_mode",
+                                                                             (char *)"target_turn_signal"}));
+
+  // 7: LateralControl (ID 83)
+  msg_list.push_back(make_tuple((char *)"LateralControl", vector<char *>{(char *)"steering_control_mode",
+                                                                          (char *)"target_steering_angle"}));
+
+  // 8: GearControl (ID 82)
+  msg_list.push_back(make_tuple((char *)"GearControl", vector<char *>{(char *)"gear_control_mode",
+                                                                       (char *)"target_gear"}));
+
+  // 9: LongitudinalControl (ID 81)
+  msg_list.push_back(make_tuple((char *)"LongitudinalControl", vector<char *>{(char *)"longitudinal_control_mode",
+                                                                               (char *)"target_acceleration"}));
+
+  // 10: GearState (ID 21)
+  msg_list.push_back(make_tuple((char *)"GearState", vector<char *>{(char *)"gear_ctrl_state",
+                                                                     (char *)"gear_override",
+                                                                     (char *)"error_code"}));
+
+  // 11: TurnSignalState (ID 20)
+  msg_list.push_back(make_tuple((char *)"TurnSignalState", vector<char *>{(char *)"turnsignal_ctrl_status",
+                                                                           (char *)"turnsignal_override",
+                                                                           (char *)"error_code"}));
+
+  // 12: LongitudinalState (ID 19)
+  msg_list.push_back(make_tuple((char *)"LongitudinalState", vector<char *>{(char *)"longitudinal_ctrl_state",
+                                                                             (char *)"longitudinal_override",
+                                                                             (char *)"error_code"}));
+
+  // 13: LateralState (ID 18)
+  msg_list.push_back(make_tuple((char *)"LateralState", vector<char *>{(char *)"lateral_ctrl_state",
+                                                                        (char *)"lateral_override",
+                                                                        (char *)"error_code"}));
 
   while (ros::ok())
-  { // 4000Hz
+  {
+    dlc = 64;
     can_status = canReadWait(hCAN, &temp_id, can_data, &dlc, &canread_flag, &timestamp, timeout_channel_0);
     kvaDb_status = kvaDbGetMsgById(dh, temp_id, &mh);
 
     if (kvaDb_status == kvaDbOK)
     {
       kvaDbGetMsgName(mh, buff, sizeof(buff));
-      short msg_idx = 9999;
 
-      // 매칭되는 메시지 찾기
-      bool matched_flag = false;
-      
+      int msg_idx = -1;
       for(int i=0; i < msg_list.size(); i++){
         if(strcmp(buff, get<0>(msg_list[i])) == 0){
-          matched_flag = true;
           msg_idx = i;
-          break; // 찾았으면 루프 종료
+          break;
         }
       }
 
-      if (msg_idx == 0)
-      {
-        for (int i = 0; i != get<1>(msg_list[msg_idx]).size(); i++)
-        {
-          kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[i], &sh);
-          kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
-
-          switch (i)
-          {
-          case (0): // Neutral
-            sWheel_SPD.wheel_spd_fl = (double)value;
-            break;
-          case (1): // Park
-            sWheel_SPD.wheel_spd_fr = (double)value;
-            break;
-          case (2): // Drive(forward)
-            sWheel_SPD.wheel_spd_rl = (double)value;
-            break;
-          case (3): // Reverse
-            sWheel_SPD.wheel_spd_rl = (double)value;
-            break;
-          case (4): // Reverse
-            sWheel_SPD.AliveCnt_LSB = (unsigned char)value;
-            break;
-          case (5): // Reverse
-            sWheel_SPD.AliveCnt_MSB = (unsigned char)value;
-            break;
-          case (6): // Reverse
-            sWheel_SPD.Checksum_LSB = (unsigned char)value;
-            break;
-          case (7): // Reverse
-            sWheel_SPD.Checksum_MSB = (unsigned char)value;
-            break;
-          default:
-            break;
-          }
-        } 
-        
+      if(msg_idx < 0){
+        rate.sleep();
+        continue;
       }
-      else if (msg_idx == 1)
-      {
-        for (int i = 0; i != get<1>(msg_list[msg_idx]).size(); i++)
-        {
-          kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[i], &sh);
-          kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
 
-          switch (i)
-          {
-          case (0): // Elect_Gear_Shifter
-            gear_pos = value;
-            break;
-          case (1):
-            break;
-          case (2):
-            break;
-          default:
-            break;
-          }
-        } 
+      // 시그널 값 읽기
+      for (int i = 0; i != get<1>(msg_list[msg_idx]).size(); i++)
+      {
+        kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[i], &sh);
+        kvaDbRetrieveSignalValuePhys(sh, &value, can_data, dlc);
+
+        switch(msg_idx){
+
+          case(0): // GearInfo
+            switch(i){
+              case(0): vcan_msg.life_count = (uint8_t)value; break;
+              case(1): vcan_msg.gear_status = (uint8_t)value; break;
+            }
+          break;
+
+          case(1): // TurnSignalInfo
+            vcan_msg.turn_signal_status = (uint8_t)value;
+          break;
+
+          case(2): // LongitudinalInfo
+            switch(i){
+              case(0): vcan_msg.motor_rpm = value; break;
+              case(1): vcan_msg.acceleration_pedal_pos = value; break;
+              case(2): vcan_msg.brake_pedal_pos = value; break;
+              case(3): vcan_msg.brake_pressure = value; break;
+            }
+          break;
+
+          case(3): // SteeringInfo
+            switch(i){
+              case(0): vcan_msg.steering_angle = value; break;
+              case(1): vcan_msg.steering_torque = value; break;
+              case(2): vcan_msg.steering_angle_rate = value; break;
+            }
+          break;
+
+          case(4): // WheelInfo (CAN FD)
+            switch(i){
+              case(0):  vcan_msg.wheel_dir_fl = (uint8_t)value; break;
+              case(1):  vcan_msg.wheel_dir_fr = (uint8_t)value; break;
+              case(2):  vcan_msg.wheel_dir_rl = (uint8_t)value; break;
+              case(3):  vcan_msg.wheel_dir_rr = (uint8_t)value; break;
+              case(4):  vcan_msg.wheel_pulse_fl = (uint8_t)value; break;
+              case(5):  vcan_msg.wheel_pulse_fr = (uint8_t)value; break;
+              case(6):  vcan_msg.wheel_pulse_rl = (uint8_t)value; break;
+              case(7):  vcan_msg.wheel_pulse_rr = (uint8_t)value; break;
+              case(8):  vcan_msg.wheel_speed_fl = value; break;
+              case(9):  vcan_msg.wheel_speed_fr = value; break;
+              case(10): vcan_msg.wheel_speed_rl = value; break;
+              case(11): vcan_msg.wheel_speed_rr = value; break;
+            }
+          break;
+
+          case(5): // DynamicInfo (CAN FD)
+            switch(i){
+              case(0): vcan_msg.long_acceleration = value; break;
+              case(1): vcan_msg.lat_acceleration = value; break;
+              case(2): vcan_msg.roll_rate = value; break;
+              case(3): vcan_msg.pitch_rate = value; break;
+              case(4): vcan_msg.yaw_rate = value; break;
+            }
+          break;
+
+          case(6): // TurnSignalControl
+            switch(i){
+              case(0): vcan_msg.turn_signal_control_mode = (uint8_t)value; break;
+              case(1): vcan_msg.target_turn_signal = (uint8_t)value; break;
+            }
+          break;
+
+          case(7): // LateralControl
+            switch(i){
+              case(0): vcan_msg.lat_steering_control_mode = (uint8_t)value; break;
+              case(1): vcan_msg.lat_target_steering_angle = value; break;
+            }
+          break;
+
+          case(8): // GearControl
+            switch(i){
+              case(0): vcan_msg.gear_control_mode = (uint8_t)value; break;
+              case(1): vcan_msg.target_gear = (uint8_t)value; break;
+            }
+          break;
+
+          case(9): // LongitudinalControl
+            switch(i){
+              case(0): vcan_msg.longitudinal_control_mode = (uint8_t)value; break;
+              case(1): vcan_msg.target_acceleration = value; break;
+            }
+          break;
+
+          case(10): // GearState
+            switch(i){
+              case(0): vcan_msg.gear_ctrl_state = (uint8_t)value; break;
+              case(1): vcan_msg.gear_override = (uint8_t)value; break;
+              case(2): vcan_msg.gear_error_code = (uint8_t)value; break;
+            }
+          break;
+
+          case(11): // TurnSignalState
+            switch(i){
+              case(0): vcan_msg.turnsignal_ctrl_status = (uint8_t)value; break;
+              case(1): vcan_msg.turnsignal_override = (uint8_t)value; break;
+              case(2): vcan_msg.turnsignal_error_code = (uint8_t)value; break;
+            }
+          break;
+
+          case(12): // LongitudinalState
+            switch(i){
+              case(0): vcan_msg.longitudinal_ctrl_state = (uint8_t)value; break;
+              case(1): vcan_msg.longitudinal_override = (uint8_t)value; break;
+              case(2): vcan_msg.longitudinal_error_code = (uint8_t)value; break;
+            }
+          break;
+
+          case(13): // LateralState
+            switch(i){
+              case(0): vcan_msg.lateral_ctrl_state = (uint8_t)value; break;
+              case(1): vcan_msg.lateral_override = (uint8_t)value; break;
+              case(2): vcan_msg.lateral_error_code = (uint8_t)value; break;
+            }
+          break;
+        }
       }
-      
+
+      pub1.publish(vcan_msg);
     }
     rate.sleep();
   }
@@ -266,16 +335,15 @@ int main(int argc, char **argv)
   ros::AsyncSpinner spinner(0);
   spinner.start();
 
-  timer_ = node.createTimer(ros::Duration(0.1), &timerCallback);
-  pub1 = node.advertise<mmc_msgs::motor_rpm_msg>("/sensors/rpm", 1);
+  pub1 = node.advertise<katech_custom_msgs::v_can_msg>("/sensors/v_can", 1);
 
   string relative_path = ros::package::getPath("can");
   char filename[100];
 
   //////////////////////////////////// Parameters ///////////////////////////////////////
-  strcpy(filename, (relative_path + "/dbc/2gen-2ch-C_IoniqEV_v2.dbc").c_str());
+  strcpy(filename, (relative_path + "/dbc/V_CAN_Release.dbc").c_str());
   int channel_num = 2;
-  bool init_access_flag = true; // Init access: no (= CAN handle will be used in multithread)
+  bool init_access_flag = true;
   ///////////////////////////////////////////////////////////////////////////////////////
 
   can_status = OPEN_CAN_CHANNEL_AND_READ_DB(channel_num, filename, init_access_flag);
