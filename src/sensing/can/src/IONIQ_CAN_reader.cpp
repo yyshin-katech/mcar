@@ -38,8 +38,8 @@ double gear_ratio = 7.412;
 
 long temp_id;
 unsigned long timestamp;
-unsigned int id_write, flag, dlc = 8, canread_flag = 0;
-unsigned char can_data[8]; // CAN standard
+unsigned int id_write, flag, dlc = 64, canread_flag = 0;
+unsigned char can_data[64]; // CAN FD
 
 KvaDbStatus kvaDb_status;
 KvaDbHnd dh = 0;
@@ -59,13 +59,9 @@ typedef struct{
   double wheel_spd_fr;
   double wheel_spd_rl;
   double wheel_spd_rr;
-  unsigned char AliveCnt_LSB;
-  unsigned char AliveCnt_MSB;
-  unsigned char Checksum_LSB;
-  unsigned char Checksum_MSB;
-} structWHL_SPD11;
+} structWHL_SPD;
 
-structWHL_SPD11 sWheel_SPD;
+structWHL_SPD sWheel_SPD;
 unsigned char gear_pos;
 
 mmc_msgs::motor_rpm_msg msgRPM;
@@ -75,12 +71,13 @@ void timerCallback(const ros::TimerEvent&)
   double wheel_rpm = 0;
   double motor_rpm = 0;
 
-  wheel_rpm = (sWheel_SPD.wheel_spd_fl * 1000) / (60 * 2 * PI * tire_radius);
+  // wheel_speed is in m/s (V_CAN_Release.dbc, scale 0.01)
+  wheel_rpm = (sWheel_SPD.wheel_spd_fl * 60.0) / (2.0 * PI * tire_radius);
   motor_rpm = wheel_rpm * gear_ratio;
 
   msgRPM.N = motor_rpm;
   msgRPM.gear_pos = gear_pos;
-  
+
   pub1.publish(msgRPM);
 }
 
@@ -111,11 +108,11 @@ canStatus OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num, char *filename, bool ini
 
   if (init_access_flag == true)
   {
-    open_flag = canOPEN_REQUIRE_INIT_ACCESS;
+    open_flag = canOPEN_REQUIRE_INIT_ACCESS | canOPEN_CAN_FD;
   }
   else
   {
-    open_flag = canOPEN_NO_INIT_ACCESS;
+    open_flag = canOPEN_NO_INIT_ACCESS | canOPEN_CAN_FD;
   }
 
   hCAN = canOpenChannel(channel_num, open_flag);
@@ -128,6 +125,7 @@ canStatus OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num, char *filename, bool ini
   }
 
   can_status = canSetBusParams(hCAN, canBITRATE_500K, 0, 0, 0, 0, 0);
+  can_status = canSetBusParamsFd(hCAN, canFD_BITRATE_1M_80P, 0, 0, 0);
   can_status = canSetBusOutputControl(hCAN, canDRIVER_NORMAL);
   can_status = canBusOn(hCAN);
 
@@ -157,22 +155,16 @@ void IONIQ_CAN_READER()
 
   vector<tuple<char *, vector<char *>>> msg_list;
 
-  msg_list.push_back(make_tuple((char *)"WHL_SPD11", vector<char *>{(char *)"WHL_SPD_FL",
-                                                                    (char *)"WHL_SPD_FR",
-                                                                    (char *)"WHL_SPD_RL",
-                                                                    (char *)"WHL_SPD_RR",
-                                                                    (char *)"WHL_SPD_AliveCounter_LSB",
-                                                                    (char *)"WHL_SPD_AliveCounter_MSB",
-                                                                    (char *)"WHL_SPD_Checksum_LSB",
-                                                                    (char *)"WHL_SPD_Checksum_MSB",}));
+  msg_list.push_back(make_tuple((char *)"WheelInfo", vector<char *>{(char *)"wheel_speed_fl",
+                                                                    (char *)"wheel_speed_fr",
+                                                                    (char *)"wheel_speed_rl",
+                                                                    (char *)"wheel_speed_rr"}));
 
-  msg_list.push_back(make_tuple((char *)"ELECT_GEAR", vector<char *>{(char *)"Elect_Gear_Shifter",
-                                                                    (char *)"SLC_ON",
-                                                                    (char *)"SLC_SET_SPEED",}));
-  
+  msg_list.push_back(make_tuple((char *)"GearInfo", vector<char *>{(char *)"gear_status"}));
 
   while (ros::ok())
   { // 4000Hz
+    dlc = 64;
     can_status = canReadWait(hCAN, &temp_id, can_data, &dlc, &canread_flag, &timestamp, timeout_channel_0);
     kvaDb_status = kvaDbGetMsgById(dh, temp_id, &mh);
 
@@ -183,7 +175,7 @@ void IONIQ_CAN_READER()
 
       // 매칭되는 메시지 찾기
       bool matched_flag = false;
-      
+
       for(int i=0; i < msg_list.size(); i++){
         if(strcmp(buff, get<0>(msg_list[i])) == 0){
           matched_flag = true;
@@ -192,67 +184,51 @@ void IONIQ_CAN_READER()
         }
       }
 
-      if (msg_idx == 0)
+      if (msg_idx == 0) // WheelInfo (CAN FD, 16 bytes)
       {
         for (int i = 0; i != get<1>(msg_list[msg_idx]).size(); i++)
         {
           kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[i], &sh);
-          kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
+          kvaDbRetrieveSignalValuePhys(sh, &value, can_data, dlc);
 
           switch (i)
           {
-          case (0): // Neutral
+          case (0): // wheel_speed_fl
             sWheel_SPD.wheel_spd_fl = (double)value;
             break;
-          case (1): // Park
+          case (1): // wheel_speed_fr
             sWheel_SPD.wheel_spd_fr = (double)value;
             break;
-          case (2): // Drive(forward)
+          case (2): // wheel_speed_rl
             sWheel_SPD.wheel_spd_rl = (double)value;
             break;
-          case (3): // Reverse
-            sWheel_SPD.wheel_spd_rl = (double)value;
-            break;
-          case (4): // Reverse
-            sWheel_SPD.AliveCnt_LSB = (unsigned char)value;
-            break;
-          case (5): // Reverse
-            sWheel_SPD.AliveCnt_MSB = (unsigned char)value;
-            break;
-          case (6): // Reverse
-            sWheel_SPD.Checksum_LSB = (unsigned char)value;
-            break;
-          case (7): // Reverse
-            sWheel_SPD.Checksum_MSB = (unsigned char)value;
+          case (3): // wheel_speed_rr
+            sWheel_SPD.wheel_spd_rr = (double)value;
             break;
           default:
             break;
           }
-        } 
-        
+        }
+
       }
-      else if (msg_idx == 1)
+      else if (msg_idx == 1) // GearInfo
       {
         for (int i = 0; i != get<1>(msg_list[msg_idx]).size(); i++)
         {
           kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[i], &sh);
-          kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
+          kvaDbRetrieveSignalValuePhys(sh, &value, can_data, dlc);
 
           switch (i)
           {
-          case (0): // Elect_Gear_Shifter
-            gear_pos = value;
-            break;
-          case (1):
-            break;
-          case (2):
+          case (0): // gear_status (P=1, R=2, N=3, D=4)
+            gear_pos = (unsigned char)value;
             break;
           default:
             break;
           }
-        } 
+        }
       }
-      
+
     }
     rate.sleep();
   }
@@ -273,7 +249,7 @@ int main(int argc, char **argv)
   char filename[100];
 
   //////////////////////////////////// Parameters ///////////////////////////////////////
-  strcpy(filename, (relative_path + "/dbc/2gen-2ch-C_IoniqEV_v2.dbc").c_str());
+  strcpy(filename, (relative_path + "/dbc/V_CAN_Release.dbc").c_str());
   int channel_num = 2;
   bool init_access_flag = true; // Init access: no (= CAN handle will be used in multithread)
   ///////////////////////////////////////////////////////////////////////////////////////
