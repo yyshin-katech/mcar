@@ -21,6 +21,7 @@
 #include <mmc_msgs/from_control_team.h>
 
 #include <katech_diagnostic_msgs/k_adcu_diagnostic_msg.h>
+#include <katech_custom_msgs/ioniq5_ad_can_msg.h>
 
 #include <algorithm>
 #include <math.h>

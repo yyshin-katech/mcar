@@ -19,8 +19,7 @@ int main(int argc, char **argv){
   bool init_access_flag = false; // Init access: no (= CAN handle will be used in multithread)
   ///////////////////////////////////////////////////////////////////////////////////////
 
-  pub0 = node.advertise<katech_diagnostic_msgs::k_adcu_diagnostic_msg>("/diagnostic/adcu", 1);
-  pub1 = node.advertise<mmc_msgs::chassis_msg>("/sensors/chassis", 1);
+  pub1 = node.advertise<katech_custom_msgs::ioniq5_ad_can_msg>("/sensors/ioniq5_ad_can", 1);
   can_status = OPEN_CAN_CHANNEL_AND_READ_DB(channel_num, filename, init_access_flag);
   
   string can_status_str;

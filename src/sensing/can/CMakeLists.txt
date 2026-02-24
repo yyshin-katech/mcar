@@ -14,12 +14,13 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   v2x_msgs
   katech_diagnostic_msgs
+  katech_custom_msgs
 )
 
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS roscpp std_msgs sensor_msgs geometry_msgs mmc_msgs roslib v2x_msgs katech_diagnostic_msgs
+  CATKIN_DEPENDS roscpp std_msgs sensor_msgs geometry_msgs mmc_msgs roslib v2x_msgs katech_diagnostic_msgs katech_custom_msgs
 
 )
 
