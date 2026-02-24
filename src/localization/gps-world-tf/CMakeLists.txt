@@ -18,7 +18,8 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   gps_common
 )
-find_package(PROJ)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(PROJ REQUIRED proj)
 find_package(OpenCV)
 FIND_PACKAGE(CURL)
 ## System dependencies are found with CMake's conventions
