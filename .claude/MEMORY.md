@@ -2,7 +2,7 @@
 
 ## 프로젝트 개요
 - ROS (noetic) 기반 자율주행 시스템
-- 경로: `/home/ads/mcar_v13`
+- 경로: `/home/yuyeong/mcar`
 - 메인 브랜치: `main`, 작업 브랜치: `ioniq5`
 - GitHub: `yyshin-katech/mcar`
 
@@ -16,13 +16,14 @@
 - 상세: [can_package.md](can_package.md)
 
 ## 설정
-- `.claude/settings.json`: `bypassPermissions` 모드
 - 사용자 언어: 한국어
+- 환경: WSL2 (zbook), Ubuntu 20.04
+- Git: yuyeong-shin <yyshin@katech.re.kr>
 
 ## 커밋/푸시 규칙
 - 커밋·푸시 시 메모리 파일도 프로젝트 `.claude/`에 동기화하여 함께 커밋
-- 메모리 원본: `/home/ads/.claude/projects/-home-ads-mcar-v13/memory/`
-- 복사 대상: `/home/ads/mcar_v13/.claude/`
+- 메모리 원본: `/home/yuyeong/.claude/projects/-home-yuyeong-mcar/memory/`
+- 복사 대상: `/home/yuyeong/mcar/.claude/`
 - 대상 파일: `MEMORY.md`, `can_package.md` (메모리 파일 추가 시 갱신)
 
 ## 최근 작업 이력
