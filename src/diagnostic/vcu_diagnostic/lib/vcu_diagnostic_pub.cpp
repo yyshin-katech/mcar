@@ -7,6 +7,7 @@ VCU_DIAGNOSTIC_PUB::VCU_DIAGNOSTIC_PUB()
 
     life_count_cur = 0;
     life_count_old = 0;
+    msg_received = false;
 
     timer_ = nh.createTimer(ros::Duration(0.1), &VCU_DIAGNOSTIC_PUB::timer_callback, this);
 }
@@ -18,20 +19,25 @@ VCU_DIAGNOSTIC_PUB::~VCU_DIAGNOSTIC_PUB()
 
 void VCU_DIAGNOSTIC_PUB::timer_callback(const ros::TimerEvent&)
 {
-    if(life_count_cur == life_count_old)
-    {
-        vcu_msg.VCU_StatCode = 1;
-    }
-    else
+    if(msg_received)
     {
         vcu_msg.VCU_StatCode = 0;
         vcu_msg.VCU_AliveCount++;
+        msg_received = false;
     }
-    life_count_old = life_count_cur;
+    else
+    {
+        vcu_msg.VCU_StatCode = 1;
+    }
     pub.publish(vcu_msg);
 }
 
 void VCU_DIAGNOSTIC_PUB::vcu_callback(const katech_custom_msgs::v_can_msg::ConstPtr& msg)
 {
     life_count_cur = msg->life_count;
+    if(life_count_cur != life_count_old)
+    {
+        msg_received = true;
+        life_count_old = life_count_cur;
+    }
 }
