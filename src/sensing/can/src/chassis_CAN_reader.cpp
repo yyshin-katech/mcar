@@ -13,7 +13,7 @@ int main(int argc, char **argv){
 
   //////////////////////////////////// Parameters ///////////////////////////////////////
   
-  strcpy(filename, (relative_path + "/dbc/CANdb_IONIQev_PCAN1.dbc").c_str());
+  strcpy(filename, (relative_path + "/dbc/CANdb_IONIQ5_AD_CAN_v3.dbc").c_str());
   // strcpy(filename, (relative_path + "/dbc/ESR DV3_64Tgt-AS.dbc").c_str());
   int channel_num = 0;
   bool init_access_flag = false; // Init access: no (= CAN handle will be used in multithread)
