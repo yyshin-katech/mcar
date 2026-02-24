@@ -713,7 +713,8 @@ void CHASSIS_CAN_READER(){
   msg_list.push_back(make_tuple((char*)"GearControl", vector<char*> {(char*)"gear_control_mode",\
                                                                       (char*)"target_gear"}));
 
-  msg_list.push_back(make_tuple((char*)"BrainState", vector<char*> {(char*)"brain_status"}));
+  msg_list.push_back(make_tuple((char*)"BrainState", vector<char*> {(char*)"life_count",\
+                                                                    (char*)"brain_status"}));
 
   msg_list.push_back(make_tuple((char*)"AutonomousState", vector<char*> {(char*)"operation_mode",\
                                                                          (char*)"autonomous_mode",\
@@ -792,7 +793,8 @@ void CHASSIS_CAN_READER(){
               kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
 
               switch(i){
-                case(0): msg.brain_status = (uint8_t)value; break;
+                case(0): msg.brain_life_count = (uint8_t)value; break;
+                case(1): msg.brain_status = (uint8_t)value; break;
               }
             }
             pub1.publish(msg);

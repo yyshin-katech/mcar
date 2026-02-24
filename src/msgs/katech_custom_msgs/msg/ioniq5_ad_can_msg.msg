@@ -12,6 +12,7 @@ uint8 gear_control_mode
 uint8 target_gear
 
 # BrainState (ID 33)
+uint8 brain_life_count
 uint8 brain_status
 
 # AutonomousState (ID 16)
