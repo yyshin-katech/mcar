@@ -1,3 +1,6 @@
+# life_count (from any V_CAN message)
+uint8 life_count
+
 # GearInfo (ID 117)
 uint8 gear_status
 

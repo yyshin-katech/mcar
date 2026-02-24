@@ -99,7 +99,8 @@ void IONIQ_CAN_READER()
   vector<tuple<char *, vector<char *>>> msg_list;
 
   // 0: GearInfo (ID 117)
-  msg_list.push_back(make_tuple((char *)"GearInfo", vector<char *>{(char *)"gear_status"}));
+  msg_list.push_back(make_tuple((char *)"GearInfo", vector<char *>{(char *)"life_count",
+                                                                    (char *)"gear_status"}));
 
   // 1: TurnSignalInfo (ID 116)
   msg_list.push_back(make_tuple((char *)"TurnSignalInfo", vector<char *>{(char *)"turn_signal_status"}));
@@ -204,7 +205,10 @@ void IONIQ_CAN_READER()
         switch(msg_idx){
 
           case(0): // GearInfo
-            vcan_msg.gear_status = (uint8_t)value;
+            switch(i){
+              case(0): vcan_msg.life_count = (uint8_t)value; break;
+              case(1): vcan_msg.gear_status = (uint8_t)value; break;
+            }
           break;
 
           case(1): // TurnSignalInfo
