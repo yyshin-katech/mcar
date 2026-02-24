@@ -34,6 +34,7 @@ void VCU_DIAGNOSTIC_PUB::timer_callback(const ros::TimerEvent&)
 
 void VCU_DIAGNOSTIC_PUB::vcu_callback(const katech_custom_msgs::v_can_msg::ConstPtr& msg)
 {
+    ROS_INFO("vcu_callback called, life_count: %d", msg->life_count);
     life_count_cur = msg->life_count;
     if(life_count_cur != life_count_old)
     {
