@@ -24,10 +24,10 @@ void VCU_DIAGNOSTIC_PUB::timer_callback(const ros::TimerEvent&)
     }
     else
     {
-        life_count_old = life_count_cur;
         vcu_msg.VCU_StatCode = 0;
         vcu_msg.VCU_AliveCount++;
     }
+    life_count_old = life_count_cur;
     pub.publish(vcu_msg);
 }
 

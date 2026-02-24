@@ -40,3 +40,4 @@
 | `/diagnostic/vcu` | `vcu_diagnostic_msg` | vcu_diagnostic | V_CAN GearInfo life_count |
 | `/diagnostic/adcu` | `k_adcu_diagnostic_msg` | chassis_CAN_reader | AD_CAN BrainState life_count |
 - 공통 패턴: 0.1초 타이머로 life_count 변화 감시, 변화없으면 StatCode=1(이상), 변화있으면 StatCode=0(정상)
+- 비교 후 항상 old=cur 갱신 (매 주기 독립 체크)
