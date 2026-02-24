@@ -34,6 +34,7 @@
 - `vcu_diagnostic`: `/sensors/v_can` 구독, GearInfo `life_count`로 VCU 상태 체크
 - `chassis_CAN_reader`: BrainState `life_count`로 ADCU diagnostic 추가 (`/diagnostic/adcu` 퍼블리시)
 - launch: `chassis_CAN_reader`, `IONIQ_CAN_reader` 활성화
+- `vcu_diagnostic`: vcu_callback에 ROS_INFO 추가 (life_count 디버깅용)
 
 ## Diagnostic 구조
 | 토픽 | 메시지 타입 | 소스 노드 | 판단 기준 |
