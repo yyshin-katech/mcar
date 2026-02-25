@@ -43,8 +43,9 @@ void CPT7_DIAGNOSTIC_PUB::navpvt_callback(const ublox_msgs::NavPVT::ConstPtr& ms
 {
     msg_received = true;
 
-    // fixType → GPSRTK_StatCode 매핑
-    cpt7_msg.GPSRTK_StatCode = msg->fixType;
+    // carrSoln (flags bit 6-7) → GPSRTK_StatCode 매핑
+    // 0: No carrier phase, 1: Float, 2: Fixed
+    cpt7_msg.GPSRTK_StatCode = (msg->flags >> 6) & 0x03;
 
     // hAcc/vAcc (mm → m)
     cpt7_msg.lon_std = msg->hAcc * 0.001;

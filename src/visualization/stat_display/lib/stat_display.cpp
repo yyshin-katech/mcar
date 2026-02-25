@@ -266,8 +266,8 @@ void STAT_DISPLAY::GPS_Text_Gen()
 
     GPS_AliveCnt_Check(cpt7_msg.GPS_INS_AliveCnt);
 
-    if (gps_status == 1 || cpt7_msg.GPSRTK_StatCode < 3)
-    {   // 주황 warning
+    if (gps_status == 1 || cpt7_msg.GPSRTK_StatCode < 2)
+    {   // 주황 warning (carrSoln: 0=No RTK, 1=Float)
         state_color.r = 1;
         state_color.g = 0.5;
         state_color.b = 0;
@@ -1146,15 +1146,6 @@ void STAT_DISPLAY::Local_Text_Gen()
 {
     ros::Time now = ros::Time::now();
     std::string code;
-    switch(cpt7_msg.GPSRTK_StatCode) {
-        case 4: code = "GNSS+DR"; break;
-        case 3: code = "3D"; break;
-        case 2: code = "2D"; break;
-        default: code = "N/A"; break;
-    }
-
-    LOCAL_text.text = "Curr LANE: " + std::to_string(local_msg.LINK_ID) +
-                    "\nGPSRTK: " + code;
 
     std_msgs::ColorRGBA state_color;
 
@@ -1169,16 +1160,26 @@ void STAT_DISPLAY::Local_Text_Gen()
     LOCAL_text.left = 500;
     LOCAL_text.top = 20;
 
+    // carrSoln 기반 RTK 상태 문자열
+    switch(cpt7_msg.GPSRTK_StatCode)
+    {
+        case 2:  code = "Fixed";   break;
+        case 1:  code = "Float";   break;
+        default: code = "No RTK";  break;
+    }
+
+    LOCAL_text.text = "LANE: " + std::to_string(local_msg.LINK_ID) + "\nRTK: " + code;
+
+    state_color.r = 1;
+    state_color.g = 1;
+    state_color.b = 1;
+    state_color.a = 1;
+    LOCAL_text.fg_color = state_color;
+
     state_color.r = 0;
     state_color.g = 0;
     state_color.b = 0;
-    state_color.a = 1;
-    LOCAL_text.fg_color = state_color;
-    
-    state_color.r = 0.4;
-    state_color.g = 0.4;
-    state_color.b = 0.4;
-    state_color.a = 0.5;
+    state_color.a = 0;
     LOCAL_text.bg_color = state_color;
 
     local_text_pub.publish(LOCAL_text);

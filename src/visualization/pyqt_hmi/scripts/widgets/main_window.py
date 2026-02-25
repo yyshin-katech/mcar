@@ -22,6 +22,7 @@ class MainDisplayWindow(QMainWindow):
     
     update_sensors_signal = pyqtSignal()
     update_vehicle_signal = pyqtSignal()
+    update_steering_signal = pyqtSignal(float)
     
     def __init__(self):
         super().__init__()
@@ -68,6 +69,7 @@ class MainDisplayWindow(QMainWindow):
         # Signal 연결
         self.update_sensors_signal.connect(self.update_sensor_display)
         self.update_vehicle_signal.connect(self.update_vehicle_view)
+        self.update_steering_signal.connect(self.vehicle_view.set_steering_angle)
         
         # Ctrl+C 처리
         signal.signal(signal.SIGINT, self.signal_handler)
@@ -472,7 +474,7 @@ class MainDisplayWindow(QMainWindow):
         self.autonomous_mode = msg.autonomous_mode
 
     def v_can_callback(self, msg):
-        self.vehicle_view.set_steering_angle(msg.steering_angle)
+        self.update_steering_signal.emit(msg.steering_angle)
 
     def chassis_callback(self, msg):
         self.current_speed = getattr(msg, 'vehicle_speed', 0)
@@ -550,7 +552,7 @@ class MainDisplayWindow(QMainWindow):
 
         # GPS 정보 업데이트
         self.lane_label.setText("Curr LANE: " + str(self.link_id))
-        rtk_map = {4: "GNSS+DR", 3: "3D", 2: "2D"}
+        rtk_map = {2: "Fixed", 1: "Float", 0: "No RTK"}
         rtk_str = rtk_map.get(self.gps_rtk_code, "N/A")
         self.gpsrtk_label.setText("GPSRTK: " + rtk_str)
 

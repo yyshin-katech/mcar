@@ -34,7 +34,8 @@
 - `chassis_CAN_reader`: BrainState `life_count`로 ADCU diagnostic 추가 (`/diagnostic/adcu` 퍼블리시)
 - launch: `chassis_CAN_reader`, `IONIQ_CAN_reader` 활성화
 - `cpt7_gps_diagnostic`: Novatel → ublox NavPVT(`/ublox/navpvt`) 구독으로 변경
-- `stat_display`: GPS 색상 판단을 NavPVT fixType 기반으로 변경
+- `cpt7_gps_diagnostic`: GPSRTK_StatCode를 fixType → carrSoln(`(flags>>6)&0x03`)으로 변경 (0=No RTK, 1=Float, 2=Fixed)
+- `stat_display`: GPS 색상 판단을 carrSoln 기반으로 변경 (Fixed=2 초록, Float/No RTK 주황)
 - `stat_display`: LIDAR `lidar_status=2` 강제 덮어쓰기 버그 수정, CAM/RADAR 항상 정상 처리
 - `stat_display`: `local_msg.Road_State=1` 강제 설정 버그 제거 (ODD 팝업 원인)
 - `to_control_team_demo.py`: ODD_YAW_ERR_THRESHOLD 5°→30°로 완화
@@ -44,13 +45,18 @@
 - `cpt7_gps_diagnostic`: AliveCnt를 항상 증가시키도록 변경 (GPS 텍스트 빨강 깜빡임 수정)
 - `pyqt_hmi`: GPS Information 그룹 추가 (Curr LANE, GPSRTK 표시), Auto/Manual 버튼 크기 확대
 - `pyqt_hmi`: 차량 뷰에 스티어링 휠 아이콘 추가 (`/sensors/v_can` steering_angle 연동, 각도 회전)
+- `pyqt_hmi`: 스티어링 업데이트를 pyqtSignal로 변경 (ROS 콜백 스레드 안전)
+- `pyqt_hmi`: GPSRTK 표시를 carrSoln 기반으로 변경 (Fixed/Float/No RTK)
+- `stat_display`: Local_Text_Gen에 LANE/RTK 텍스트 추가, 배경 투명, 글자색 흰색
+- `stat_display`: Local_Text_Gen stray "11" 문자 버그 수정
 
 ## Diagnostic 구조
 | 토픽 | 메시지 타입 | 소스 노드 | 판단 기준 |
 |------|-------------|-----------|-----------|
 | `/diagnostic/vcu` | `vcu_diagnostic_msg` | vcu_diagnostic | V_CAN GearInfo life_count |
 | `/diagnostic/adcu` | `k_adcu_diagnostic_msg` | chassis_CAN_reader | AD_CAN BrainState life_count |
-| `/diagnostic/cpt7_gps` | `cpt7_gps_diagnostic_msg` | cpt7_gps_diagnostic | ublox NavPVT fixType |
+| `/diagnostic/cpt7_gps` | `cpt7_gps_diagnostic_msg` | cpt7_gps_diagnostic | ublox NavPVT carrSoln |
 - 공통 패턴: 콜백에서 msg_received 플래그 설정, 타이머에서 플래그 확인 후 리셋
-- GPS fixType: 0=NO_FIX, 2=2D, 3=3D(정상), 4=GNSS+DR(정상)
-- stat_display GPS 색상: fixType>=3 초록, <3 주황, 통신끊김 빨강
+- GPSRTK_StatCode: carrSoln 값 (0=No RTK, 1=Float, 2=Fixed)
+- stat_display GPS 색상: carrSoln>=2(Fixed) 초록, <2(Float/No RTK) 주황, 통신끊김 빨강
+- GPS fixType: 0=NO_FIX, 2=2D, 3=3D, 4=GNSS+DR (GPS_INS_SolutionStat에 사용)
