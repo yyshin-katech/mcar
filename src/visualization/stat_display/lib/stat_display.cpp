@@ -1022,8 +1022,6 @@ void STAT_DISPLAY::system_status_check()
     std::string abnormal_sensor = "";
     std::ostringstream oss;
 
-    local_msg.Road_State = 1;
-
     for (const auto& s : statuses)
     {
         if (s.second != 0)
