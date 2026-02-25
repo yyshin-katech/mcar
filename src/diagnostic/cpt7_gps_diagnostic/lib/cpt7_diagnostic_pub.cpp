@@ -90,11 +90,12 @@ void CPT7_DIAGNOSTIC_PUB::timerCallback(const ros::TimerEvent&)
         cpt7_msg.Network_Status = 1;
     }
 
-    if(msg_received)
+    cpt7_msg.GPS_INS_AliveCnt = alive_cnt++;
+    if(!msg_received)
     {
-        cpt7_msg.GPS_INS_AliveCnt = alive_cnt++;
-        msg_received = false;
+        cpt7_msg.GPS_INS_SolutionStat = 0x01;  // no data
     }
+    msg_received = false;
 
     pub.publish(cpt7_msg);
 }

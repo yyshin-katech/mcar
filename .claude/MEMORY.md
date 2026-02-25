@@ -41,6 +41,7 @@
 - `pyqt_hmi`: "Vehicle Top View" 타이틀 제거, 차량 뷰 center_y 0.75→0.5로 상향
 - `pyqt_hmi`: Driving Mode 표시를 eps_status → `/sensors/ioniq5_ad_can` autonomous_mode(0=Manual,1=Auto)로 변경
 - `pyqt_hmi`: ODD 초기값 2→0, local_callback에 update_sensors_signal.emit() 추가 (ODD 깜빡임 수정)
+- `cpt7_gps_diagnostic`: AliveCnt를 항상 증가시키도록 변경 (GPS 텍스트 빨강 깜빡임 수정)
 
 ## Diagnostic 구조
 | 토픽 | 메시지 타입 | 소스 노드 | 판단 기준 |
