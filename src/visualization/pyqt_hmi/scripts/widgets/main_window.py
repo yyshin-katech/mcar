@@ -38,7 +38,7 @@ class MainDisplayWindow(QMainWindow):
         self.vcu_status = 2
         self.cam_status = 2
         self.ipc_status = 2
-        self.odd_status = 2
+        self.odd_status = 0
         
         self.eps_status = 0
         self.traffic_light_color = 0
@@ -436,7 +436,8 @@ class MainDisplayWindow(QMainWindow):
     def local_callback(self, msg):
         self.speed_limit = msg.Speed_Limit
         self.odd_status = msg.Road_State
-        
+        self.update_sensors_signal.emit()
+
         ego_x = msg.host_east
         ego_y = msg.host_north
         ego_heading = msg.host_yaw
