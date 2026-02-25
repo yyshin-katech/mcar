@@ -43,6 +43,7 @@
 - `pyqt_hmi`: ODD 초기값 2→0, local_callback에 update_sensors_signal.emit() 추가 (ODD 깜빡임 수정)
 - `cpt7_gps_diagnostic`: AliveCnt를 항상 증가시키도록 변경 (GPS 텍스트 빨강 깜빡임 수정)
 - `pyqt_hmi`: GPS Information 그룹 추가 (Curr LANE, GPSRTK 표시), Auto/Manual 버튼 크기 확대
+- `pyqt_hmi`: 차량 뷰에 스티어링 휠 아이콘 추가 (`/sensors/v_can` steering_angle 연동, 각도 회전)
 
 ## Diagnostic 구조
 | 토픽 | 메시지 타입 | 소스 노드 | 판단 기준 |

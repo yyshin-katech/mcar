@@ -24,6 +24,9 @@ class VehicleViewWidget(QWidget):
         # 오브젝트 리스트
         self.objects = []
         
+        # 스티어링 각도 (deg)
+        self.steering_angle = 0.0
+
         # 줌 레벨
         self.scale = 10.0
         
@@ -47,6 +50,10 @@ class VehicleViewWidget(QWidget):
         self.ego_heading = heading
         self.update()
         
+    def set_steering_angle(self, angle):
+        self.steering_angle = angle
+        self.update()
+
     def set_objects(self, objects):
         self.objects = objects
         self.update()
@@ -108,6 +115,9 @@ class VehicleViewWidget(QWidget):
         painter.drawText(10, 40, f"Ego: ({self.ego_x:.1f}, {self.ego_y:.1f})")
         painter.drawText(10, 60, f"Heading: {math.degrees(self.ego_heading):.1f}°")
         painter.drawText(10, 80, f"Features: {len(self.map_features)}")
+
+        # 스티어링 아이콘
+        self.draw_steering_icon(painter, 10, 95)
         
     def draw_grid(self, painter, cx, cy):
         """그리드 그리기"""
@@ -233,6 +243,67 @@ class VehicleViewWidget(QWidget):
                 f"{distance:.1f}m"
             )
             
+    def draw_steering_icon(self, painter, x, y):
+        """스티어링 휠 아이콘 그리기"""
+        cx = x + 55
+        cy = y + 55
+        r_outer = 48
+        r_inner = 36
+        hub_r = 14
+
+        painter.save()
+        painter.translate(cx, cy)
+        painter.rotate(-self.steering_angle)
+
+        # 림 (두꺼운 도넛 형태)
+        rim_path = QPainterPath()
+        rim_path.addEllipse(QPointF(0, 0), r_outer, r_outer)
+        inner_path = QPainterPath()
+        inner_path.addEllipse(QPointF(0, 0), r_inner, r_inner)
+        rim_only = rim_path - inner_path
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QBrush(QColor(180, 140, 100)))
+        painter.drawPath(rim_only)
+        # 림 외곽선
+        painter.setPen(QPen(QColor(120, 90, 60), 1.5))
+        painter.setBrush(Qt.NoBrush)
+        painter.drawEllipse(QPointF(0, 0), r_outer, r_outer)
+        painter.drawEllipse(QPointF(0, 0), r_inner, r_inner)
+
+        # 스포크 3개 (둥근 끝)
+        spoke_pen = QPen(QColor(160, 160, 170), 7, Qt.SolidLine, Qt.RoundCap)
+        painter.setPen(spoke_pen)
+        # 위쪽
+        painter.drawLine(QPointF(0, -hub_r), QPointF(0, -r_inner))
+        # 왼쪽 아래
+        lx = -math.sin(math.radians(60))
+        ly = math.cos(math.radians(60))
+        painter.drawLine(QPointF(lx * hub_r, ly * hub_r), QPointF(lx * r_inner, ly * r_inner))
+        # 오른쪽 아래
+        rx = math.sin(math.radians(60))
+        ry = math.cos(math.radians(60))
+        painter.drawLine(QPointF(rx * hub_r, ry * hub_r), QPointF(rx * r_inner, ry * r_inner))
+
+        # 중심 허브
+        painter.setPen(QPen(QColor(100, 100, 110), 1.5))
+        painter.setBrush(QBrush(QColor(70, 70, 80)))
+        painter.drawEllipse(QPointF(0, 0), hub_r, hub_r)
+        # 허브 내부 작은 원
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QBrush(QColor(90, 90, 100)))
+        painter.drawEllipse(QPointF(0, 0), 6, 6)
+
+        # 12시 방향 마커
+        painter.setBrush(QBrush(QColor(255, 80, 80)))
+        painter.setPen(Qt.NoPen)
+        painter.drawEllipse(QPointF(0, -r_outer + 6), 4, 4)
+
+        painter.restore()
+
+        # 각도 텍스트
+        painter.setPen(QPen(QColor(255, 255, 255), 1))
+        painter.drawText(x - 5, cy + r_outer + 18, f"Steer: {self.steering_angle:.1f}")
+
     def wheelEvent(self, event):
         """마우스 휠로 줌 조정"""
         delta = event.angleDelta().y()

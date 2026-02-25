@@ -10,7 +10,7 @@ from PyQt5.QtGui import *
 
 from std_msgs.msg import UInt8, Bool
 from katech_diagnostic_msgs.msg import *
-from katech_custom_msgs.msg import ioniq5_ad_can_msg
+from katech_custom_msgs.msg import ioniq5_ad_can_msg, v_can_msg
 from mmc_msgs.msg import chassis_msg, to_control_team_from_local_msg
 from v2x_msgs.msg import intersection_array_msg
 
@@ -427,6 +427,7 @@ class MainDisplayWindow(QMainWindow):
         rospy.Subscriber("/diagnostic/ipc", ipc_diagnostic_msg, self.ipc_callback)
         rospy.Subscriber("/sensors/chassis", chassis_msg, self.chassis_callback)
         rospy.Subscriber("/sensors/ioniq5_ad_can", ioniq5_ad_can_msg, self.ioniq5_ad_can_callback)
+        rospy.Subscriber("/sensors/v_can", v_can_msg, self.v_can_callback)
         rospy.Subscriber("/localization/to_control_team", to_control_team_from_local_msg, self.local_callback)
         rospy.Subscriber("/katri_v2x_node/katri_spat", intersection_array_msg, self.traffic_light_callback)
         
@@ -469,6 +470,9 @@ class MainDisplayWindow(QMainWindow):
         
     def ioniq5_ad_can_callback(self, msg):
         self.autonomous_mode = msg.autonomous_mode
+
+    def v_can_callback(self, msg):
+        self.vehicle_view.set_steering_angle(msg.steering_angle)
 
     def chassis_callback(self, msg):
         self.current_speed = getattr(msg, 'vehicle_speed', 0)
