@@ -38,6 +38,8 @@
 - `stat_display`: LIDAR `lidar_status=2` 강제 덮어쓰기 버그 수정, CAM/RADAR 항상 정상 처리
 - `stat_display`: `local_msg.Road_State=1` 강제 설정 버그 제거 (ODD 팝업 원인)
 - `to_control_team_demo.py`: ODD_YAW_ERR_THRESHOLD 5°→30°로 완화
+- `pyqt_hmi`: "Vehicle Top View" 타이틀 제거, 차량 뷰 center_y 0.75→0.5로 상향
+- `pyqt_hmi`: Driving Mode 표시를 eps_status → `/sensors/ioniq5_ad_can` autonomous_mode(0=Manual,1=Auto)로 변경
 
 ## Diagnostic 구조
 | 토픽 | 메시지 타입 | 소스 노드 | 판단 기준 |

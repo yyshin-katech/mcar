@@ -72,7 +72,7 @@ class VehicleViewWidget(QWidget):
         
         # 3. 화면 좌표로 변환
         center_x = self.width() / 2
-        center_y = self.height() * 0.75
+        center_y = self.height() * 0.5
         
         screen_x = center_x + rot_x * self.scale
         screen_y = center_y - rot_y * self.scale
@@ -88,7 +88,7 @@ class VehicleViewWidget(QWidget):
         
         # 중심점 계산
         center_x = self.width() / 2
-        center_y = self.height() * 0.75
+        center_y = self.height() * 0.5
         
         # 그리드 그리기
         self.draw_grid(painter, center_x, center_y)

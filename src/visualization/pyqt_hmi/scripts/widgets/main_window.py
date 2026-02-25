@@ -10,6 +10,7 @@ from PyQt5.QtGui import *
 
 from std_msgs.msg import UInt8, Bool
 from katech_diagnostic_msgs.msg import *
+from katech_custom_msgs.msg import ioniq5_ad_can_msg
 from mmc_msgs.msg import chassis_msg, to_control_team_from_local_msg
 from v2x_msgs.msg import intersection_array_msg
 
@@ -45,6 +46,7 @@ class MainDisplayWindow(QMainWindow):
         self.speed_limit = 0
         self.current_speed = 0
         self.selected_mode = 0
+        self.autonomous_mode = 0
 
         # UI 초기화
         self.init_ui()
@@ -365,12 +367,8 @@ class MainDisplayWindow(QMainWindow):
         """차량 뷰 패널 생성"""
         panel = QWidget()
         layout = QVBoxLayout()
-        
-        title = QLabel("Vehicle Top View")
-        title.setStyleSheet("font-size: 18px; font-weight: bold; color: white;")
-        title.setAlignment(Qt.AlignCenter)
-        layout.addWidget(title)
-        
+        layout.setContentsMargins(0, 0, 0, 0)
+
         self.vehicle_view = VehicleViewWidget()
         layout.addWidget(self.vehicle_view)
         
@@ -389,6 +387,7 @@ class MainDisplayWindow(QMainWindow):
         rospy.Subscriber("/diagnostic/cam", cam_diagnostic_msg, self.cam_callback)
         rospy.Subscriber("/diagnostic/ipc", ipc_diagnostic_msg, self.ipc_callback)
         rospy.Subscriber("/sensors/chassis", chassis_msg, self.chassis_callback)
+        rospy.Subscriber("/sensors/ioniq5_ad_can", ioniq5_ad_can_msg, self.ioniq5_ad_can_callback)
         rospy.Subscriber("/localization/to_control_team", to_control_team_from_local_msg, self.local_callback)
         rospy.Subscriber("/katri_v2x_node/katri_spat", intersection_array_msg, self.traffic_light_callback)
         
@@ -428,8 +427,10 @@ class MainDisplayWindow(QMainWindow):
         self.ipc_status = 0
         self.update_sensors_signal.emit()
         
+    def ioniq5_ad_can_callback(self, msg):
+        self.autonomous_mode = msg.autonomous_mode
+
     def chassis_callback(self, msg):
-        self.eps_status = msg.vcu_EPS_Status
         self.current_speed = getattr(msg, 'vehicle_speed', 0)
         
     def local_callback(self, msg):
@@ -467,7 +468,7 @@ class MainDisplayWindow(QMainWindow):
         mode_msg.data = self.selected_mode
         self.mode_command_pub.publish(mode_msg)
         
-        if self.eps_status == 2:
+        if self.autonomous_mode == 1:
             self.mode_display_label.setText("Autonomous")
             self.mode_display_label.setStyleSheet("""
                 QLabel {
