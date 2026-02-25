@@ -35,6 +35,7 @@
 - launch: `chassis_CAN_reader`, `IONIQ_CAN_reader` 활성화
 - `cpt7_gps_diagnostic`: Novatel → ublox NavPVT(`/ublox/navpvt`) 구독으로 변경
 - `stat_display`: GPS 색상 판단을 NavPVT fixType 기반으로 변경
+- `stat_display`: LIDAR `lidar_status=2` 강제 덮어쓰기 버그 수정, CAM/RADAR 항상 정상 처리
 
 ## Diagnostic 구조
 | 토픽 | 메시지 타입 | 소스 노드 | 판단 기준 |
