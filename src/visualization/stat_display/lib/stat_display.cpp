@@ -266,7 +266,7 @@ void STAT_DISPLAY::GPS_Text_Gen()
 
     GPS_AliveCnt_Check(cpt7_msg.GPS_INS_AliveCnt);
 
-    if (gps_status == 1 || cpt7_msg.GPSRTK_StatCode != 0x038 || cpt7_msg.lon_std > 0.05 || cpt7_msg.lat_std > 0.05)
+    if (gps_status == 1 || cpt7_msg.GPSRTK_StatCode < 3)
     {   // 주황 warning
         state_color.r = 1;
         state_color.g = 0.5;
@@ -1148,7 +1148,13 @@ void STAT_DISPLAY::sound_play(const std::string& sensor_name)
 void STAT_DISPLAY::Local_Text_Gen()
 {
     ros::Time now = ros::Time::now();
-    std::string code = (cpt7_msg.GPSRTK_StatCode == 56) ? "RTKFIX" : "N/A";
+    std::string code;
+    switch(cpt7_msg.GPSRTK_StatCode) {
+        case 4: code = "GNSS+DR"; break;
+        case 3: code = "3D"; break;
+        case 2: code = "2D"; break;
+        default: code = "N/A"; break;
+    }
 
     LOCAL_text.text = "Curr LANE: " + std::to_string(local_msg.LINK_ID) +
                     "\nGPSRTK: " + code;

@@ -33,11 +33,15 @@
 - `vcu_diagnostic`: `/sensors/v_can` 구독, GearInfo `life_count`로 VCU 상태 체크
 - `chassis_CAN_reader`: BrainState `life_count`로 ADCU diagnostic 추가 (`/diagnostic/adcu` 퍼블리시)
 - launch: `chassis_CAN_reader`, `IONIQ_CAN_reader` 활성화
+- `cpt7_gps_diagnostic`: Novatel → ublox NavPVT(`/ublox/navpvt`) 구독으로 변경
+- `stat_display`: GPS 색상 판단을 NavPVT fixType 기반으로 변경
 
 ## Diagnostic 구조
 | 토픽 | 메시지 타입 | 소스 노드 | 판단 기준 |
 |------|-------------|-----------|-----------|
 | `/diagnostic/vcu` | `vcu_diagnostic_msg` | vcu_diagnostic | V_CAN GearInfo life_count |
 | `/diagnostic/adcu` | `k_adcu_diagnostic_msg` | chassis_CAN_reader | AD_CAN BrainState life_count |
-- 공통 패턴: 콜백에서 life_count 변화 시 msg_received 플래그 설정, 타이머에서 플래그 확인 후 리셋
-- StatCode=0(정상), StatCode=1(이상)
+| `/diagnostic/cpt7_gps` | `cpt7_gps_diagnostic_msg` | cpt7_gps_diagnostic | ublox NavPVT fixType |
+- 공통 패턴: 콜백에서 msg_received 플래그 설정, 타이머에서 플래그 확인 후 리셋
+- GPS fixType: 0=NO_FIX, 2=2D, 3=3D(정상), 4=GNSS+DR(정상)
+- stat_display GPS 색상: fixType>=3 초록, <3 주황, 통신끊김 빨강

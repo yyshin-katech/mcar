@@ -19,8 +19,7 @@
 
 #include <std_msgs/String.h>
 #include <katech_diagnostic_msgs/cpt7_gps_diagnostic_msg.h>
-#include <novatel_gps_msgs/NovatelPosition.h>
-#include <novatel_gps_msgs/Inspva.h>
+#include <ublox_msgs/NavPVT.h>
 
 class CPT7_DIAGNOSTIC_PUB
 {
@@ -35,18 +34,15 @@ class CPT7_DIAGNOSTIC_PUB
 
         ros::Publisher pub;
         ros::Subscriber sub;
-        ros::Subscriber sub_inspva;
 
         ros::Timer timer_;
 
         katech_diagnostic_msgs::cpt7_gps_diagnostic_msg cpt7_msg;
 
         unsigned char alive_cnt;
-        unsigned char bestpos_cb_cnt, inspva_cb_cnt;
-        unsigned char bestpos_cb_cnt_old, inspva_cb_cnt_old;
+        bool msg_received;
 
-        void bestpos_callback(const novatel_gps_msgs::NovatelPosition::ConstPtr& msg);
-        void inspva_callback(const novatel_gps_msgs::Inspva::ConstPtr& msg);
+        void navpvt_callback(const ublox_msgs::NavPVT::ConstPtr& msg);
         void timerCallback(const ros::TimerEvent&);
         bool pingCheck(const std::string& ip);
 };

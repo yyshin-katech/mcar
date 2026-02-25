@@ -12,13 +12,13 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   katech_diagnostic_msgs
-  novatel_gps_msgs
+  ublox_msgs
 )
 
 catkin_package(
  INCLUDE_DIRS include
  LIBRARIES ${PROJECT_NAME}
- CATKIN_DEPENDS roscpp rospy std_msgs katech_diagnostic_msgs novatel_gps_msgs
+ CATKIN_DEPENDS roscpp rospy std_msgs katech_diagnostic_msgs ublox_msgs
  DEPENDS system_lib
  
 )
