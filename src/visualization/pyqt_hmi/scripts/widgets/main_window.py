@@ -47,6 +47,8 @@ class MainDisplayWindow(QMainWindow):
         self.current_speed = 0
         self.selected_mode = 0
         self.autonomous_mode = 0
+        self.gps_rtk_code = 0
+        self.link_id = 0
 
         # UI 초기화
         self.init_ui()
@@ -160,7 +162,11 @@ class MainDisplayWindow(QMainWindow):
         # 속도 정보
         speed_group = self.create_speed_group()
         layout.addWidget(speed_group)
-        
+
+        # GPS 정보
+        gps_info_group = self.create_gps_info_group()
+        layout.addWidget(gps_info_group)
+
         layout.addStretch()
         panel.setLayout(layout)
         return panel
@@ -192,18 +198,18 @@ class MainDisplayWindow(QMainWindow):
         self.auto_button = QPushButton("Autonomous")
         self.auto_button.setCheckable(True)
         self.auto_button.setChecked(False)
-        self.auto_button.setFixedHeight(40)
+        self.auto_button.setFixedHeight(60)
         self.auto_button.clicked.connect(self.on_auto_button_clicked)
         self.auto_button.setStyleSheet("""
             QPushButton {
                 background-color: white;
                 color: black;
-                font-size: 14px;
+                font-size: 18px;
                 font-weight: normal;
                 border: 2px solid #6c757d;
                 border-right: 1px solid #6c757d;
                 border-radius: 0px;
-                padding: 5px;
+                padding: 10px;
             }
             QPushButton:checked {
                 background-color: #28a745;
@@ -222,18 +228,18 @@ class MainDisplayWindow(QMainWindow):
         self.manual_button = QPushButton("Manual")
         self.manual_button.setCheckable(True)
         self.manual_button.setChecked(True)
-        self.manual_button.setFixedHeight(40)
+        self.manual_button.setFixedHeight(60)
         self.manual_button.clicked.connect(self.on_manual_button_clicked)
         self.manual_button.setStyleSheet("""
             QPushButton {
                 background-color: white;
                 color: black;
-                font-size: 14px;
+                font-size: 18px;
                 font-weight: normal;
                 border: 2px solid #6c757d;
                 border-left: 1px solid #6c757d;
                 border-radius: 0px;
-                padding: 5px;
+                padding: 10px;
             }
             QPushButton:checked {
                 background-color: #28a745;
@@ -363,6 +369,39 @@ class MainDisplayWindow(QMainWindow):
         
         return speed_group
         
+    def create_gps_info_group(self):
+        """GPS 정보 그룹 생성"""
+        gps_group = QGroupBox("GPS Information")
+        gps_layout = QVBoxLayout()
+
+        self.lane_label = QLabel("Curr LANE: 0")
+        self.lane_label.setStyleSheet("""
+            QLabel {
+                font-size: 16px;
+                font-weight: bold;
+                color: white;
+                background-color: transparent;
+                padding: 5px;
+            }
+        """)
+
+        self.gpsrtk_label = QLabel("GPSRTK: N/A")
+        self.gpsrtk_label.setStyleSheet("""
+            QLabel {
+                font-size: 16px;
+                font-weight: bold;
+                color: white;
+                background-color: transparent;
+                padding: 5px;
+            }
+        """)
+
+        gps_layout.addWidget(self.lane_label)
+        gps_layout.addWidget(self.gpsrtk_label)
+        gps_group.setLayout(gps_layout)
+
+        return gps_group
+
     def create_vehicle_view(self):
         """차량 뷰 패널 생성"""
         panel = QWidget()
@@ -393,6 +432,7 @@ class MainDisplayWindow(QMainWindow):
         
     def gps_callback(self, msg):
         self.gps_status = 0
+        self.gps_rtk_code = msg.GPSRTK_StatCode
         self.update_sensors_signal.emit()
         
     def adcu_callback(self, msg):
@@ -436,6 +476,7 @@ class MainDisplayWindow(QMainWindow):
     def local_callback(self, msg):
         self.speed_limit = msg.Speed_Limit
         self.odd_status = msg.Road_State
+        self.link_id = msg.LINK_ID
         self.update_sensors_signal.emit()
 
         ego_x = msg.host_east
@@ -502,6 +543,12 @@ class MainDisplayWindow(QMainWindow):
             
         self.speed_label.setText(str(self.speed_limit))
         self.current_speed_label.setText(str(int(self.current_speed)))
+
+        # GPS 정보 업데이트
+        self.lane_label.setText("Curr LANE: " + str(self.link_id))
+        rtk_map = {4: "GNSS+DR", 3: "3D", 2: "2D"}
+        rtk_str = rtk_map.get(self.gps_rtk_code, "N/A")
+        self.gpsrtk_label.setText("GPSRTK: " + rtk_str)
 
     def on_auto_button_clicked(self):
         if self.auto_button.isChecked():
