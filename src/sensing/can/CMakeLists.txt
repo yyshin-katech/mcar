@@ -260,6 +260,25 @@ install(TARGETS ${PROJECT_NAME} cpt7_CAN_writer
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
+############################################################################################## vspd_CAN_writer
+add_executable(vspd_CAN_writer src/vspd_CAN_writer.cpp)
+target_compile_options(vspd_CAN_writer PRIVATE)
+add_dependencies(vspd_CAN_writer ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(vspd_CAN_writer
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+
+  ##### Linking External Library
+  ${CANLIB_LIBRARY}
+  ${KVADBLIB_LIBRARY}
+  ##############################
+)
+install(TARGETS ${PROJECT_NAME} vspd_CAN_writer
+   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
 ############################################################################################## IONIQ_CAN_reader
 add_executable(IONIQ_CAN_reader src/IONIQ_CAN_reader.cpp)
 target_compile_options(IONIQ_CAN_reader PRIVATE)
