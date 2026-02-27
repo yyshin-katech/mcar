@@ -58,6 +58,7 @@
 #include <ublox_gps/utils.h>
 #include <ublox_gps/raw_data_pa.h>
 
+#include <rtcm_msgs/Message.h>
 
 // This file declares the ComponentInterface which acts as a high level
 // interface for u-blox firmware, product categories, etc. It contains methods

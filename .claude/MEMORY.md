@@ -51,7 +51,7 @@
 - `stat_display`: Local_Text_Gen stray "11" 문자 버그 수정
 - `vspd_CAN_writer`: 신규 노드 추가 - `/sensors/v_can` 구독, 휠스피드 평균→km/h, gear_status R=reverse, 0x123 MGI_vSpd_Gateway 100Hz 전송
 - `chassis_CAN_reader`: DBC v3→v4로 변경
-- `ublox_gps/node.cpp`: rtcmCallback 및 /rtcm 구독 제거, GPS 장치로 전송하는 모든 코드(configure/poll/configRate 등) 주석 처리 (GPS 장치 자체에서 RTCM 수신)
+- `ublox_gps/node.cpp`: rtcmCallback 및 /rtcm 구독 제거 (GPS 장치 자체에서 RTCM 수신), configure/poll 등 초기화 코드는 원복 유지
 
 ## Diagnostic 구조
 | 토픽 | 메시지 타입 | 소스 노드 | 판단 기준 |
