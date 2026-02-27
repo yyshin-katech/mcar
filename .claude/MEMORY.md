@@ -52,6 +52,7 @@
 - `vspd_CAN_writer`: 신규 노드 추가 - `/sensors/v_can` 구독, 휠스피드 평균→km/h, gear_status R=reverse, 0x123 MGI_vSpd_Gateway 100Hz 전송
 - `chassis_CAN_reader`: DBC v3→v4로 변경
 - `ublox_gps/node.cpp`: rtcmCallback 및 /rtcm 구독 제거 (GPS 장치 자체에서 RTCM 수신), configure/poll 등 초기화 코드는 원복 유지
+- `ublox_gps/config/zed_f9k.yaml`: tmode3=0 추가 (ZED-F9P HPG 제품은 tmode3 필수, 0=Disabled 로버모드)
 
 ## Diagnostic 구조
 | 토픽 | 메시지 타입 | 소스 노드 | 판단 기준 |
