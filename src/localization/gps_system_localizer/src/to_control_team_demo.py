@@ -228,10 +228,6 @@ class DistanceCalculator(object):
         p.right_LaneChange_avail = self.target_roads[current_lane_id]['right_LaneChange_avail'][0][0]
         p.Speed_Limit = self.target_roads[current_lane_id]['Speed_Limit'][0][0]
 
-        if p.LINK_ID == 79 and p.waypoint_index > 87:
-            if self.old_lane_id == 78:
-                p.LINK_ID = 78
-
         p.distance_to_lane_end = self.target_roads[current_lane_id]['station'][0][-1] - current_s
 
         mapx_set = self.target_roads[current_lane_id]['east'][0]
@@ -389,96 +385,6 @@ class DistanceCalculator(object):
         p.waypoint_index = current_closest_waypoint_in_MATLAB
         p.station = current_s
         p.lateral_offset = current_d
-
-        if p.LINK_ID in [73, 74, 75]:
-            p.On_ODD = 1
-            p.Road_State = 2
-            
-        if p.LINK_ID in [39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51]:
-            p.Speed_Limit = 40
-        elif p.LINK_ID == 33:
-            if p.distance_to_lane_end < 20:
-                p.Speed_Limit = 30
-        elif p.LINK_ID == 38:
-            p.Speed_Limit = 30
-        else:
-            p.Speed_Limit = 15
-
-        # speed limit 
-        if p.LINK_ID in [5, 8, 12, 15, 18, 24, 28, 58, 60, 63]:
-            p.Speed_Limit = 15
-
-        if p.LINK_ID == 20:
-            p.look_at_signalGroupID = 3
-            p.look_at_IntersectionID = 1300
-
-        if p.LINK_ID in [4, 48, 49, 50, 51]:
-            p.NEXT_LINK_ID = 0
-        
-        if p.LINK_ID in [59, 60]:
-            p.On_ODD = 0
-            p.Road_State = 1
-        
-        if p.LINK_ID in [12, 65, 76, 77, 78, 79]:
-            p.Speed_Limit = 10
-
-        # if p.LINK_ID in [49, 50, 51]:
-        #     p.have_to_LangeChange_right = 1
-        
-        if p.LINK_ID == 38:
-            if p.station > 40:
-                p.have_to_LangeChange_left = 1
-                p.left_LaneChange_avail = 1
-
-        if p.LINK_ID == 48:
-            p.NEXT_LINK_ID = 0
-            p.On_ODD = 0
-            p.Road_State = 1
-            if p.station > 40:
-                p.Speed_Limit = 30
-
-            if p.station > 75:
-                p.have_to_LangeChange_right = 1
-                p.Speed_Limit = 30
-        
-        if p.LINK_ID in [49, 50, 51]:
-            p.NEXT_LINK_ID = 0
-            if p.station > 50:
-                p.On_ODD = 0
-                p.Road_State = 1
-
-        if p.LINK_ID == 47:
-            p.Speed_Limit = 30
-
-        if p.LINK_ID == 10:
-            p.Speed_Limit = 40
-
-        if p.LINK_ID == 52:
-            if p.station < 150:
-                p.Speed_Limit = 30
-            elif p.station < 250:
-                p.Speed_Limit = 30
-            else:
-                p.Speed_Limit = 15
-
-        # 터널 구간
-        if p.LINK_ID == 71 and p.distance_to_lane_end < 95:
-            # p.host_east = 0
-            # p.host_north = 0
-            p.GPS_Over = 1
-
-        if p.LINK_ID == 72:
-            # p.host_east = 0
-            # p.host_north = 0
-            p.GPS_Over = 1
-            if p.station > 15:
-                p.host_east = e
-                p.host_north = n
-                p.GPS_Over = 0
-            
-            if p.distance_to_lane_end < 50:
-                p.NEXT_LINK_ID = 0
-                p.Road_State = 1
 
         # 센서 고장 일때, 어린이 보호구역 안에서
         if self.takeoverreq == 1 or p.Road_State == 2 or p.On_ODD == 1 or p.LINK_ID == 0:
