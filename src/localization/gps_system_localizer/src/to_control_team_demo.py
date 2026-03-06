@@ -386,12 +386,6 @@ class DistanceCalculator(object):
         p.station = current_s
         p.lateral_offset = current_d
 
-        # 센서 고장 일때, 어린이 보호구역 안에서
-        if self.takeoverreq == 1 or p.Road_State == 2 or p.On_ODD == 1 or p.LINK_ID == 0:
-            p.Take_Over_Request = 1
-        else:
-            p.Take_Over_Request = 0
-
         self.to_control_team_pub.publish(p)
 
         self.old_lane_id = p.LINK_ID
