@@ -72,6 +72,9 @@ def shp_feature_to_road_dict(feature):
         'Length': props['Length'] or 0.0,            # 링크 길이
         'mc_SIG_GR': int(props['mc_SIG_GR']) if props.get('mc_SIG_GR') else 0,   # 신호등 그룹 ID
         'mc_INT_ID': int(props['mc_INT_ID']) if props.get('mc_INT_ID') else 0,    # 교차로 ID
+        'mc_MANEUVE': props.get('mc_MANEUVE'),                                    # 주행 방향 (maneuverStraightAllowed 등)
+        'TO_LinkID': [x.strip() for x in (props.get('TO_LinkID') or '').split(',') if x.strip()],  # 다음 링크 ID 목록
+        'is_stop_ln': int(props['is_stop_ln']) if props.get('is_stop_ln') is not None else 0,      # 정지선 여부
     }
     return road
 
@@ -122,15 +125,6 @@ class DistanceCalculator(object):
                     if road['ID']:
                         self.id_to_index[road['ID']] = idx
 
-            # FromNodeID -> index 매핑 (다음 링크 찾기용)
-            self.from_node_to_indices = {}
-            for idx, road in enumerate(self.target_roads):
-                fnode = road['FromNodeID']
-                if fnode:
-                    if fnode not in self.from_node_to_indices:
-                        self.from_node_to_indices[fnode] = []
-                    self.from_node_to_indices[fnode].append(idx)
-
             self.num_lanes = len(self.target_roads)
             self.map_loaded = True
             rospy.loginfo(f"SHP map loaded: {self.num_lanes} links from {SHP_FILE_PATH}")
@@ -139,13 +133,23 @@ class DistanceCalculator(object):
             rospy.logerr(f"Error loading SHP map: {e}")
 
     def find_next_link_index(self, current_idx):
-        """현재 링크의 ToNodeID와 같은 FromNodeID를 가진 다음 링크 index를 반환"""
-        to_node = self.target_roads[current_idx]['ToNodeID']
-        if to_node and to_node in self.from_node_to_indices:
-            candidates = self.from_node_to_indices[to_node]
-            if len(candidates) > 0:
-                return candidates[0]
-        return -1
+        """TO_LinkID를 이용해 다음 링크 index를 반환.
+        복수 TO_LinkID인 경우 다음 링크의 mc_MANEUVE가 현재 링크와 같은 것을 선택.
+        매칭 없으면 첫 번째 TO_LinkID 사용."""
+        road = self.target_roads[current_idx]
+        to_ids = road['TO_LinkID']
+        if not to_ids:
+            return -1
+        if len(to_ids) == 1:
+            return self.id_to_index.get(to_ids[0], -1)
+        # 복수: 현재 링크의 mc_MANEUVE와 같은 다음 링크 선택
+        current_maneuve = road['mc_MANEUVE']
+        for tid in to_ids:
+            next_idx = self.id_to_index.get(tid, -1)
+            if next_idx >= 0 and self.target_roads[next_idx]['mc_MANEUVE'] == current_maneuve:
+                return next_idx
+        # 매칭 없으면 첫 번째
+        return self.id_to_index.get(to_ids[0], -1)
 
     def compute_my_lane_cy(self, e, n):
         """cython 버전 - shp 데이터 사용"""
@@ -260,7 +264,7 @@ class DistanceCalculator(object):
             # 신호등 코드
             p.look_at_signalGroupID = road['mc_SIG_GR']
             p.look_at_IntersectionID = road['mc_INT_ID']
-            p.is_stop_line = 0
+            p.is_stop_line = road['is_stop_ln']
 
             mapx_set = road['east'][0]
             mapy_set = road['north'][0]
