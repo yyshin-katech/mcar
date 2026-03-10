@@ -164,7 +164,7 @@ class DistanceCalculator(object):
             min_abs_d = 100.0
 
             for i, (dist, closest_waypoint) in enumerate(zip(distances, indexs)):
-                if dist > 5.0:
+                if dist > 3.0:
                     continue
                 else:
                     mapx = self.target_roads[i]['east'][0]
