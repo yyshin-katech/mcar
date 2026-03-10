@@ -4,7 +4,7 @@
 # TB_senario_map.shp 기반 to_control_team_demo
 # shp 파일 원본 좌표계: EPSG:32652 (WGS84 UTM Zone 52N) -> EPSG:5179로 변환하여 사용
 # 속성: ID, MaxSpeed, LaneNo, R_LinkID, L_LinkID,
-#        FromNodeID, ToNodeID, LinkType, TLCodeIn, TLCodeOut 등
+#        FromNodeID, ToNodeID, LinkType, Length, N_LinkID, mc_SIG_GR 등
 
 import rospy
 import numpy as np
@@ -69,9 +69,9 @@ def shp_feature_to_road_dict(feature):
         'FromNodeID': props['FromNodeID'],           # 시작 노드 ID
         'ToNodeID': props['ToNodeID'],               # 종료 노드 ID
         'LinkType': props['LinkType'],               # 링크 타입
-        'TLCodeIn': props['TLCodeIn'],               # 진입 신호등 코드
-        'TLCodeOut': props['TLCodeOut'],              # 진출 신호등 코드
-        'Length': props['Length'] or 0.0,             # 링크 길이
+        'Length': props['Length'] or 0.0,            # 링크 길이
+        'mc_SIG_GR': int(props['mc_SIG_GR']) if props.get('mc_SIG_GR') else 0,   # 신호등 그룹 ID
+        'mc_INT_ID': int(props['mc_INT_ID']) if props.get('mc_INT_ID') else 0,    # 교차로 ID
     }
     return road
 
@@ -258,8 +258,8 @@ class DistanceCalculator(object):
             p.have_to_LangeChange_right = 0
 
             # 신호등 코드
-            p.look_at_signalGroupID = 0
-            p.look_at_IntersectionID = 0
+            p.look_at_signalGroupID = road['mc_SIG_GR']
+            p.look_at_IntersectionID = road['mc_INT_ID']
             p.is_stop_line = 0
 
             mapx_set = road['east'][0]
