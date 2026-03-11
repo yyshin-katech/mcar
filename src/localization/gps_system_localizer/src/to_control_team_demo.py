@@ -447,8 +447,8 @@ class DistanceCalculator(object):
         if p.LINK_ID == 47:
             p.Speed_Limit = 30
 
-        if p.LINK_ID == 10:
-            p.Speed_Limit = 40
+        # if p.LINK_ID == 10:
+        #     p.Speed_Limit = 40
 
         if p.LINK_ID == 52:
             if p.station < 150:
