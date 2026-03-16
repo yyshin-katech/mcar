@@ -4,7 +4,7 @@ device: /dev/ttyACM0
 frame_id: gps
 uart1:
   baudrate: 115200
-config_on_startup: true
+config_on_startup: false
 rate: 20                     # in Hz
 nav_rate: 1                  # [# of measurement cycles], recommended 1 Hz, may
 tmode3: 0                    # 0=Disabled (rover mode), 1=Survey-in, 2=Fixed
