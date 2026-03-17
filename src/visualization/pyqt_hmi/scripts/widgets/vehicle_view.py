@@ -3,7 +3,7 @@
 
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QPainterPath, QPolygonF
+from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QPainterPath, QPolygonF, QFont, QLinearGradient
 from PyQt5.QtCore import QPointF, QRectF
 import math
 
@@ -36,7 +36,7 @@ class VehicleViewWidget(QWidget):
         # 배경색
         self.setAutoFillBackground(True)
         palette = self.palette()
-        palette.setColor(self.backgroundRole(), QColor(30, 30, 30))
+        palette.setColor(self.backgroundRole(), QColor(22, 25, 30))
         self.setPalette(palette)
 
     def load_map(self, shp_file):
@@ -91,7 +91,7 @@ class VehicleViewWidget(QWidget):
         painter.setRenderHint(QPainter.Antialiasing)
         
         # 배경
-        painter.fillRect(self.rect(), QColor(30, 30, 30))
+        painter.fillRect(self.rect(), QColor(22, 25, 30))
         
         # 중심점 계산
         center_x = self.width() / 2
@@ -109,34 +109,34 @@ class VehicleViewWidget(QWidget):
         # 오브젝트 그리기
         self.draw_objects(painter, center_x, center_y)
         
-        # 디버깅 정보
-        painter.setPen(QPen(QColor(255, 255, 255), 1))
-        painter.drawText(10, 20, f"Scale: {self.scale:.1f}m/div")
-        painter.drawText(10, 40, f"Ego: ({self.ego_x:.1f}, {self.ego_y:.1f})")
-        painter.drawText(10, 60, f"Heading: {math.degrees(self.ego_heading):.1f}°")
-        painter.drawText(10, 80, f"Features: {len(self.map_features)}")
+        # 정보 오버레이 (좌상단)
+        painter.setFont(QFont("Monospace", 9))
+        painter.setPen(QPen(QColor(160, 170, 180), 1))
+        info_x, info_y = 12, 20
+        painter.drawText(info_x, info_y, f"Heading  {math.degrees(self.ego_heading):.1f}\u00b0")
+        painter.drawText(info_x, info_y + 18, f"E {self.ego_x:.1f}  N {self.ego_y:.1f}")
 
         # 스티어링 아이콘
-        self.draw_steering_icon(painter, 10, 95)
+        self.draw_steering_icon(painter, 10, info_y + 28)
         
     def draw_grid(self, painter, cx, cy):
-        """그리드 그리기"""
-        painter.setPen(QPen(QColor(60, 60, 60), 1, Qt.DashLine))
-        
-        grid_size = 100
-        
-        # 세로선
-        for x in range(0, self.width(), grid_size):
-            painter.drawLine(x, 0, x, self.height())
-            
-        # 가로선
-        for y in range(0, self.height(), grid_size):
-            painter.drawLine(0, y, self.width(), y)
-            
-        # 중앙선 강조
-        painter.setPen(QPen(QColor(100, 100, 100), 2))
-        painter.drawLine(cx, 0, cx, self.height())
-        painter.drawLine(0, cy, self.width(), cy)
+        """그리드 그리기 - 동심원 + 십자선"""
+        # 동심원 (거리 표시)
+        painter.setPen(QPen(QColor(50, 55, 60), 1, Qt.DotLine))
+        font = QFont("Monospace", 8)
+        painter.setFont(font)
+        for dist_m in range(10, 101, 10):
+            r = dist_m * self.scale
+            painter.drawEllipse(QPointF(cx, cy), r, r)
+            if dist_m % 20 == 0:
+                painter.setPen(QPen(QColor(90, 95, 100), 1))
+                painter.drawText(int(cx + r + 3), int(cy - 3), f"{dist_m}m")
+                painter.setPen(QPen(QColor(50, 55, 60), 1, Qt.DotLine))
+
+        # 십자선
+        painter.setPen(QPen(QColor(70, 75, 80), 1))
+        painter.drawLine(int(cx), 0, int(cx), self.height())
+        painter.drawLine(0, int(cy), self.width(), int(cy))
         
     def draw_map(self, painter):
         """지도 그리기"""
@@ -179,69 +179,140 @@ class VehicleViewWidget(QWidget):
                 y < -margin or y > self.height() + margin)
 
     def draw_ego_vehicle(self, painter, cx, cy):
-        """자차 그리기"""
-        ego_cx = self.width() / 2
-        ego_cy = self.height() * 0.75
-
+        """자차 그리기 - IONIQ 5 스타일"""
         vehicle_length = 4.47 * self.scale
         vehicle_width = 1.82 * self.scale
-        
-        painter.setBrush(QBrush(QColor(0, 200, 0, 150)))
-        painter.setPen(QPen(QColor(0, 255, 0), 2))
-        
-        rect = QRectF(
-            cx - vehicle_width/2,
-            cy - vehicle_length/2,
-            vehicle_width,
-            vehicle_length
-        )
-        painter.drawRect(rect)
-        
-        painter.setBrush(QBrush(QColor(255, 255, 0)))
-        triangle = QPolygonF([
-            QPointF(cx, cy - vehicle_length/2 - 10),
-            QPointF(cx - 10, cy - vehicle_length/2),
-            QPointF(cx + 10, cy - vehicle_length/2)
-        ])
-        painter.drawPolygon(triangle)
-        
-        painter.setPen(QPen(QColor(255, 255, 255)))
-        painter.drawText(int(cx - 15), int(cy + 5), "EGO")
+        wheel_w = max(3, vehicle_width * 0.12)
+        wheel_h = max(6, vehicle_length * 0.13)
+        wheelbase_front = vehicle_length * 0.32
+        wheelbase_rear = vehicle_length * 0.28
+        track = vehicle_width * 0.42
+
+        # --- 차체 본체 (둥근 사각형) ---
+        body_rect = QRectF(cx - vehicle_width/2, cy - vehicle_length/2,
+                           vehicle_width, vehicle_length)
+        body_radius = min(vehicle_width, vehicle_length) * 0.12
+
+        # 그림자
+        shadow_offset = max(2, self.scale * 0.3)
+        shadow_rect = body_rect.adjusted(shadow_offset, shadow_offset,
+                                         shadow_offset, shadow_offset)
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QBrush(QColor(0, 0, 0, 60)))
+        painter.drawRoundedRect(shadow_rect, body_radius, body_radius)
+
+        # 차체
+        body_gradient = QLinearGradient(body_rect.topLeft(), body_rect.bottomLeft())
+        body_gradient.setColorAt(0.0, QColor(55, 65, 80))
+        body_gradient.setColorAt(0.5, QColor(45, 55, 70))
+        body_gradient.setColorAt(1.0, QColor(35, 45, 60))
+        painter.setBrush(QBrush(body_gradient))
+        painter.setPen(QPen(QColor(80, 180, 220, 180), max(1, self.scale * 0.12)))
+        painter.drawRoundedRect(body_rect, body_radius, body_radius)
+
+        # --- 앞 유리 ---
+        ws_w = vehicle_width * 0.7
+        ws_h = vehicle_length * 0.18
+        ws_y = cy - vehicle_length/2 + vehicle_length * 0.15
+        ws_rect = QRectF(cx - ws_w/2, ws_y, ws_w, ws_h)
+        ws_gradient = QLinearGradient(ws_rect.topLeft(), ws_rect.bottomLeft())
+        ws_gradient.setColorAt(0.0, QColor(120, 180, 220, 160))
+        ws_gradient.setColorAt(1.0, QColor(80, 140, 180, 120))
+        painter.setBrush(QBrush(ws_gradient))
+        painter.setPen(QPen(QColor(100, 160, 200, 140), max(1, self.scale * 0.06)))
+        ws_radius = min(ws_w, ws_h) * 0.2
+        painter.drawRoundedRect(ws_rect, ws_radius, ws_radius)
+
+        # --- 뒤 유리 ---
+        rw_w = vehicle_width * 0.6
+        rw_h = vehicle_length * 0.10
+        rw_y = cy + vehicle_length/2 - vehicle_length * 0.18
+        rw_rect = QRectF(cx - rw_w/2, rw_y, rw_w, rw_h)
+        rw_gradient = QLinearGradient(rw_rect.topLeft(), rw_rect.bottomLeft())
+        rw_gradient.setColorAt(0.0, QColor(80, 140, 180, 120))
+        rw_gradient.setColorAt(1.0, QColor(100, 160, 200, 140))
+        painter.setBrush(QBrush(rw_gradient))
+        painter.setPen(QPen(QColor(100, 160, 200, 140), max(1, self.scale * 0.06)))
+        rw_radius = min(rw_w, rw_h) * 0.2
+        painter.drawRoundedRect(rw_rect, rw_radius, rw_radius)
+
+        # --- 헤드라이트 ---
+        hl_w = vehicle_width * 0.18
+        hl_h = max(3, vehicle_length * 0.04)
+        hl_y = cy - vehicle_length/2 + max(2, vehicle_length * 0.03)
+        for side in [-1, 1]:
+            hl_x = cx + side * vehicle_width * 0.28 - hl_w/2
+            hl_rect = QRectF(hl_x, hl_y, hl_w, hl_h)
+            painter.setBrush(QBrush(QColor(255, 255, 240, 220)))
+            painter.setPen(Qt.NoPen)
+            painter.drawRoundedRect(hl_rect, hl_h * 0.4, hl_h * 0.4)
+
+        # --- 테일라이트 ---
+        tl_w = vehicle_width * 0.22
+        tl_h = max(3, vehicle_length * 0.03)
+        tl_y = cy + vehicle_length/2 - max(2, vehicle_length * 0.03) - tl_h
+        for side in [-1, 1]:
+            tl_x = cx + side * vehicle_width * 0.26 - tl_w/2
+            tl_rect = QRectF(tl_x, tl_y, tl_w, tl_h)
+            painter.setBrush(QBrush(QColor(255, 60, 60, 220)))
+            painter.setPen(Qt.NoPen)
+            painter.drawRoundedRect(tl_rect, tl_h * 0.4, tl_h * 0.4)
+
+        # --- 바퀴 4개 ---
+        wheel_positions = [
+            (cx - track - wheel_w/2, cy - wheelbase_front - wheel_h/2),
+            (cx + track + wheel_w/2 - wheel_w, cy - wheelbase_front - wheel_h/2),
+            (cx - track - wheel_w/2, cy + wheelbase_rear - wheel_h/2),
+            (cx + track + wheel_w/2 - wheel_w, cy + wheelbase_rear - wheel_h/2),
+        ]
+        painter.setBrush(QBrush(QColor(25, 25, 25)))
+        painter.setPen(QPen(QColor(60, 60, 60), max(1, self.scale * 0.06)))
+        for wx, wy in wheel_positions:
+            painter.drawRoundedRect(QRectF(wx, wy, wheel_w, wheel_h), 2, 2)
+
+        # --- 진행 방향 화살표 ---
+        arrow_y = cy - vehicle_length/2 - max(8, self.scale * 1.2)
+        arrow_size = max(6, self.scale * 0.6)
+        arrow_path = QPainterPath()
+        arrow_path.moveTo(cx, arrow_y - arrow_size)
+        arrow_path.lineTo(cx - arrow_size * 0.7, arrow_y + arrow_size * 0.3)
+        arrow_path.lineTo(cx + arrow_size * 0.7, arrow_y + arrow_size * 0.3)
+        arrow_path.closeSubpath()
+        painter.setBrush(QBrush(QColor(80, 200, 255, 200)))
+        painter.setPen(Qt.NoPen)
+        painter.drawPath(arrow_path)
         
     def draw_objects(self, painter, cx, cy):
         """오브젝트 그리기"""
         for obj in self.objects:
             screen_x = cx + obj['x'] * self.scale
             screen_y = cy - obj['y'] * self.scale
-            
+
             obj_width = obj.get('width', 2.0) * self.scale
             obj_length = obj.get('length', 4.0) * self.scale
-            
+
             if obj['type'] == 'car':
-                color = QColor(255, 100, 100)
+                fill_color = QColor(220, 80, 80, 160)
+                border_color = QColor(255, 120, 120, 200)
             elif obj['type'] == 'pedestrian':
-                color = QColor(100, 100, 255)
+                fill_color = QColor(80, 120, 255, 160)
+                border_color = QColor(120, 160, 255, 200)
             else:
-                color = QColor(200, 200, 200)
-                
-            painter.setBrush(QBrush(color))
-            painter.setPen(QPen(color.darker(), 2))
-            
-            rect = QRectF(
-                screen_x - obj_width/2,
-                screen_y - obj_length/2,
-                obj_width,
-                obj_length
-            )
-            painter.drawRect(rect)
-            
+                fill_color = QColor(180, 180, 180, 140)
+                border_color = QColor(210, 210, 210, 180)
+
+            rect = QRectF(screen_x - obj_width/2, screen_y - obj_length/2,
+                          obj_width, obj_length)
+            r = min(obj_width, obj_length) * 0.15
+            painter.setBrush(QBrush(fill_color))
+            painter.setPen(QPen(border_color, max(1, self.scale * 0.08)))
+            painter.drawRoundedRect(rect, r, r)
+
             distance = math.sqrt(obj['x']**2 + obj['y']**2)
-            painter.setPen(QPen(QColor(255, 255, 255)))
-            painter.drawText(
-                int(screen_x - 20), 
-                int(screen_y - obj_length/2 - 5), 
-                f"{distance:.1f}m"
-            )
+            painter.setFont(QFont("Monospace", 8))
+            painter.setPen(QPen(QColor(255, 255, 255, 200)))
+            painter.drawText(int(screen_x - 18), int(screen_y - obj_length/2 - 4),
+                             f"{distance:.1f}m")
             
     def draw_steering_icon(self, painter, x, y):
         """스티어링 휠 아이콘 그리기"""
