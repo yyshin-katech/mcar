@@ -52,6 +52,7 @@ class MainDisplayWindow(QMainWindow):
         self.autonomous_mode = 0
         self.gps_rtk_code = 0
         self.link_id = 0
+        self.gear_status = 0
         self.road_state = 0
         self.on_odd = 0
         self.aeb_flag = 0
@@ -377,9 +378,44 @@ class MainDisplayWindow(QMainWindow):
         current_speed_layout.addWidget(current_speed_unit)
         current_speed_container.setLayout(current_speed_layout)
         
+        # 기어 상태
+        gear_container = QWidget()
+        gear_layout = QVBoxLayout()
+
+        gear_title = QLabel("Gear")
+        gear_title.setAlignment(Qt.AlignCenter)
+        gear_title.setStyleSheet("""
+            QLabel {
+                font-size: 14px;
+                font-weight: bold;
+                color: white;
+                background-color: transparent;
+                padding: 5px;
+            }
+        """)
+
+        self.gear_label = QLabel("P")
+        self.gear_label.setAlignment(Qt.AlignCenter)
+        self.gear_label.setStyleSheet("""
+            QLabel {
+                background-color: #444;
+                font-size: 32px;
+                font-weight: bold;
+                padding: 20px;
+                border-radius: 10px;
+                color: white;
+                border: 2px solid white;
+            }
+        """)
+
+        gear_layout.addWidget(gear_title)
+        gear_layout.addWidget(self.gear_label)
+        gear_container.setLayout(gear_layout)
+
         speed_h_layout.addWidget(speed_limit_container)
         speed_h_layout.addWidget(current_speed_container)
-        
+        speed_h_layout.addWidget(gear_container)
+
         speed_main_layout.addLayout(speed_h_layout)
         speed_group.setLayout(speed_main_layout)
         
@@ -545,6 +581,7 @@ class MainDisplayWindow(QMainWindow):
         avg_spd = (msg.wheel_speed_fl + msg.wheel_speed_fr +
                    msg.wheel_speed_rl + msg.wheel_speed_rr) / 4.0
         self.current_speed = avg_spd * 3.6  # m/s → km/h
+        self.gear_status = msg.gear_status
 
     def chassis_callback(self, msg):
         self.current_speed = getattr(msg, 'vehicle_speed', 0)
@@ -662,6 +699,23 @@ class MainDisplayWindow(QMainWindow):
             
         self.speed_label.setText(str(self.speed_limit))
         self.current_speed_label.setText(str(int(self.current_speed)))
+
+        # 기어 상태 업데이트
+        gear_map = {0: "-", 1: "P", 2: "R", 3: "N", 4: "D"}
+        gear_str = gear_map.get(self.gear_status, "-")
+        gear_color = "#dc3545" if self.gear_status == 2 else "#28a745" if self.gear_status == 4 else "#444"
+        self.gear_label.setText(gear_str)
+        self.gear_label.setStyleSheet("""
+            QLabel {
+                background-color: %s;
+                font-size: 32px;
+                font-weight: bold;
+                padding: 20px;
+                border-radius: 10px;
+                color: white;
+                border: 2px solid white;
+            }
+        """ % gear_color)
 
         # GPS 정보 업데이트
         self.lane_label.setText("Curr LANE: " + str(self.link_id))
