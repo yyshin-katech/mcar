@@ -53,6 +53,9 @@
 - `chassis_CAN_reader`: DBC v3→v4로 변경
 - `ublox_gps/node.cpp`: rtcmCallback 및 /rtcm 구독 제거 (GPS 장치 자체에서 RTCM 수신), configure/poll 등 초기화 코드는 원복 유지
 - `ublox_gps/config/zed_f9k.yaml`: tmode3=0 추가 (ZED-F9P HPG 제품은 tmode3 필수, 0=Disabled 로버모드)
+- `to_control_team_demo.py`: LINK_ID 10 속도 제한(40km/h) 주석 처리(비활성화)
+- `diagnostic_only.launch`: base2ego TF 프레임 슬래시 수정 (`ego_frame` → `/ego_frame`, rviz frame_id 매칭)
+- `to_control_team_demo.py`: ODD_OCCUPIED_OFFSET_THRESHOLD 0.95m → 2.0m로 완화
 
 ## Diagnostic 구조
 | 토픽 | 메시지 타입 | 소스 노드 | 판단 기준 |
