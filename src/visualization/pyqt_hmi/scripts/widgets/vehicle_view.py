@@ -286,13 +286,14 @@ class VehicleViewWidget(QWidget):
         painter.drawPath(arrow_path)
         
     def draw_objects(self, painter, cx, cy):
-        """오브젝트 그리기"""
+        """오브젝트 그리기 - orientation 회전 적용"""
         for obj in self.objects:
             screen_x = cx - obj['y'] * self.scale
             screen_y = cy - obj['x'] * self.scale
 
             obj_width = obj.get('width', 2.0) * self.scale
             obj_length = obj.get('length', 4.0) * self.scale
+            orientation = obj.get('orientation', 0.0)
 
             if obj['type'] == 'car':
                 fill_color = QColor(220, 80, 80, 160)
@@ -304,13 +305,31 @@ class VehicleViewWidget(QWidget):
                 fill_color = QColor(180, 180, 180, 140)
                 border_color = QColor(210, 210, 210, 180)
 
-            rect = QRectF(screen_x - obj_width/2, screen_y - obj_length/2,
-                          obj_width, obj_length)
+            painter.save()
+            painter.translate(screen_x, screen_y)
+            # orientation: 센서 좌표계(x=앞, y=왼) 기준 라디안 → 화면 회전각
+            painter.rotate(-math.degrees(orientation))
+
+            rect = QRectF(-obj_width/2, -obj_length/2, obj_width, obj_length)
             r = min(obj_width, obj_length) * 0.15
             painter.setBrush(QBrush(fill_color))
             painter.setPen(QPen(border_color, max(1, self.scale * 0.08)))
             painter.drawRoundedRect(rect, r, r)
 
+            # 진행 방향 표시 (앞쪽 삼각형)
+            arrow_size = max(4, obj_width * 0.3)
+            painter.setBrush(QBrush(QColor(255, 255, 255, 150)))
+            painter.setPen(Qt.NoPen)
+            arrow = QPolygonF([
+                QPointF(0, -obj_length/2 - arrow_size * 0.6),
+                QPointF(-arrow_size * 0.5, -obj_length/2 + 1),
+                QPointF(arrow_size * 0.5, -obj_length/2 + 1),
+            ])
+            painter.drawPolygon(arrow)
+
+            painter.restore()
+
+            # 텍스트 (회전 없이)
             distance = math.sqrt(obj['x']**2 + obj['y']**2)
             painter.setFont(QFont("Monospace", 8))
             painter.setPen(QPen(QColor(255, 255, 255, 200)))

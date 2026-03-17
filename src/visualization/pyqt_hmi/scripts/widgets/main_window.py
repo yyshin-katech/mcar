@@ -575,6 +575,7 @@ class MainDisplayWindow(QMainWindow):
                 'length': obj.size_x if obj.size_x > 0 else 1.0,
                 'vx': obj.vx,
                 'vy': obj.vy,
+                'orientation': obj.orientation,
                 'type': obj_type,
             })
         self.update_objects_signal.emit(objects)
