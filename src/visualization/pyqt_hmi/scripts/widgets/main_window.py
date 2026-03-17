@@ -13,6 +13,7 @@ from katech_diagnostic_msgs.msg import *
 from katech_custom_msgs.msg import ioniq5_ad_can_msg, v_can_msg
 from mmc_msgs.msg import chassis_msg, to_control_team_from_local_msg
 from v2x_msgs.msg import intersection_array_msg
+from perception_ros_msg.msg import object_array_msg
 
 from widgets.vehicle_view import VehicleViewWidget
 from widgets.status_indicator import StatusIndicator
@@ -23,6 +24,7 @@ class MainDisplayWindow(QMainWindow):
     update_sensors_signal = pyqtSignal()
     update_vehicle_signal = pyqtSignal()
     update_steering_signal = pyqtSignal(float)
+    update_objects_signal = pyqtSignal(list)
     
     def __init__(self):
         super().__init__()
@@ -70,6 +72,7 @@ class MainDisplayWindow(QMainWindow):
         self.update_sensors_signal.connect(self.update_sensor_display)
         self.update_vehicle_signal.connect(self.update_vehicle_view)
         self.update_steering_signal.connect(self.vehicle_view.set_steering_angle)
+        self.update_objects_signal.connect(self.vehicle_view.set_objects)
         
         # Ctrl+C 처리
         signal.signal(signal.SIGINT, self.signal_handler)
@@ -432,6 +435,7 @@ class MainDisplayWindow(QMainWindow):
         rospy.Subscriber("/sensors/v_can", v_can_msg, self.v_can_callback)
         rospy.Subscriber("/localization/to_control_team", to_control_team_from_local_msg, self.local_callback)
         rospy.Subscriber("/katri_v2x_node/katri_spat", intersection_array_msg, self.traffic_light_callback)
+        rospy.Subscriber("/track_Multi_RS", object_array_msg, self.track_objects_callback)
         
     def gps_callback(self, msg):
         self.gps_status = 0
@@ -491,6 +495,22 @@ class MainDisplayWindow(QMainWindow):
         
         self.vehicle_view.set_ego_pose(ego_x, ego_y, ego_heading)
         
+    def track_objects_callback(self, msg):
+        objects = []
+        for obj in msg.data:
+            obj_type = 'pedestrian' if obj.status == 1 else 'car'
+            objects.append({
+                'id': obj.id,
+                'x': obj.x,
+                'y': obj.y,
+                'width': obj.size_y if obj.size_y > 0 else 1.0,
+                'length': obj.size_x if obj.size_x > 0 else 1.0,
+                'vx': obj.vx,
+                'vy': obj.vy,
+                'type': obj_type,
+            })
+        self.update_objects_signal.emit(objects)
+
     def traffic_light_callback(self, msg):
         pass
         

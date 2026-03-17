@@ -311,8 +311,9 @@ class VehicleViewWidget(QWidget):
             distance = math.sqrt(obj['x']**2 + obj['y']**2)
             painter.setFont(QFont("Monospace", 8))
             painter.setPen(QPen(QColor(255, 255, 255, 200)))
-            painter.drawText(int(screen_x - 18), int(screen_y - obj_length/2 - 4),
-                             f"{distance:.1f}m")
+            obj_id = obj.get('id', '')
+            painter.drawText(int(screen_x - 22), int(screen_y - obj_length/2 - 4),
+                             f"#{obj_id} {distance:.1f}m")
             
     def draw_steering_icon(self, painter, x, y):
         """스티어링 휠 아이콘 그리기"""
