@@ -55,6 +55,10 @@ class MainDisplayWindow(QMainWindow):
         self.road_state = 0
         self.on_odd = 0
         self.aeb_flag = 0
+        self.look_at_intersection_id = 0
+        self.look_at_signal_group_id = 0
+        self.traffic_light_color = 0   # 0=unknown, 1=green, 2=orange, 3=red
+        self.traffic_light_time = 0
 
         # UI 초기화
         self.init_ui()
@@ -174,6 +178,10 @@ class MainDisplayWindow(QMainWindow):
         # GPS 정보
         gps_info_group = self.create_gps_info_group()
         layout.addWidget(gps_info_group)
+
+        # 신호등 정보
+        traffic_group = self.create_traffic_light_group()
+        layout.addWidget(traffic_group)
 
         layout.addStretch()
         panel.setLayout(layout)
@@ -410,6 +418,41 @@ class MainDisplayWindow(QMainWindow):
 
         return gps_group
 
+    def create_traffic_light_group(self):
+        """신호등 정보 그룹 생성"""
+        group = QGroupBox("Traffic Light")
+        layout = QHBoxLayout()
+
+        # 신호등 원형 표시
+        self.traffic_light_indicator = QLabel()
+        self.traffic_light_indicator.setFixedSize(60, 60)
+        self.traffic_light_indicator.setAlignment(Qt.AlignCenter)
+        self.traffic_light_indicator.setStyleSheet("""
+            QLabel {
+                background-color: #333;
+                border-radius: 30px;
+                border: 3px solid #555;
+            }
+        """)
+
+        # 남은 시간 표시
+        self.traffic_time_label = QLabel("N/A")
+        self.traffic_time_label.setAlignment(Qt.AlignCenter)
+        self.traffic_time_label.setStyleSheet("""
+            QLabel {
+                font-size: 36px;
+                font-weight: bold;
+                color: white;
+                background-color: transparent;
+                padding: 5px;
+            }
+        """)
+
+        layout.addWidget(self.traffic_light_indicator)
+        layout.addWidget(self.traffic_time_label)
+        group.setLayout(layout)
+        return group
+
     def create_vehicle_view(self):
         """차량 뷰 패널 생성"""
         panel = QWidget()
@@ -510,6 +553,8 @@ class MainDisplayWindow(QMainWindow):
         self.road_state = msg.Road_State
         self.on_odd = msg.On_ODD
         self.link_id = msg.LINK_ID
+        self.look_at_intersection_id = msg.look_at_IntersectionID
+        self.look_at_signal_group_id = msg.look_at_signalGroupID
         self.update_sensors_signal.emit()
 
         ego_x = msg.host_east
@@ -535,7 +580,27 @@ class MainDisplayWindow(QMainWindow):
         self.update_objects_signal.emit(objects)
 
     def traffic_light_callback(self, msg):
-        pass
+        if self.look_at_intersection_id == 0:
+            self.traffic_light_time = 0
+            self.traffic_light_color = 0
+            return
+        for intersection in msg.data:
+            if intersection.IntersectionID != self.look_at_intersection_id:
+                continue
+            movement = intersection.Movements
+            if movement.SignalGroupID != self.look_at_signal_group_id:
+                continue
+            self.traffic_light_time = movement.TimeChangeDetails
+            phase = movement.MovementPhaseStatus
+            if phase == 3:
+                self.traffic_light_color = 1    # green
+            elif phase == 8:
+                self.traffic_light_color = 2    # orange
+            elif phase == 6:
+                self.traffic_light_color = 3    # red
+            else:
+                self.traffic_light_color = 0
+            return
         
     def update_sensor_display(self):
         """센서 상태 업데이트"""
@@ -599,8 +664,43 @@ class MainDisplayWindow(QMainWindow):
         rtk_str = rtk_map.get(self.gps_rtk_code, "N/A")
         self.gpsrtk_label.setText("GPSRTK: " + rtk_str)
 
+        # 신호등 업데이트
+        self.update_traffic_light()
+
         # 팝업 판단 (stat_display와 동일 로직)
         self.update_popup()
+
+    def update_traffic_light(self):
+        """신호등 색상 및 남은 시간 업데이트"""
+        if self.look_at_intersection_id == 0 or self.traffic_light_color == 0:
+            self.traffic_light_indicator.setStyleSheet("""
+                QLabel { background-color: #333; border-radius: 30px; border: 3px solid #555; }
+            """)
+            self.traffic_time_label.setText("N/A")
+            self.traffic_time_label.setStyleSheet("""
+                QLabel { font-size: 36px; font-weight: bold; color: #888; background-color: transparent; }
+            """)
+            return
+
+        seconds = self.traffic_light_time // 10
+
+        if self.traffic_light_color == 1:    # green
+            color = "#00cc00"
+            border = "#00ff00"
+        elif self.traffic_light_color == 2:  # orange
+            color = "#cc8800"
+            border = "#ffaa00"
+        else:                                # red
+            color = "#cc0000"
+            border = "#ff0000"
+
+        self.traffic_light_indicator.setStyleSheet("""
+            QLabel {{ background-color: {c}; border-radius: 30px; border: 3px solid {b}; }}
+        """.format(c=color, b=border))
+        self.traffic_time_label.setText(str(seconds) + "s")
+        self.traffic_time_label.setStyleSheet("""
+            QLabel {{ font-size: 36px; font-weight: bold; color: {b}; background-color: transparent; }}
+        """.format(b=border))
 
     def update_popup(self):
         """시스템 고장/경고 팝업 표시 (stat_display 로직과 동일)"""

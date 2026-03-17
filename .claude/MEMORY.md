@@ -56,6 +56,13 @@
 - `to_control_team_demo.py`: LINK_ID 10 속도 제한(40km/h) 주석 처리(비활성화)
 - `diagnostic_only.launch`: base2ego TF 프레임 슬래시 수정 (`ego_frame` → `/ego_frame`, rviz frame_id 매칭)
 - `to_control_team_demo.py`: ODD_OCCUPIED_OFFSET_THRESHOLD 0.95m → 2.0m로 완화
+- `ublox_gps/config/zed_f9k.yaml`: config_on_startup=false로 변경 (GPS에 설정 명령 전송 방지)
+- `pyqt_hmi`: vehicle_view 리디자인 (IONIQ5 스타일 차체, 동심원 그리드, 그라데이션/유리창/라이트/바퀴)
+- `pyqt_hmi`: 맵 경로 `/home/yuyeong/` → `/home/ads/`로 수정
+- `pyqt_hmi`: `/track_Multi_RS` 구독, 오브젝트 실시간 표시 (차량=빨강, 보행자=파랑, ID+거리)
+- `pyqt_hmi`: 오브젝트 좌표 매핑 수정 (x=앞→화면위, y=왼→화면왼)
+- `pyqt_hmi`: 시스템 고장/ODD 팝업 오버레이 추가 (stat_display와 동일 로직)
+- `pyqt_hmi`: 신호등 표시 추가 (SPAT 파싱, 원형 색상 인디케이터 + 남은 시간)
 
 ## Diagnostic 구조
 | 토픽 | 메시지 타입 | 소스 노드 | 판단 기준 |

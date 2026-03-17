@@ -285,8 +285,8 @@ class VehicleViewWidget(QWidget):
     def draw_objects(self, painter, cx, cy):
         """오브젝트 그리기"""
         for obj in self.objects:
-            screen_x = cx + obj['x'] * self.scale
-            screen_y = cy - obj['y'] * self.scale
+            screen_x = cx - obj['y'] * self.scale
+            screen_y = cy - obj['x'] * self.scale
 
             obj_width = obj.get('width', 2.0) * self.scale
             obj_length = obj.get('length', 4.0) * self.scale
