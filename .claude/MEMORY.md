@@ -63,6 +63,9 @@
 - `pyqt_hmi`: 오브젝트 좌표 매핑 수정 (x=앞→화면위, y=왼→화면왼)
 - `pyqt_hmi`: 시스템 고장/ODD 팝업 오버레이 추가 (stat_display와 동일 로직)
 - `pyqt_hmi`: 신호등 표시 추가 (SPAT 파싱, 원형 색상 인디케이터 + 남은 시간)
+- `pyqt_hmi`: 신호등 색상 매핑을 stat_display와 동일하게 수정 (color 1=초록, 2=주황, 3=빨강)
+- `pyqt_hmi`: 맵 렌더링 최적화 - bbox 기반 자차 주변 200m 이내 feature만 그리기
+- stat_display 신호등 색상 매핑: phase 3→color 3(빨강렌더), phase 8→color 2(주황), phase 6→color 1(초록렌더)
 
 ## Diagnostic 구조
 | 토픽 | 메시지 타입 | 소스 노드 | 판단 기준 |

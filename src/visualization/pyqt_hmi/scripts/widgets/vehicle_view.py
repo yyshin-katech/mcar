@@ -139,37 +139,40 @@ class VehicleViewWidget(QWidget):
         painter.drawLine(0, int(cy), self.width(), int(cy))
         
     def draw_map(self, painter):
-        """지도 그리기"""
+        """지도 그리기 - 자차 주변 200m 이내 feature만 렌더링"""
         if not self.map_features:
             return
-        
+
         painter.setPen(QPen(QColor(242, 217, 132, 100), 2))
-        
+
+        view_range = 200.0  # meters
+
         for feature in self.map_features:
+            # bbox 기반 거리 필터 (자차에서 200m 이내만)
+            bbox = feature.get('bbox')
+            if bbox:
+                bx_min, by_min, bx_max, by_max = bbox
+                if (bx_max < self.ego_x - view_range or bx_min > self.ego_x + view_range or
+                    by_max < self.ego_y - view_range or by_min > self.ego_y + view_range):
+                    continue
+
             points = feature['points']
-            
             if len(points) < 2:
                 continue
-            
+
             path = QPainterPath()
-            
             first_point = points[0]
             screen_x, screen_y = self.world_to_screen(first_point[0], first_point[1])
-            
-            if self.is_point_out_of_view(screen_x, screen_y, margin=100):
-                continue
-                
             path.moveTo(screen_x, screen_y)
-            
+
             valid_points = 1
             for i in range(1, len(points)):
                 point = points[i]
                 screen_x, screen_y = self.world_to_screen(point[0], point[1])
-                
                 if abs(screen_x) < 10000 and abs(screen_y) < 10000:
                     path.lineTo(screen_x, screen_y)
                     valid_points += 1
-            
+
             if valid_points >= 2:
                 painter.drawPath(path)
 

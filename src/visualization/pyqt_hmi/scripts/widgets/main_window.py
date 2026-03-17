@@ -588,16 +588,17 @@ class MainDisplayWindow(QMainWindow):
             if intersection.IntersectionID != self.look_at_intersection_id:
                 continue
             movement = intersection.Movements
-            if movement.SignalGroupID != self.look_at_signal_group_id:
+            if self.look_at_signal_group_id != 0 and \
+               movement.SignalGroupID != self.look_at_signal_group_id:
                 continue
             self.traffic_light_time = movement.TimeChangeDetails
             phase = movement.MovementPhaseStatus
             if phase == 3:
-                self.traffic_light_color = 1    # green
+                self.traffic_light_color = 3    # 초록 (stat_display: color 3)
             elif phase == 8:
-                self.traffic_light_color = 2    # orange
+                self.traffic_light_color = 2    # 주황 (stat_display: color 2)
             elif phase == 6:
-                self.traffic_light_color = 3    # red
+                self.traffic_light_color = 1    # 빨강 (stat_display: color 1)
             else:
                 self.traffic_light_color = 0
             return
@@ -684,15 +685,18 @@ class MainDisplayWindow(QMainWindow):
 
         seconds = self.traffic_light_time // 10
 
-        if self.traffic_light_color == 1:    # green
+        if self.traffic_light_color == 1:    # 초록 (stat_display: color 1 → green)
             color = "#00cc00"
             border = "#00ff00"
-        elif self.traffic_light_color == 2:  # orange
+        elif self.traffic_light_color == 2:  # 주황 (stat_display: color 2 → orange)
             color = "#cc8800"
             border = "#ffaa00"
-        else:                                # red
+        elif self.traffic_light_color == 3:  # 빨강 (stat_display: color 3 → red)
             color = "#cc0000"
             border = "#ff0000"
+        else:
+            color = "#333"
+            border = "#555"
 
         self.traffic_light_indicator.setStyleSheet("""
             QLabel {{ background-color: {c}; border-radius: 30px; border: 3px solid {b}; }}
