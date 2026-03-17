@@ -52,6 +52,9 @@ class MainDisplayWindow(QMainWindow):
         self.autonomous_mode = 0
         self.gps_rtk_code = 0
         self.link_id = 0
+        self.road_state = 0
+        self.on_odd = 0
+        self.aeb_flag = 0
 
         # UI 초기화
         self.init_ui()
@@ -415,7 +418,24 @@ class MainDisplayWindow(QMainWindow):
 
         self.vehicle_view = VehicleViewWidget()
         layout.addWidget(self.vehicle_view)
-        
+
+        # 팝업 오버레이 (차량 뷰 위에 표시)
+        self.popup_label = QLabel(self.vehicle_view)
+        self.popup_label.setAlignment(Qt.AlignCenter)
+        self.popup_label.setWordWrap(True)
+        self.popup_label.hide()
+        self.popup_label.setStyleSheet("""
+            QLabel {
+                background-color: rgba(200, 30, 30, 220);
+                color: white;
+                font-size: 28px;
+                font-weight: bold;
+                padding: 20px 40px;
+                border-radius: 12px;
+                border: 3px solid rgba(255, 255, 255, 180);
+            }
+        """)
+
         panel.setLayout(layout)
         return panel
         
@@ -482,10 +502,13 @@ class MainDisplayWindow(QMainWindow):
 
     def chassis_callback(self, msg):
         self.current_speed = getattr(msg, 'vehicle_speed', 0)
+        self.aeb_flag = getattr(msg, 'AEB_flag', 0)
         
     def local_callback(self, msg):
         self.speed_limit = msg.Speed_Limit
         self.odd_status = msg.Road_State
+        self.road_state = msg.Road_State
+        self.on_odd = msg.On_ODD
         self.link_id = msg.LINK_ID
         self.update_sensors_signal.emit()
 
@@ -575,6 +598,63 @@ class MainDisplayWindow(QMainWindow):
         rtk_map = {2: "Fixed", 1: "Float", 0: "No RTK"}
         rtk_str = rtk_map.get(self.gps_rtk_code, "N/A")
         self.gpsrtk_label.setText("GPSRTK: " + rtk_str)
+
+        # 팝업 판단 (stat_display와 동일 로직)
+        self.update_popup()
+
+    def update_popup(self):
+        """시스템 고장/경고 팝업 표시 (stat_display 로직과 동일)"""
+        statuses = {
+            "GPS": self.gps_status, "ADCU": self.adcu_status,
+            "LiDAR": self.lidar_status, "Radar": self.radar_status,
+            "V2X": self.v2x_status, "HMI": self.hmi_status,
+            "CAM": self.cam_status, "VCU": self.vcu_status,
+            "IPC": self.ipc_status,
+        }
+        abnormal = [name for name, st in statuses.items() if st != 0]
+        abnormal_count = len(abnormal)
+
+        popup_text = ""
+        popup_color = "rgba(200, 30, 30, 220)"
+
+        if abnormal_count == 1:
+            popup_text = "  " + abnormal[0] + " 센서 고장"
+            popup_color = "rgba(200, 140, 0, 220)"
+        elif abnormal_count >= 2:
+            popup_text = " 시스템 고장 (" + str(abnormal_count) + "개 시스템 오류)"
+            popup_color = "rgba(200, 30, 30, 220)"
+        elif self.road_state == 1:
+            popup_text = "전방 ODD 이탈 경고"
+            popup_color = "rgba(200, 140, 0, 220)"
+        elif self.aeb_flag == 1:
+            popup_text = " 전방 추돌 경고"
+            popup_color = "rgba(200, 30, 30, 220)"
+        elif self.on_odd == 1:
+            popup_text = "ODD 이탈 !!!!"
+            popup_color = "rgba(200, 30, 30, 220)"
+
+        if popup_text:
+            self.popup_label.setText(popup_text)
+            self.popup_label.setStyleSheet("""
+                QLabel {{
+                    background-color: {color};
+                    color: white;
+                    font-size: 28px;
+                    font-weight: bold;
+                    padding: 20px 40px;
+                    border-radius: 12px;
+                    border: 3px solid rgba(255, 255, 255, 180);
+                }}
+            """.format(color=popup_color))
+            self.popup_label.adjustSize()
+            # 차량 뷰 상단 중앙에 배치
+            vw = self.vehicle_view.width()
+            pw = self.popup_label.width()
+            self.popup_label.move((vw - pw) // 2, 20)
+            self.popup_label.show()
+            self.popup_label.raise_()
+        else:
+            self.popup_label.hide()
 
     def on_auto_button_clicked(self):
         if self.auto_button.isChecked():
