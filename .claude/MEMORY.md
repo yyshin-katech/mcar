@@ -66,6 +66,9 @@
 - `pyqt_hmi`: 신호등 색상 매핑을 stat_display와 동일하게 수정 (color 1=초록, 2=주황, 3=빨강)
 - `pyqt_hmi`: 맵 렌더링 최적화 - bbox 기반 자차 주변 200m 이내 feature만 그리기
 - stat_display 신호등 색상 매핑: phase 3→color 3(빨강렌더), phase 8→color 2(주황), phase 6→color 1(초록렌더)
+- `pyqt_hmi`: 오브젝트 orientation 회전 적용 + 방향 화살표 표시
+- `pyqt_hmi`: 현재 속도를 v_can wheel_speed 4개 평균 × 3.6 (m/s→km/h)로 변경 (/sensors/chassis 미사용)
+- v_can DBC wheel_speed 단위: m/s (V_CAN_Release.dbc, scale=0.01)
 
 ## Diagnostic 구조
 | 토픽 | 메시지 타입 | 소스 노드 | 판단 기준 |

@@ -542,6 +542,9 @@ class MainDisplayWindow(QMainWindow):
 
     def v_can_callback(self, msg):
         self.update_steering_signal.emit(msg.steering_angle)
+        avg_spd = (msg.wheel_speed_fl + msg.wheel_speed_fr +
+                   msg.wheel_speed_rl + msg.wheel_speed_rr) / 4.0
+        self.current_speed = avg_spd * 3.6  # m/s → km/h
 
     def chassis_callback(self, msg):
         self.current_speed = getattr(msg, 'vehicle_speed', 0)
