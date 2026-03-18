@@ -42,21 +42,17 @@ class VehicleViewWidget(QWidget):
     def load_map(self, shp_file):
         """Load map from shapefile"""
         self.map_features = load_shapefile(shp_file)
-        self.update()
 
     def set_ego_pose(self, x, y, heading):
         self.ego_x = x
         self.ego_y = y
         self.ego_heading = heading
-        self.update()
-        
+
     def set_steering_angle(self, angle):
         self.steering_angle = angle
-        self.update()
 
     def set_objects(self, objects):
         self.objects = objects
-        self.update()
         
     def rotate_point(self, x, y, angle):
         """Rotate point by angle around origin"""

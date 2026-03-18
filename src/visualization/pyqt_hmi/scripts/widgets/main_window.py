@@ -800,6 +800,9 @@ class MainDisplayWindow(QMainWindow):
         # 팝업 판단 (stat_display와 동일 로직)
         self.update_popup()
 
+        # vehicle view 갱신 (타이머 기반 단일 repaint)
+        self.vehicle_view.update()
+
     def update_traffic_light(self):
         """신호등 색상 및 남은 시간 업데이트"""
         if self.look_at_intersection_id == 0 or self.traffic_light_color == 0:
