@@ -72,6 +72,7 @@
 - `pyqt_hmi`: 기어 상태 표시 추가 (P/R/N/D, D=초록, R=빨강, P/N=회색)
 - v_can DBC gear_status: 0=N/A, 1=P, 2=R, 3=N, 4=D
 - `pyqt_hmi`: diagnostic 상태 체크를 msg_received 플래그 + 미수신 카운터 방식으로 변경 (1초 미수신 시 비정상, 깜빡임 수정)
+- `pyqt_hmi`: bag 녹화 UI 추가 (차량 뷰 오른쪽 위, 경로 설정, REC/STOP, rosbag record -a --split 10GB)
 
 ## Diagnostic 구조
 | 토픽 | 메시지 타입 | 소스 노드 | 판단 기준 |

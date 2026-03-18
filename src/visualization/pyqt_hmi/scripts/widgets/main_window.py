@@ -4,6 +4,8 @@
 import rospy
 import signal
 import os
+import subprocess
+import datetime
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -56,6 +58,10 @@ class MainDisplayWindow(QMainWindow):
             'ipc': {'received': False, 'miss_cnt': 0, 'status_attr': 'ipc_status'},
         }
         self.DIAG_MISS_THRESHOLD = 10  # 10 ticks × 100ms = 1초
+
+        # bag 녹화 상태
+        self.bag_process = None
+        self.bag_recording = False
         
         self.eps_status = 0
         self.traffic_light_color = 0
@@ -529,9 +535,55 @@ class MainDisplayWindow(QMainWindow):
             }
         """)
 
+        # bag 녹화 UI (차량 뷰 오른쪽 위)
+        bag_container = QWidget(self.vehicle_view)
+        bag_container.setFixedSize(320, 90)
+        bag_container.setStyleSheet("background-color: rgba(0, 0, 0, 160); border-radius: 8px;")
+        bag_layout = QVBoxLayout(bag_container)
+        bag_layout.setContentsMargins(8, 6, 8, 6)
+        bag_layout.setSpacing(4)
+
+        # 경로 입력
+        path_layout = QHBoxLayout()
+        path_label = QLabel("Path:")
+        path_label.setStyleSheet("color: #aaa; font-size: 11px; background: transparent;")
+        self.bag_path_edit = QLineEdit(os.path.expanduser("~/bag_data"))
+        self.bag_path_edit.setStyleSheet("""
+            QLineEdit {
+                background-color: #333; color: white; font-size: 11px;
+                border: 1px solid #555; border-radius: 3px; padding: 2px 4px;
+            }
+        """)
+        path_layout.addWidget(path_label)
+        path_layout.addWidget(self.bag_path_edit)
+        bag_layout.addLayout(path_layout)
+
+        # 버튼 + 상태
+        btn_layout = QHBoxLayout()
+        self.bag_record_btn = QPushButton("REC")
+        self.bag_record_btn.setFixedSize(60, 28)
+        self.bag_record_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #dc3545; color: white; font-size: 12px;
+                font-weight: bold; border-radius: 4px; border: none;
+            }
+            QPushButton:hover { background-color: #c82333; }
+        """)
+        self.bag_record_btn.clicked.connect(self.toggle_bag_recording)
+
+        self.bag_status_label = QLabel("Stopped")
+        self.bag_status_label.setStyleSheet("color: #888; font-size: 11px; background: transparent;")
+
+        btn_layout.addWidget(self.bag_record_btn)
+        btn_layout.addWidget(self.bag_status_label)
+        btn_layout.addStretch()
+        bag_layout.addLayout(btn_layout)
+
+        self.bag_container = bag_container
+
         panel.setLayout(layout)
         return panel
-        
+
     def init_ros_subscribers(self):
         """ROS Subscriber 초기화"""
         rospy.Subscriber("/diagnostic/cpt7_gps", cpt7_gps_diagnostic_msg, self.gps_callback)
@@ -853,15 +905,83 @@ class MainDisplayWindow(QMainWindow):
         else:
             self.manual_button.setChecked(True)
 
+    def toggle_bag_recording(self):
+        if self.bag_recording:
+            self.stop_bag_recording()
+        else:
+            self.start_bag_recording()
+
+    def start_bag_recording(self):
+        bag_dir = self.bag_path_edit.text().strip()
+        if not bag_dir:
+            bag_dir = os.path.expanduser("~/bag_data")
+        os.makedirs(bag_dir, exist_ok=True)
+
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        prefix = os.path.join(bag_dir, timestamp)
+
+        self.bag_process = subprocess.Popen(
+            ["rosbag", "record", "-a", "--split", "--size=10240", "-o", prefix],
+            preexec_fn=os.setsid
+        )
+        self.bag_recording = True
+        self.bag_path_edit.setEnabled(False)
+        self.bag_record_btn.setText("STOP")
+        self.bag_record_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #28a745; color: white; font-size: 12px;
+                font-weight: bold; border-radius: 4px; border: none;
+            }
+            QPushButton:hover { background-color: #218838; }
+        """)
+        self.bag_status_label.setText("Recording...")
+        self.bag_status_label.setStyleSheet("color: #ff4444; font-size: 11px; background: transparent;")
+        rospy.loginfo("Bag recording started: %s", prefix)
+
+    def stop_bag_recording(self):
+        if self.bag_process:
+            os.killpg(os.getpgid(self.bag_process.pid), signal.SIGINT)
+            self.bag_process.wait()
+            self.bag_process = None
+        self.bag_recording = False
+        self.bag_path_edit.setEnabled(True)
+        self.bag_record_btn.setText("REC")
+        self.bag_record_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #dc3545; color: white; font-size: 12px;
+                font-weight: bold; border-radius: 4px; border: none;
+            }
+            QPushButton:hover { background-color: #c82333; }
+        """)
+        self.bag_status_label.setText("Stopped")
+        self.bag_status_label.setStyleSheet("color: #888; font-size: 11px; background: transparent;")
+        rospy.loginfo("Bag recording stopped")
+
+    def _update_bag_container_pos(self):
+        if hasattr(self, 'bag_container') and hasattr(self, 'vehicle_view'):
+            vw = self.vehicle_view.width()
+            bw = self.bag_container.width()
+            self.bag_container.move(vw - bw - 2, 2)
+            self.bag_container.raise_()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._update_bag_container_pos()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        QTimer.singleShot(0, self._update_bag_container_pos)
+
     def signal_handler(self, sig, frame):
         print("\n시그널을 받았습니다. 프로그램을 종료합니다...")
         self.cleanup()
         QApplication.quit()
-        
+
     def cleanup(self):
         print("리소스 정리 중...")
+        self.stop_bag_recording()
         rospy.signal_shutdown("User interrupted")
-        
+
     def closeEvent(self, event):
         self.cleanup()
         event.accept()
