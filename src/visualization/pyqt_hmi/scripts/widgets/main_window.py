@@ -42,6 +42,20 @@ class MainDisplayWindow(QMainWindow):
         self.cam_status = 2
         self.ipc_status = 2
         self.odd_status = 0
+
+        # msg_received 플래그 + 미수신 카운터 (10회 = 1초 미수신 시 비정상)
+        self.diag_flags = {
+            'gps': {'received': False, 'miss_cnt': 0, 'status_attr': 'gps_status'},
+            'adcu': {'received': False, 'miss_cnt': 0, 'status_attr': 'adcu_status'},
+            'lidar': {'received': False, 'miss_cnt': 0, 'status_attr': 'lidar_status'},
+            'radar': {'received': False, 'miss_cnt': 0, 'status_attr': 'radar_status'},
+            'v2x': {'received': False, 'miss_cnt': 0, 'status_attr': 'v2x_status'},
+            'hmi': {'received': False, 'miss_cnt': 0, 'status_attr': 'hmi_status'},
+            'vcu': {'received': False, 'miss_cnt': 0, 'status_attr': 'vcu_status'},
+            'cam': {'received': False, 'miss_cnt': 0, 'status_attr': 'cam_status'},
+            'ipc': {'received': False, 'miss_cnt': 0, 'status_attr': 'ipc_status'},
+        }
+        self.DIAG_MISS_THRESHOLD = 10  # 10 ticks × 100ms = 1초
         
         self.eps_status = 0
         self.traffic_light_color = 0
@@ -537,41 +551,32 @@ class MainDisplayWindow(QMainWindow):
         rospy.Subscriber("/track_Multi_RS", object_array_msg, self.track_objects_callback)
         
     def gps_callback(self, msg):
-        self.gps_status = 0
+        self.diag_flags['gps']['received'] = True
         self.gps_rtk_code = msg.GPSRTK_StatCode
-        self.update_sensors_signal.emit()
-        
+
     def adcu_callback(self, msg):
-        self.adcu_status = 0
-        self.update_sensors_signal.emit()
-        
+        self.diag_flags['adcu']['received'] = True
+
     def lidar_callback(self, msg):
-        self.lidar_status = 0
-        self.update_sensors_signal.emit()
-        
+        self.diag_flags['lidar']['received'] = True
+
     def radar_callback(self, msg):
-        self.radar_status = 0
-        self.update_sensors_signal.emit()
-        
+        self.diag_flags['radar']['received'] = True
+
     def v2x_callback(self, msg):
-        self.v2x_status = 0
-        self.update_sensors_signal.emit()
-        
+        self.diag_flags['v2x']['received'] = True
+
     def hmi_callback(self, msg):
-        self.hmi_status = 0
-        self.update_sensors_signal.emit()
-        
+        self.diag_flags['hmi']['received'] = True
+
     def vcu_callback(self, msg):
-        self.vcu_status = 0
-        self.update_sensors_signal.emit()
-        
+        self.diag_flags['vcu']['received'] = True
+
     def cam_callback(self, msg):
-        self.cam_status = 0
-        self.update_sensors_signal.emit()
-        
+        self.diag_flags['cam']['received'] = True
+
     def ipc_callback(self, msg):
-        self.ipc_status = 0
-        self.update_sensors_signal.emit()
+        self.diag_flags['ipc']['received'] = True
         
     def ioniq5_ad_can_callback(self, msg):
         self.autonomous_mode = msg.autonomous_mode
@@ -662,6 +667,17 @@ class MainDisplayWindow(QMainWindow):
         
     def periodic_update(self):
         """주기적 업데이트"""
+        # diagnostic msg_received 플래그 확인 + 카운터 (stat_display 패턴)
+        for name, d in self.diag_flags.items():
+            if d['received']:
+                d['received'] = False
+                d['miss_cnt'] = 0
+                setattr(self, d['status_attr'], 0)
+            else:
+                d['miss_cnt'] += 1
+                if d['miss_cnt'] > self.DIAG_MISS_THRESHOLD:
+                    setattr(self, d['status_attr'], 2)
+
         mode_msg = UInt8()
         mode_msg.data = self.selected_mode
         self.mode_command_pub.publish(mode_msg)
@@ -722,6 +738,9 @@ class MainDisplayWindow(QMainWindow):
         rtk_map = {2: "Fixed", 1: "Float", 0: "No RTK"}
         rtk_str = rtk_map.get(self.gps_rtk_code, "N/A")
         self.gpsrtk_label.setText("GPSRTK: " + rtk_str)
+
+        # 센서 인디케이터 업데이트
+        self.update_sensor_display()
 
         # 신호등 업데이트
         self.update_traffic_light()
