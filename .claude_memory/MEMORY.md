@@ -20,7 +20,8 @@
 
 ## Localization Details
 - **통일 좌표계: EPSG:5179** (Korea 2000 / Unified CS) — 모든 노드가 동일 좌표계 사용
-- `to_control_team_demo.py`: .mat file based, 79 links, Frenet coordinate, ODD判定
+- `to_control_team_demo.py`: .mat file based, Frenet coordinate, ODD判定
+  - mapfiles 디렉토리: senario1 (248 links), senario3 (242 links) 등 시나리오별 mat 파일
 - `to_control_team_demo_shp.py`: .shp file based (TB_senario_map.shp), 1770 links
   - SHP location: `src/localization/gps_system_localizer/src/shp_map/`
   - SHP 원본 CRS: EPSG:32652 → 로드 시 pyproj로 EPSG:5179 변환
