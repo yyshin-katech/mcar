@@ -457,7 +457,7 @@ void STAT_DISPLAY::LIDAR_Text_Gen()
         else if(lidar_msg.LIDAR_Right_StatCode == 1) lidar_status = 1;
         else if(lidar_msg.LIDAR_Right_StatCode == 1) lidar_status = 1;
     }
-    lidar_status = 2;
+
     if(lidar_status == 0)
     {   //흰색 정상
         state_color.r = 0;
