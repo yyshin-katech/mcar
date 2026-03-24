@@ -16,6 +16,7 @@ import time
 import pyproj
 
 from katech_diagnostic_msgs.msg import katech_diagnostic_msg
+from katech_custom_msgs.msg import ioniq5_ad_can_msg
 from mmc_msgs.msg import localization2D_msg, to_control_team_from_local_msg, chassis_msg
 from sensor_msgs.msg import NavSatFix
 from utils import distance2curve
@@ -44,6 +45,7 @@ class DistanceCalculator(object):
         self.old_waypoint_index = 0
         self.takeoverreq = 0
         self.LC_flag = 0
+        self.ad_mode = 0  # 0=Manual, 1=Autonomous
 
         rospy.spin()
 
@@ -165,6 +167,7 @@ class DistanceCalculator(object):
     
     def chasis_cb(self, msg):
         self.LC_flag = msg.LC_flag
+        self.ad_mode = msg.vcu_ADMDStatus  # 0=Manual, 1=Autonomous
 
     def diag_cb(self, msg):
         statuses = [
@@ -354,7 +357,8 @@ class DistanceCalculator(object):
             p.yaw_error_size = yaw_error_size
 
             # # 현재 주행할 경로쪽으로 방향이 제대로 맞으면 오토모드 송출 아니면, 수동모드 송출 ##
-            if p.On_ODD == 0 and p.Road_State == 0:
+            # 자율주행 모드(ad_mode==1)일 때는 yaw 검사 skip (회전 중 오탈 방지)
+            if p.On_ODD == 0 and p.Road_State == 0 and self.ad_mode != 1:
                 if p.LINK_ID == 52 and p.distance_to_lane_end < 60.0:
                     p.Speed_Limit = 15
                     p.On_ODD = 0
