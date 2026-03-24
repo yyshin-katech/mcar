@@ -300,15 +300,15 @@ void STAT_DISPLAY::GPS_Text_Gen()
         GPS_text.fg_color = state_color; 
     }
 
-    if(cpt7_msg.Network_Status == 1)
-    {
-        gps_status = 2;
-        state_color.r = 1;
-        state_color.g = 0;
-        state_color.b = 0;
-        state_color.a = 1;
-        GPS_text.fg_color = state_color;
-    } 
+    // if(cpt7_msg.Network_Status == 1)
+    // {
+    //     gps_status = 2;
+    //     state_color.r = 1;
+    //     state_color.g = 0;
+    //     state_color.b = 0;
+    //     state_color.a = 1;
+    //     GPS_text.fg_color = state_color;
+    // } 
 
     state_color.r = 0.4;
     state_color.g = 0.4;
