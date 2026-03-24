@@ -31,7 +31,7 @@ def connect_ntrip_client():
         if (not initialized):
             continue
         # print("Connection start")
-        process_ = subprocess.Popen( [DIRECTORY + '/src/connect_ntrip_from_base.sh', DIRECTORY ], universal_newlines=True, shell=False, stdout=subprocess.PIPE, start_new_session=True)
+        process_ = subprocess.Popen( [DIRECTORY + '/src/connect_ntrip_from_base.sh', DIRECTORY ], shell=False, stdout=subprocess.PIPE, start_new_session=True)
         process_.communicate()
         # if (initialized):
         #     print("disconnected ntrip, connect again")

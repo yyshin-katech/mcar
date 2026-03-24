@@ -450,7 +450,7 @@ void STAT_DISPLAY::LIDAR_Text_Gen()
     LIDAR_text.top = 50+30;
 
     LIDAR_AliveCnt_Check(lidar_msg.LIDAR_AliveCount);
-
+    // lidar_status = 0;
     if(lidar_status == 0)
     {
         if(lidar_msg.LIDAR_Center_StatCode == 1) lidar_status = 1;
@@ -863,7 +863,7 @@ void STAT_DISPLAY::CAM_Text_Gen()
     CAM_text.top = 50+30+30+30+30+30+30;
 
     CAM_AliveCnt_Check(cam_msg.CAM_AliveCount);
-    
+    cam_status = 0;
     if(cam_status == 0)
     {   //흰색 정상
         state_color.r = 0;
@@ -944,7 +944,7 @@ void STAT_DISPLAY::IPC_Text_Gen()
     IPC_text.top = 50+30+30+30+30+30+30+30;
 
     IPC_AliveCnt_Check(ipc_msg.IPC_AliveCount);
-
+    // ipc_status = 0;
     if(ipc_status == 0)
     {   //흰색 정상
         state_color.r = 0;
@@ -1023,7 +1023,7 @@ void STAT_DISPLAY::system_status_check()
     std::string abnormal_sensor = "";
     std::ostringstream oss;
 
-    local_msg.Road_State = 1;
+    // local_msg.Road_State = 1;
 
     for (const auto& s : statuses)
     {

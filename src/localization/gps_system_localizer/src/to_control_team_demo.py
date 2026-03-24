@@ -179,7 +179,8 @@ class DistanceCalculator(object):
             msg.ipc_status,
             ]
         if any(s != 0 for s in statuses):
-            self.takeoverreq = 1
+            # self.takeoverreq = 1
+            self.takeoverreq = 0
         else:
             self.takeoverreq = 0
         # if (msg.gps_status != 0 or
@@ -447,9 +448,6 @@ class DistanceCalculator(object):
         if p.LINK_ID == 47:
             p.Speed_Limit = 30
 
-        if p.LINK_ID == 10:
-            p.Speed_Limit = 40
-
         if p.LINK_ID == 52:
             if p.station < 150:
                 p.Speed_Limit = 30
@@ -478,11 +476,12 @@ class DistanceCalculator(object):
                 p.Road_State = 1
 
         # 센서 고장 일때, 어린이 보호구역 안에서
-        if self.takeoverreq == 1 or p.Road_State == 2 or p.On_ODD == 1 or p.LINK_ID == 0:
-            p.Take_Over_Request = 1
-        else:
-            p.Take_Over_Request = 0
-
+        # if self.takeoverreq == 1 or p.Road_State == 2 or p.On_ODD == 1 or p.LINK_ID == 0:
+        #     p.Take_Over_Request = 1
+        # else:
+        #     p.Take_Over_Request = 0
+        p.On_ODD = 0
+        p.Road_State = 0
         self.to_control_team_pub.publish(p)
 
         self.old_lane_id = p.LINK_ID
