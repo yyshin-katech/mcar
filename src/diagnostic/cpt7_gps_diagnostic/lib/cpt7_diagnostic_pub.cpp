@@ -151,42 +151,24 @@ void CPT7_DIAGNOSTIC_PUB::timerCallback(const ros::TimerEvent&)
     static const uint8_t FAIL_THRESHOLD = 3;  // 3번 연속 실패해야 연결 끊김으로 판단
     static bool ret = 0;
 
-    if (callback_cnt % 10 == 0)  // 매 3번째마다 체크
+    if (callback_cnt % 10 == 0)  // 매 10번째마다 체크 (1초 주기)
     {
         ret = this->pingCheck(ip);
-        // ROS_INFO("%d", ret);
-        if(ret == 1)
+        if(ret == 1)  // ping 실패
         {
-            cpt7_msg.Network_Status = 1;
+            fail_cnt++;
+            if(fail_cnt >= FAIL_THRESHOLD)
+            {
+                cpt7_msg.Network_Status = 1;  // 연결 끊김
+            }
         }
-        else
+        else  // ping 성공
         {
-            cpt7_msg.Network_Status = 0;
+            fail_cnt = 0;  // 카운트 리셋
+            cpt7_msg.Network_Status = 0;  // 연결 정상
         }
-        // if(ret == 1)  // ping 실패
-        // {
-        //     fail_cnt++;
-        //     if(fail_cnt >= FAIL_THRESHOLD)
-        //     {
-        //         cpt7_msg.Network_Status = 1;  // 연결 끊김
-        //     }
-        // }
-        // else  // ping 성공
-        // {
-        //     fail_cnt = 0;  // 카운트 리셋
-        //     cpt7_msg.Network_Status = 0;  // 연결 정상
-        // }
     }
     callback_cnt++;
-
-    if(ret == 0)
-    {
-        cpt7_msg.Network_Status = 0;
-    }
-    else
-    {
-        cpt7_msg.Network_Status = 1;
-    }
 
     if((bestpos_cb_cnt == bestpos_cb_cnt_old) && (inspva_cb_cnt == inspva_cb_cnt_old))
     {

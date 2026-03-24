@@ -179,8 +179,7 @@ class DistanceCalculator(object):
             msg.ipc_status,
             ]
         if any(s != 0 for s in statuses):
-            # self.takeoverreq = 1
-            self.takeoverreq = 0
+            self.takeoverreq = 1
         else:
             self.takeoverreq = 0
         # if (msg.gps_status != 0 or
@@ -456,32 +455,32 @@ class DistanceCalculator(object):
             else:
                 p.Speed_Limit = 15
 
-        # 터널 구간
-        if p.LINK_ID == 71 and p.distance_to_lane_end < 95:
-            # p.host_east = 0
-            # p.host_north = 0
-            p.GPS_Over = 1
+        # # 터널 구간
+        # if p.LINK_ID == 71 and p.distance_to_lane_end < 95:
+        #     # p.host_east = 0
+        #     # p.host_north = 0
+        #     p.GPS_Over = 1
 
-        if p.LINK_ID == 72:
-            # p.host_east = 0
-            # p.host_north = 0
-            p.GPS_Over = 1
-            if p.station > 15:
-                p.host_east = e
-                p.host_north = n
-                p.GPS_Over = 0
+        # if p.LINK_ID == 72:
+        #     # p.host_east = 0
+        #     # p.host_north = 0
+        #     p.GPS_Over = 1
+        #     if p.station > 15:
+        #         p.host_east = e
+        #         p.host_north = n
+        #         p.GPS_Over = 0
             
-            if p.distance_to_lane_end < 50:
-                p.NEXT_LINK_ID = 0
-                p.Road_State = 1
+        #     if p.distance_to_lane_end < 50:
+        #         p.NEXT_LINK_ID = 0
+        #         p.Road_State = 1
 
         # 센서 고장 일때, 어린이 보호구역 안에서
-        # if self.takeoverreq == 1 or p.Road_State == 2 or p.On_ODD == 1 or p.LINK_ID == 0:
-        #     p.Take_Over_Request = 1
-        # else:
-        #     p.Take_Over_Request = 0
-        p.On_ODD = 0
-        p.Road_State = 0
+        if self.takeoverreq == 1 or p.Road_State == 2 or p.On_ODD == 1 or p.LINK_ID == 0:
+            p.Take_Over_Request = 1
+        else:
+            p.Take_Over_Request = 0
+        # p.On_ODD = 0
+        # p.Road_State = 0
         self.to_control_team_pub.publish(p)
 
         self.old_lane_id = p.LINK_ID
