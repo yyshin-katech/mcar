@@ -141,7 +141,7 @@ from geometry_msgs.msg import Point
 from mmc_msgs.msg import to_control_team_from_local_msg
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-MAPFILE_PATH = os.path.join(SCRIPT_DIR, 'shp_map')
+DEFAULT_SHP_MAP_PATH = os.path.join(SCRIPT_DIR, 'shp_map')
 
 # SHP(EPSG:32652) -> EPSG:5179 좌표 변환기
 _shp_to_5179 = pyproj.Transformer.from_crs('EPSG:32652', 'EPSG:5179', always_xy=True)
@@ -157,9 +157,17 @@ def lanelet_data_initialize(shp_file):
                 return []
             rospy.loginfo(f"Total shapes: {len(shp)}")
             for j, feat in enumerate(shp):
-                coords = feat['geometry']['coordinates']
-                if len(coords) == 0:
+                geom = feat['geometry']
+                geom_type = geom['type']
+                coords_raw = geom['coordinates']
+                if len(coords_raw) == 0:
                     continue
+                # Polygon: coordinates = [exterior_ring, ...], 각 ring은 (x,y,z) 튜플 목록
+                # LineString: coordinates = [(x,y,z), ...]
+                if geom_type in ('Polygon', 'MultiPolygon'):
+                    coords = coords_raw[0]  # 외곽 링만 사용
+                else:
+                    coords = coords_raw
                 wp = {'id': j, 'e': [], 'n': [], 'filename': os.path.basename(shp_file)}
                 ee = [coord[0] for coord in coords]
                 nn = [coord[1] for coord in coords]
@@ -175,13 +183,15 @@ def lanelet_data_initialize(shp_file):
         return []
 
 def load_multiple_shapefiles(directory, pattern="*.shp"):
-    """Load multiple shapefiles from directory"""
+    """Load multiple shapefiles from directory (including subdirectories)"""
     all_wps = []
-    
-    # Find all shp files matching pattern
+
+    # Find all shp files matching pattern (including subdirectories)
     shp_pattern = os.path.join(directory, pattern)
     shp_files = glob.glob(shp_pattern)
-    shp_files.sort()  # Sort for consistent ordering
+    shp_files += glob.glob(os.path.join(directory, '**', pattern), recursive=True)
+    # 중복 제거
+    shp_files = sorted(set(shp_files))
     
     if not shp_files:
         rospy.logerr(f"No shapefile found with pattern: {shp_pattern}")
@@ -252,9 +262,10 @@ class lanelet_marker(object):
     def __init__(self):
         rospy.init_node('lanelet_marker')
 
-        # Load multiple shapefiles
-        # Option 1: Load all .shp files in the directory
-        self.wps = load_multiple_shapefiles(MAPFILE_PATH, "*.shp")
+        # Load multiple shapefiles from SHP_MAP_PATH param (scenario-specific)
+        shp_map_path = rospy.get_param('SHP_MAP_PATH', DEFAULT_SHP_MAP_PATH)
+        rospy.loginfo(f"SHP map path: {shp_map_path}")
+        self.wps = load_multiple_shapefiles(shp_map_path, "*.shp")
         self.e_ego = 0.0
         self.n_ego = 0.0
         self.vehicle_yaw = 0.0

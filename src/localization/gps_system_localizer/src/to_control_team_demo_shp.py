@@ -23,7 +23,7 @@ from utils_cython import find_closest, compute_current_lane, xy2frenet_with_clos
 
 # shp 파일 경로
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-SHP_FILE_PATH = os.path.join(SCRIPT_DIR, 'shp_map', 'TB_senario_map.shp')
+SHP_FILE_PATH = os.path.join(SCRIPT_DIR, 'shp_map', 'senario1', 'TB_senario_map_senario1.shp')
 
 ODD_CNT_THRESHOLD = 200
 ODD_OCCUPIED_OFFSET_THRESHOLD = 0.95
@@ -33,10 +33,35 @@ ODD_YAW_ERR_THRESHOLD = np.deg2rad(5)
 _shp_to_5179 = pyproj.Transformer.from_crs('EPSG:32652', 'EPSG:5179', always_xy=True)
 
 
-def shp_feature_to_road_dict(feature):
+DENSIFY_INTERVAL = 2.0  # 웨이포인트 보간 간격 (m)
+
+
+def densify_coords(east, north, interval=DENSIFY_INTERVAL):
+    """SHP 웨이포인트를 interval(m) 간격으로 보간하여 촘촘하게 만듦"""
+    dx = np.diff(east)
+    dy = np.diff(north)
+    ds = np.sqrt(dx**2 + dy**2)
+    cum_s = np.zeros(len(east))
+    cum_s[1:] = np.cumsum(ds)
+    total_len = cum_s[-1]
+
+    if total_len < interval:
+        return east, north
+
+    # interval 간격의 새 station 배열 생성
+    new_s = np.arange(0, total_len, interval)
+    if new_s[-1] < total_len:
+        new_s = np.append(new_s, total_len)
+
+    new_east = np.interp(new_s, cum_s, east)
+    new_north = np.interp(new_s, cum_s, north)
+    return new_east, new_north
+
+
+def shp_feature_to_road_dict(feature, fid):
     """
     shp의 LineString feature를 .mat 호환 dict로 변환
-    좌표를 EPSG:32652 -> EPSG:5179로 변환 후 저장
+    좌표를 EPSG:32652 -> EPSG:5179로 변환 후 2m 간격으로 보간
     """
     coords = np.array(feature['geometry']['coordinates'])
     east_32652 = coords[:, 0].astype(np.float64)
@@ -44,6 +69,9 @@ def shp_feature_to_road_dict(feature):
 
     # EPSG:32652 -> EPSG:5179 변환
     east, north = _shp_to_5179.transform(east_32652, north_32652)
+
+    # 웨이포인트 보간 (SHP가 mat보다 포인트가 적어 compute_current_lane 매칭 실패 방지)
+    east, north = densify_coords(np.array(east), np.array(north))
 
     # station: 누적 거리 계산
     dx = np.diff(east)
@@ -61,6 +89,7 @@ def shp_feature_to_road_dict(feature):
         'north': np.array([north]),
         'station': np.array([station]),
         # shp 속성 매핑
+        'fid': int(fid),                           # SHP feature ID (정수)
         'ID': props['ID'],                         # 링크 고유 ID (문자열)
         'MaxSpeed': props['MaxSpeed'] or 50,        # 제한속도
         'LaneNo': props['LaneNo'] or 1,             # 차선 수
@@ -75,6 +104,8 @@ def shp_feature_to_road_dict(feature):
         'mc_MANEUVE': props.get('mc_MANEUVE'),                                    # 주행 방향 (maneuverStraightAllowed 등)
         'TO_LinkID': [x.strip() for x in (props.get('TO_LinkID') or '').split(',') if x.strip()],  # 다음 링크 ID 목록
         'is_stop_ln': int(props['is_stop_ln']) if props.get('is_stop_ln') is not None else 0,      # 정지선 여부
+        'have_to_le': int(props['have_to_le']) if props.get('have_to_le') is not None else 0,      # 좌측 차선변경 필요
+        'have_to_ri': int(props['have_to_ri']) if props.get('have_to_ri') is not None else 0,      # 우측 차선변경 필요
     }
     return road
 
@@ -119,7 +150,7 @@ class DistanceCalculator(object):
             os.environ['SHAPE_RESTORE_SHX'] = 'YES'
             with fiona.open(SHP_FILE_PATH) as shp:
                 for idx, feat in enumerate(shp):
-                    road = shp_feature_to_road_dict(feat)
+                    road = shp_feature_to_road_dict(feat, feat['id'])
                     self.target_roads.append(road)
                     # ID -> index 매핑 (ToNodeID 기반 다음 링크 탐색용)
                     if road['ID']:
@@ -247,19 +278,19 @@ class DistanceCalculator(object):
         # shp 속성에서 정보 추출
         if current_lane_id >= 0:
             road = self.target_roads[current_lane_id]
-            p.LINK_ID = current_lane_id + 1
+            p.LINK_ID = road['fid']
             p.Speed_Limit = road['MaxSpeed']
             p.distance_to_lane_end = road['station'][0][-1] - current_s
 
-            # 다음 링크 탐색 (ToNodeID -> FromNodeID 매칭)
+            # 다음 링크 탐색 (TO_LinkID 기반)
             next_idx = self.find_next_link_index(current_lane_id)
-            p.NEXT_LINK_ID = next_idx + 1 if next_idx >= 0 else 0
+            p.NEXT_LINK_ID = self.target_roads[next_idx]['fid'] if next_idx >= 0 else 0
 
             # 좌우 차선변경 가능 여부 (L_LinkID, R_LinkID 존재 여부로 판단)
             p.left_LaneChange_avail = 1 if road['L_LinkID'] else 0
             p.right_LaneChange_avail = 1 if road['R_LinkID'] else 0
-            p.have_to_LangeChange_left = 0
-            p.have_to_LangeChange_right = 0
+            p.have_to_LangeChange_left = road['have_to_le']
+            p.have_to_LangeChange_right = road['have_to_ri']
 
             # 신호등 코드
             p.look_at_signalGroupID = road['mc_SIG_GR']
@@ -288,7 +319,7 @@ class DistanceCalculator(object):
         p.Road_State = 0
         p.distance_out_of_ODD = 200
 
-        p.lane_id = current_lane_id + 1
+        p.lane_id = self.target_roads[current_lane_id]['fid'] if current_lane_id >= 0 else 0
 
         ## 다음 링크가 없는 경우 이탈 경고 ##
         if p.NEXT_LINK_ID == 0 and current_lane_id >= 0:

@@ -14,6 +14,8 @@ from scipy.interpolate import CubicSpline
 from scipy.spatial import cKDTree as KDTree
 import time
 import pyproj
+import os
+import glob
 
 from katech_diagnostic_msgs.msg import katech_diagnostic_msg
 from mmc_msgs.msg import localization2D_msg, to_control_team_from_local_msg, chassis_msg
@@ -21,13 +23,6 @@ from sensor_msgs.msg import NavSatFix
 from utils import distance2curve
 
 from utils_cython import find_closest, compute_current_lane, xy2frenet_with_closest_waypoint_loop, xy2frenet_with_closest_waypoint
-
-# MAPFILE_PATH = '/home/katech/mcar_v10/src/localization/gps_system_localizer/mapfiles/K_CITY_20250630'
-# MAPFILE_PATH = '/home/ads/mcar_v10/src/localization/gps_system_localizer/mapfiles/KATECH_0508'
-MAPFILE_PATH = rospy.get_param('MAPFILE_PATH')
-# MAPFILE_PATH = '/home/katech/mcar_v13/src/localization/gps_system_localizer/mapfiles/K_CITY_20251106'
-MIN_LANE_ID = 1
-MAX_LANE_ID = 79
 
 ODD_CNT_THRESHOLD = 200
 ODD_OCCUPIED_OFFSET_THRESHOLD = 0.95
@@ -48,16 +43,8 @@ class DistanceCalculator(object):
         rospy.spin()
 
     def init_variable(self):
-        # 맵 centerlines
-        # self.road_1 = None
-        # self.road_2 = None
-        # self.road_3 = None
-        # self.road_4 = None
-        # self.road_5 = None
-        # self.road_6 = None
-        for i in range(MIN_LANE_ID, MAX_LANE_ID+1):
-            setattr(self, f'road_{i}', None)
-
+        self.target_roads = []
+        self.valid_link_ids = set()
         self.map_loaded = False
 
         self.east = 0.0
@@ -79,22 +66,26 @@ class DistanceCalculator(object):
 
     def load_centerline_map(self):
         try:
-            for i in range(MIN_LANE_ID, MAX_LANE_ID+1):
-                mat_file_path = f'{MAPFILE_PATH}/link_{i}.mat'
-                setattr(self, f'road_{i}', sio.loadmat(mat_file_path))
+            mapfile_path = rospy.get_param('MAPFILE_PATH')
+            mat_files = sorted(glob.glob(os.path.join(mapfile_path, 'link_*.mat')))
+            if not mat_files:
+                rospy.logerr(f"No mat files found in {mapfile_path}")
+                return
 
-            # self.target_roads = [self.road_1, self.road_2,self.road_3,self.road_4,self.road_5,self.road_6]
-            self.target_roads = [getattr(self, f'road_{i}') for i in range(MIN_LANE_ID, MAX_LANE_ID+1)]
-            
+            self.target_roads = []
+            for mat_file_path in mat_files:
+                data = sio.loadmat(mat_file_path)
+                self.target_roads.append(data)
+                self.valid_link_ids.add(int(data['LINK_ID'][0][0]))
+
+            rospy.loginfo(f"Loaded {len(self.target_roads)} mat files from {mapfile_path}")
             self.map_loaded = True
 
-        except Execption as e:
-            rospy.logerr(f"Error loading centerline amp: {e}")
+        except Exception as e:
+            rospy.logerr(f"Error loading centerline map: {e}")
 
     def compute_my_lane_cy(self, e, n):
         ''' cython 버전 '''
-        lane_names = [f'road_{i}' for i in range(MIN_LANE_ID, MAX_LANE_ID+1)]
-        lane_names.append('none')
         
         current_lane_id = -1
         current_lane_name = 'none'
@@ -151,7 +142,7 @@ class DistanceCalculator(object):
                 current_closest_waypoint_index = np.clip(current_closest_waypoint_index, 0, n_waypoints_in_map-1)
                 current_closest_waypoint_in_MATLAB = current_closest_waypoint_index + 1
 
-                current_lane_name = lane_names[current_lane_id]
+                current_lane_name = f'road_{current_lane_id}'
         
         return current_lane_id, current_lane_name, distance_to_entry_end, distance_to_exit_start, current_s, current_d, current_closest_waypoint_in_MATLAB
     
@@ -201,7 +192,7 @@ class DistanceCalculator(object):
         """
         localization 메세지를 받아서 control team에 필요한 메세지 publish
         """
-        ODD_id_list = list(range(1, MAX_LANE_ID +1)) # [MAX_LANE_ID+1]
+        ODD_id_list = self.valid_link_ids
         t0 = time.time()
 
         e = msg.east
@@ -216,7 +207,19 @@ class DistanceCalculator(object):
         p = to_control_team_from_local_msg()
 
         p.time = msg.time
-        
+
+        # 매칭 링크 없음 → ODD 이탈 처리 후 즉시 반환
+        if current_lane_id < 0:
+            p.On_ODD = 1
+            p.Road_State = 2
+            p.distance_out_of_ODD = 0
+            p.yaw_error_size = 100
+            p.host_east = e
+            p.host_north = n
+            p.host_yaw = yaw
+            self.to_control_team_pub.publish(p)
+            return
+
         p.is_stop_line = self.target_roads[current_lane_id]['is_stop_line'][0][0]
         p.look_at_signalGroupID = self.target_roads[current_lane_id]['look_at_signalGroupID'][0][0]
         p.look_at_IntersectionID = self.target_roads[current_lane_id]['look_at_IntersectionID'][0][0]
@@ -232,12 +235,12 @@ class DistanceCalculator(object):
 
         mapx_set = self.target_roads[current_lane_id]['east'][0]
         mapy_set = self.target_roads[current_lane_id]['north'][0]
-        
+
         ## 자차량 ODD 상태 initilaize ##
 
         p.On_ODD = 0
         p.Road_State = 0
-        p.distance_out_of_ODD = 200  # 현재 상태 모든 도로가 계속 ODD 영역으로 설정
+        p.distance_out_of_ODD = 200
 
         p.lane_id = current_lane_id + 1
         ## 지금 주행중인 링크랑 연결된 다음 링크가 ODD 이탈 영역 혹은 도로가 끊긴 경우 ##
@@ -245,9 +248,10 @@ class DistanceCalculator(object):
         if not (p.NEXT_LINK_ID in ODD_id_list) or p.NEXT_LINK_ID == 0:
             p.Road_State = 1  # 이탈 경고
             p.distance_out_of_ODD = p.distance_to_lane_end  # 이탈 영역까지 남은 거리
-            
+
         ## 현재 영역에 주행할 경로가 없거나, ODD 이탈 영역에 들어올 때 계속 수동모드 플래그 송출 ##
-        if p.lane_id == 0 or not (p.lane_id in ODD_id_list):
+        # p.LINK_ID(실제 링크 ID)로 ODD 체크 (p.lane_id는 배열 인덱스라 직접 사용 불가)
+        if p.LINK_ID == 0 or not (p.LINK_ID in ODD_id_list):
             p.left_LaneChange_avail = 0
             p.right_LaneChange_avail = 0
             p.look_at_signalGroupID = 0
