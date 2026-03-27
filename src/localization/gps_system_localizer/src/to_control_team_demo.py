@@ -421,6 +421,8 @@ class DistanceCalculator(object):
         else:
             p.Take_Over_Request = 0
 
+        p.Speed_Limit = 40
+
         self.to_control_team_pub.publish(p)
 
         self.old_lane_id = p.LINK_ID
