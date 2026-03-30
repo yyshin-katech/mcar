@@ -863,7 +863,7 @@ void STAT_DISPLAY::CAM_Text_Gen()
     CAM_text.top = 50+30+30+30+30+30+30;
 
     CAM_AliveCnt_Check(cam_msg.CAM_AliveCount);
-    
+    cam_status = 0;
     if(cam_status == 0)
     {   //흰색 정상
         state_color.r = 0;
