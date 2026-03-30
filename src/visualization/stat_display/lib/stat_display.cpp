@@ -1343,12 +1343,6 @@ void STAT_DISPLAY::ODD_Text_Gen()
         state_color.a = 1;
         ODD_text.fg_color = state_color;
     }
-
-
-    state_color.r = 0.4;
-    state_color.g = 0.4;
-    state_color.b = 0.4;
-    state_color.a = 0.5;
     ODD_text.bg_color = state_color;
     odd_pub.publish(ODD_text);
 

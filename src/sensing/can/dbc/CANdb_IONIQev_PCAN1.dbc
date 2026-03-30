@@ -114,18 +114,18 @@ BO_ 1830 CAR_EGO_A_Ex: 4 NUC
  SG_ X_High : 7|16@0+ (1,0) [0|1000] "" Vector__XXX
 
 BO_ 1824 LOCAL_MAP_INFO: 8 NUC
- SG_ is_stop_line : 41|1@1+ (1,0) [0|1] "" Vector__XXX
  SG_ look_at_signalGroupID : 0|4@1+ (1,0) [0|15] "" Vector__XXX
  SG_ look_at_IntersectionID : 4|4@1+ (1,0) [0|9] "" Vector__XXX
- SG_ NEXT_LINK_ID : 8|8@1+ (1,0) [0|255] "" Vector__XXX
- SG_ LINK_ID : 16|8@1+ (1,0) [0|255] "" Vector__XXX
- SG_ distance_to_lane_end : 24|16@1+ (0.1,0) [0|6553.5] "m" Vector__XXX
- SG_ have_to_LangeChange_left : 44|1@1+ (1,0) [0|1] "" Vector__XXX
- SG_ have_to_LangeChange_right : 45|1@1+ (1,0) [0|1] "" Vector__XXX
- SG_ left_LaneChange_avail : 46|1@1+ (1,0) [0|1] "" Vector__XXX
- SG_ right_LaneChange_avail : 47|1@1+ (1,0) [0|1] "" Vector__XXX
- SG_ Speed_Limit : 48|8@1+ (1,0) [0|255] "" Vector__XXX
- SG_ guard_zone : 42|2@1+ (1,0) [0|3] "" Vector__XXX
+ SG_ NEXT_LINK_ID : 8|12@1+ (1,0) [0|4095] "" Vector__XXX
+ SG_ LINK_ID : 20|12@1+ (1,0) [0|4095] "" Vector__XXX
+ SG_ distance_to_lane_end : 32|16@1+ (0.1,0) [0|6553.5] "m" Vector__XXX
+ SG_ is_stop_line : 48|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ guard_zone : 49|2@1+ (1,0) [0|3] "" Vector__XXX
+ SG_ have_to_LangeChange_left : 51|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ have_to_LangeChange_right : 52|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ left_LaneChange_avail : 53|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ right_LaneChange_avail : 54|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ Speed_Limit : 55|8@1+ (1,0) [0|255] "" Vector__XXX
 
 BO_ 64 On_ODD_Stat: 3 NUC
  SG_ GPS_Over : 3|1@1+ (1,0) [0|0] "" Vector__XXX

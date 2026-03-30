@@ -390,6 +390,9 @@ class DistanceCalculator(object):
         p.station = current_s
         p.lateral_offset = current_d
 
+        if p.LINK_ID == 76:
+            p.LINK_ID = 471
+
         self.to_control_team_pub.publish(p)
 
         self.old_lane_id = p.LINK_ID
