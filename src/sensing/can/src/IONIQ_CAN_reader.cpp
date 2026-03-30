@@ -66,6 +66,8 @@ typedef struct{
 } structWHL_SPD11;
 
 structWHL_SPD11 sWheel_SPD;
+unsigned char gear_pos;
+
 mmc_msgs::motor_rpm_msg msgRPM;
 
 void timerCallback(const ros::TimerEvent&)
@@ -77,7 +79,8 @@ void timerCallback(const ros::TimerEvent&)
   motor_rpm = wheel_rpm * gear_ratio;
 
   msgRPM.N = motor_rpm;
-
+  msgRPM.gear_pos = gear_pos;
+  
   pub1.publish(msgRPM);
 }
 
@@ -163,6 +166,9 @@ void IONIQ_CAN_READER()
                                                                     (char *)"WHL_SPD_Checksum_LSB",
                                                                     (char *)"WHL_SPD_Checksum_MSB",}));
 
+  msg_list.push_back(make_tuple((char *)"ELECT_GEAR", vector<char *>{(char *)"Elect_Gear_Shifter",
+                                                                    (char *)"SLC_ON",
+                                                                    (char *)"SLC_SET_SPEED",}));
   
 
   while (ros::ok())
@@ -225,10 +231,29 @@ void IONIQ_CAN_READER()
         } 
         
       }
+      else if (msg_idx == 1)
+      {
+        for (int i = 0; i != get<1>(msg_list[msg_idx]).size(); i++)
+        {
+          kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[i], &sh);
+          kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
+
+          switch (i)
+          {
+          case (0): // Elect_Gear_Shifter
+            gear_pos = value;
+            break;
+          case (1):
+            break;
+          case (2):
+            break;
+          default:
+            break;
+          }
+        } 
+      }
       
     }
-
-    
     rate.sleep();
   }
 }
@@ -248,7 +273,7 @@ int main(int argc, char **argv)
   char filename[100];
 
   //////////////////////////////////// Parameters ///////////////////////////////////////
-  strcpy(filename, (relative_path + "/dbc/2gen-2ch-C_IoniqEV.dbc").c_str());
+  strcpy(filename, (relative_path + "/dbc/2gen-2ch-C_IoniqEV_v2.dbc").c_str());
   int channel_num = 2;
   bool init_access_flag = true; // Init access: no (= CAN handle will be used in multithread)
   ///////////////////////////////////////////////////////////////////////////////////////

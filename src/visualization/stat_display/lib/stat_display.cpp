@@ -69,6 +69,8 @@ void STAT_DISPLAY::traffic_light_callback(const v2x_msgs::intersection_array_msg
     intersectionid = local_msg.look_at_IntersectionID;
     if (target_intersection_id == 0)
     {
+        traffic_light_time = 0;
+        traffic_light_color = 0;
         return;
     }
 
@@ -263,19 +265,19 @@ void STAT_DISPLAY::GPS_Text_Gen()
     GPS_text.top = 50;
 
     GPS_AliveCnt_Check(cpt7_msg.GPS_INS_AliveCnt);
-    gps_status = 0;
-    if(gps_status == 0)
-    {   //흰색 정상
-        state_color.r = 0;
-        state_color.g = 0.8;
+
+    if (gps_status == 1 || cpt7_msg.GPSRTK_StatCode != 0x038 || cpt7_msg.lon_std > 0.05 || cpt7_msg.lat_std > 0.05)
+    {   // 주황 warning
+        state_color.r = 1;
+        state_color.g = 0.5;
         state_color.b = 0;
         state_color.a = 1;
         GPS_text.fg_color = state_color;
     }
-    else if(gps_status == 1)
-    {   // 주황 warning
-        state_color.r = 1;
-        state_color.g = 0.5;
+    else if (gps_status == 0)
+    {   //흰색 정상 
+        state_color.r = 0;
+        state_color.g = 0.8;
         state_color.b = 0;
         state_color.a = 1;
         GPS_text.fg_color = state_color;
@@ -297,6 +299,16 @@ void STAT_DISPLAY::GPS_Text_Gen()
         state_color.a = 1;
         GPS_text.fg_color = state_color; 
     }
+
+    if(cpt7_msg.Network_Status == 1)
+    {
+        gps_status = 2;
+        state_color.r = 1;
+        state_color.g = 0;
+        state_color.b = 0;
+        state_color.a = 1;
+        GPS_text.fg_color = state_color;
+    } 
 
     state_color.r = 0.4;
     state_color.g = 0.4;
@@ -445,7 +457,7 @@ void STAT_DISPLAY::LIDAR_Text_Gen()
         else if(lidar_msg.LIDAR_Right_StatCode == 1) lidar_status = 1;
         else if(lidar_msg.LIDAR_Right_StatCode == 1) lidar_status = 1;
     }
-    lidar_status = 0;
+    lidar_status = 2;
     if(lidar_status == 0)
     {   //흰색 정상
         state_color.r = 0;
@@ -851,7 +863,7 @@ void STAT_DISPLAY::CAM_Text_Gen()
     CAM_text.top = 50+30+30+30+30+30+30;
 
     CAM_AliveCnt_Check(cam_msg.CAM_AliveCount);
-    cam_status = 0;
+    
     if(cam_status == 0)
     {   //흰색 정상
         state_color.r = 0;
@@ -1011,6 +1023,8 @@ void STAT_DISPLAY::system_status_check()
     std::string abnormal_sensor = "";
     std::ostringstream oss;
 
+    local_msg.Road_State = 1;
+
     for (const auto& s : statuses)
     {
         if (s.second != 0)
@@ -1040,6 +1054,7 @@ void STAT_DISPLAY::system_status_check()
     else if (local_msg.Road_State == 1)
     {
         oss << "전방 ODD 이탈 경고";
+        
         std::string str = oss.str();
 
         this->sound_play("ODD");
@@ -1051,6 +1066,14 @@ void STAT_DISPLAY::system_status_check()
         std::string str = oss.str();
 
         this->sound_play("AEB");
+        this->POPUP_Text_Gen(str);
+    }
+    else if (local_msg.On_ODD == 1)
+    {
+        oss << "ODD 이탈 !!!!";
+        std::string str = oss.str();
+
+        this->sound_play("outofODD");
         this->POPUP_Text_Gen(str);
     }
     else
@@ -1086,6 +1109,7 @@ void STAT_DISPLAY::sound_play(const std::string& sensor_name)
     else if (sensor_name == "ODD") path = base_path + "odd_warning.mp3";
     else if (sensor_name == "IPC") path = base_path + "percept_warning.mp3";
     else if (sensor_name == "AEB") path = base_path + "aeb_warning.mp3";
+    else if (sensor_name == "outofODD") path = base_path + "outofodd.mp3";
     else path = base_path + "ad_system_warning.mp3";  // fallback
 
     sound_msg.arg = path;
@@ -1124,9 +1148,10 @@ void STAT_DISPLAY::sound_play(const std::string& sensor_name)
 void STAT_DISPLAY::Local_Text_Gen()
 {
     ros::Time now = ros::Time::now();
-    
+    std::string code = (cpt7_msg.GPSRTK_StatCode == 56) ? "RTKFIX" : "N/A";
+
     LOCAL_text.text = "Curr LANE: " + std::to_string(local_msg.LINK_ID) +
-                    "\nGPSRTK: " + std::to_string(cpt7_msg.GPSRTK_StatCode);
+                    "\nGPSRTK: " + code;
 
     std_msgs::ColorRGBA state_color;
 

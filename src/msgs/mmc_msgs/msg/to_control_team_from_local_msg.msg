@@ -3,8 +3,8 @@ time time
 int8 is_stop_line
 int8 look_at_signalGroupID # 100,200...
 uint16 look_at_IntersectionID # None 
-int8 NEXT_LINK_ID
-int8 LINK_ID
+int32 NEXT_LINK_ID
+int32 LINK_ID
 float32 distance_to_lane_end
 int8 have_to_LangeChange_right #[0/1]
 int8 have_to_LangeChange_left
@@ -18,7 +18,7 @@ int8 Take_Over_Request
 int8 Wrong_Way_Warn
 
 string lane_name
-uint8 lane_id
+int32 lane_id
 
 
 float64 host_east   # global X [m]

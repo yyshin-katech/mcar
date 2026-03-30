@@ -97,6 +97,10 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg 
   // ROS_INFO("SPaT msg CALLBACK@!!!!!!!!");
   int temp_time =0;
   unsigned char temp_phase = 0;
+
+  uint16_t temp_intersection_id = 0;
+  uint8_t temp_intersection_id_msg = 0;
+
   for(int i = 0; i<MAX_SPAT_MSG; i++)
   {
     // g_intersection_id = 200;
@@ -109,47 +113,32 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg 
         if(msg.data[i].Movements.SignalGroupID == g_signalGroup_id)
         {
           target_msg = (char*)"V2X_SPaT_1";
-          // ROS_INFO("%d", msg.data[i].Movements.SignalGroupID);
-          // temp_time = msg.data[i].Movements.TimeChangeDetails;
-          // temp_phase = msg.data[i].Movements.MovementPhaseStatus;
-          // // 어린이 보호구역 진입 신호등
-          // if ((g_intersection_id == 200) && (g_signalGroup_id == 9))
-          // {
-          //   if (msg.data[i].Movements.MovementPhaseStatus == 3) //red
-          //   {
-          //     if (msg.data[i].Movements.TimeChangeDetails > (65-12))
-          //     {
-          //       temp_time = 650 - msg.data[i].Movements.TimeChangeDetails;
-          //       temp_phase = 3;
-          //     }
-          //     else
-          //     {
-          //       temp_time = 20;
-          //       temp_phase = 6;
-          //     }
-          //   }
-          // } 
-          // else if ((g_intersection_id == 300) && (g_signalGroup_id == 11))
-          // {
-          //   if (msg.data[i].Movements.MovementPhaseStatus == 3) //red
-          //   {
-          //     if (msg.data[i].Movements.TimeChangeDetails > (32-15))
-          //     {
-          //       temp_time = 320 - msg.data[i].Movements.TimeChangeDetails;
-          //       temp_phase = 3;
-          //     }
-          //     else
-          //     {
-          //       temp_time = 20;
-          //       temp_phase = 6;
-          //     }
-          //   }
-          // } 
-          // else
-          // {
-          //   temp_time = msg.data[i].Movements.TimeChangeDetails;
-          //   temp_phase = msg.data[i].Movements.MovementPhaseStatus;
-          // }
+          temp_intersection_id = msg.data[i].IntersectionID;
+
+          switch(temp_intersection_id){
+            case(200):
+              temp_intersection_id_msg = 2;
+              break;
+
+            case(300):
+              temp_intersection_id_msg = 3;
+              break;
+
+            case(400):
+              temp_intersection_id_msg = 4;
+              break;
+
+            case(610):
+              temp_intersection_id_msg = 6;
+              break;
+
+            case(700):
+              temp_intersection_id_msg = 7;
+              break;
+
+            default:
+              break;
+          }
         
           temp_data = {(char)0,
           (int)msg.data[i].Movements.TimeChangeDetails,

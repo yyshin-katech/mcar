@@ -130,7 +130,7 @@
 
 import rospy
 import numpy as np
-import shapefile
+import fiona
 import pyproj
 import os
 import glob
@@ -140,56 +140,58 @@ from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import Point
 from mmc_msgs.msg import to_control_team_from_local_msg
 
-# MAPFILE_PATH = rospy.get_param("MAPFILE_PATH_kiapi")
-# MAPFILE_PATH = '/home/katech/mcar_v13/src/localization/gps_system_localizer/src'
-MAPFILE_PATH = '/home/yuyeong/mcar/src/localization/gps_system_localizer/src'
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_SHP_MAP_PATH = os.path.join(SCRIPT_DIR, 'shp_map')
+
+# SHP(EPSG:32652) -> EPSG:5179 좌표 변환기
+_shp_to_5179 = pyproj.Transformer.from_crs('EPSG:32652', 'EPSG:5179', always_xy=True)
 
 def lanelet_data_initialize(shp_file):
     """Initialize data from a single shapefile"""
     try:
-        sf = shapefile.Reader(shp_file)
         rospy.loginfo(f"Loading shapefile: {os.path.basename(shp_file)}")
-        
-        shapes = sf.shapes()
-        if not shapes:
-            rospy.logwarn(f"No shapes found in {shp_file}")
-            return []
-            
-        shape_type = shapes[0].shapeType
-        rospy.loginfo(f"Shape type: {shape_type}, Total shapes: {len(shapes)}")
-
         wps = []
-
-        for j, shape in enumerate(shapes):
-            if len(shape.points) == 0:
-                continue
-
-            wp = {'id': j, 'e': [], 'n': [], 'filename': os.path.basename(shp_file)}
-            
-            for i, points in enumerate(shape.points):
-                location = [coord for coord in points]
-                east, north = location
-
-                wp['e'].append(east)
-                wp['n'].append(north)
-
-            wps.append(wp)
-            
+        with fiona.open(shp_file) as shp:
+            if not shp:
+                rospy.logwarn(f"No shapes found in {shp_file}")
+                return []
+            rospy.loginfo(f"Total shapes: {len(shp)}")
+            for j, feat in enumerate(shp):
+                geom = feat['geometry']
+                geom_type = geom['type']
+                coords_raw = geom['coordinates']
+                if len(coords_raw) == 0:
+                    continue
+                # Polygon: coordinates = [exterior_ring, ...], 각 ring은 (x,y,z) 튜플 목록
+                # LineString: coordinates = [(x,y,z), ...]
+                if geom_type in ('Polygon', 'MultiPolygon'):
+                    coords = coords_raw[0]  # 외곽 링만 사용
+                else:
+                    coords = coords_raw
+                wp = {'id': j, 'e': [], 'n': [], 'filename': os.path.basename(shp_file)}
+                ee = [coord[0] for coord in coords]
+                nn = [coord[1] for coord in coords]
+                # EPSG:32652 -> EPSG:5179 변환
+                ee_5179, nn_5179 = _shp_to_5179.transform(ee, nn)
+                wp['e'] = list(ee_5179)
+                wp['n'] = list(nn_5179)
+                wps.append(wp)
         rospy.loginfo(f"Loaded {len(wps)} features from {os.path.basename(shp_file)}")
         return wps
-        
     except Exception as e:
         rospy.logerr(f"Error loading {shp_file}: {str(e)}")
         return []
 
 def load_multiple_shapefiles(directory, pattern="*.shp"):
-    """Load multiple shapefiles from directory"""
+    """Load multiple shapefiles from directory (including subdirectories)"""
     all_wps = []
-    
-    # Find all shp files matching pattern
+
+    # Find all shp files matching pattern (including subdirectories)
     shp_pattern = os.path.join(directory, pattern)
     shp_files = glob.glob(shp_pattern)
-    shp_files.sort()  # Sort for consistent ordering
+    shp_files += glob.glob(os.path.join(directory, '**', pattern), recursive=True)
+    # 중복 제거
+    shp_files = sorted(set(shp_files))
     
     if not shp_files:
         rospy.logerr(f"No shapefile found with pattern: {shp_pattern}")
@@ -260,12 +262,14 @@ class lanelet_marker(object):
     def __init__(self):
         rospy.init_node('lanelet_marker')
 
-        # Load multiple shapefiles
-        # Option 1: Load all .shp files in the directory
-        self.wps = load_multiple_shapefiles(MAPFILE_PATH, "*.shp")
+        # Load multiple shapefiles from SHP_MAP_PATH param (scenario-specific)
+        shp_map_path = rospy.get_param('SHP_MAP_PATH', DEFAULT_SHP_MAP_PATH)
+        rospy.loginfo(f"SHP map path: {shp_map_path}")
+        self.wps = load_multiple_shapefiles(shp_map_path, "*.shp")
         self.e_ego = 0.0
         self.n_ego = 0.0
         self.vehicle_yaw = 0.0
+        self.pose_initialized = False
         # Option 2: Load specific files (uncomment and modify as needed)
         # specific_files = ["A2_LINK_epsg5179.shp", "A2_NODE_epsg5179.shp", "other_file.shp"]
         # self.wps = []
@@ -283,34 +287,23 @@ class lanelet_marker(object):
         self.lanelet_strip_pub = rospy.Publisher('/rviz/lanelet_marker', MarkerArray, queue_size=10, latch=True)
         rospy.Subscriber('localization/to_control_team', to_control_team_from_local_msg, self.local_msg_cb, queue_size=1)
 
-        # Create markers
-        self.create_markers()
-        
-        # Wait for subscribers
-        rospy.sleep(2.0)
-        
-        # 대량 데이터의 경우 배치로 나누어 전송
-        if len(self.marker_array.markers) > 1000:
-            self.publish_in_batches()
-        else:
-            # Publish continuously
-            r = rospy.Rate(10)  # 1Hz로 변경 (성능 향상)
-            while not rospy.is_shutdown():
+        # pose 수신 대기 후 마커 생성 및 퍼블리시
+        rospy.loginfo("Waiting for /localization/to_control_team pose...")
+        r = rospy.Rate(10)
+        while not rospy.is_shutdown():
+            if self.pose_initialized:
                 self.create_markers()
-                # 타임스탬프 업데이트
                 for marker in self.marker_array.markers:
                     marker.header.stamp = rospy.Time.now()
                 self.lanelet_strip_pub.publish(self.marker_array)
                 rospy.loginfo_throttle(10, f"Publishing {len(self.marker_array.markers)} markers")
-                r.sleep()
+            r.sleep()
     
     def local_msg_cb(self, msg):
         self.e_ego = msg.host_east
         self.n_ego = msg.host_north
-        # rospy.loginfo("sadf")
-        # orientation = msg.pose.orientation
-        # quaternion = [orientation.x, orientation.y, orientation.z, orientation.w]
         self.vehicle_yaw = msg.host_yaw
+        self.pose_initialized = True
 
     def rotate_point(self, x, y, angle):
         """Rotate point (x, y) by angle (radians) around origin"""

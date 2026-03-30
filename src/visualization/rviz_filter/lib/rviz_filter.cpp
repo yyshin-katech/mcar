@@ -209,15 +209,10 @@ void RVIZ_FILTER::sdsm_callback(const j3224_msgs::sdsm::ConstPtr& msg)
         double ref_east = 0.0;
         double ref_north = 0.0;
         wgs84_to_epsg5179(ref_latitude, ref_longitude, ref_north, ref_east);
-        
-        // 하드코딩된 값 (필요시 실제 값으로 대체)
-        // ref_east = 931307.04615;
-        // ref_north = 1931261.0674;
-        // host_east_ = 931307.04615;
-        // host_north_ = 1931261.0674;
-        
-        // 센서(RSU) heading: 북쪽=0°, 시계방향, 남서쪽 220도
-        double sensor_heading = 220.0 * M_PI / 180.0; // 라디안
+        // ROS_INFO("%lf %lf : %lf %lf", ref_latitude, ref_longitude, ref_east, ref_north);
+        // TODO: ref의 heading 정보 필요 (SDSM 구조체에서 확인 필요)
+        // 임시로 0도(북쪽)를 기준으로 설정
+        double ref_heading = 0;//160*3.14/180;//-2.0817; //-1.2963;// // 라디안, ref가 바라보는 방향
         
         // host 좌표 기준으로 변환
         double ref_x, ref_y;
@@ -290,16 +285,15 @@ void RVIZ_FILTER::sdsm_callback(const j3224_msgs::sdsm::ConstPtr& msg)
 
         marker_array.markers.push_back(ref_text);
 
-        // 센서 로컬 좌표: X=우측, Y=전방, 단위 0.1m
-        double local_x = detObj.offsetX * 0.1; // 센서 우측 방향 (m)
-        double local_y = detObj.offsetY * 0.1; // 센서 전방 방향 (m)
-        double offset_z = detObj.offsetZ * 0.1; // m
+        double offset_east = detObj.offsetX * 0.01;  // cm to m
+        double offset_north = detObj.offsetY * 0.01; // cm to m
+        double offset_z = detObj.offsetZ * 0.01;     // cm to m
+        // 회전 변환: 로컬 -> 글로벌
+        // double cos_heading = std::cos(ref_heading);
+        // double sin_heading = std::sin(ref_heading);
 
-        // 센서 heading으로 회전 변환: 로컬 → 글로벌 (East/North)
-        double cos_sh = std::cos(sensor_heading);
-        double sin_sh = std::sin(sensor_heading);
-        double offset_east = local_x * cos_sh + local_y * sin_sh;
-        double offset_north = -local_x * sin_sh + local_y * cos_sh;
+        // double global_x_offset = local_x * cos_heading - local_y * sin_heading;
+        // double global_y_offset = local_x * sin_heading + local_y * cos_heading;
 
         // 절대좌표 계산
         double abs_east = ref_east + offset_east;

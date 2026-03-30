@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- bag 파일 재생 -->
+  <!-- rosbag play 는 별도 터미널에서 실행 -->
+
+  <!-- ublox NavPVT -> localization2D_msg (EPSG:5179) -->
+  <node name="ublox_navpvt_to_pose2d"
+        pkg="gps_system_localizer"
+        type="ublox_navpvt_to_pose2d.py"
+        output="screen"/>
+
+  <!-- SHP 맵 기반 to_control_team 퍼블리셔 -->
+  <node name="to_control_team_shp"
+        pkg="gps_system_localizer"
+        type="to_control_team_demo_shp.py"
+        output="screen"/>
+
+</launch>

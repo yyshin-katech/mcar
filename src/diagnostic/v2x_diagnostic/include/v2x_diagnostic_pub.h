@@ -11,6 +11,9 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/types.h>
+#include <netinet/ip_icmp.h>
+
 
 #include <ros/ros.h>
 #include <ros/package.h>
@@ -50,7 +53,8 @@ class V2X_DIAGNOSTIC_PUB
         void timer_callback(const ros::TimerEvent&);
         void v2x_callback(const v2x_msgs::intersection_array_msg::ConstPtr& msg);
 
-        bool checkConnection(const std::string& ip, uint16_t port);
+        bool pingCheck(const std::string& ip);
+        // bool checkConnection(const std::string& ip, uint16_t port);
 
 };
 

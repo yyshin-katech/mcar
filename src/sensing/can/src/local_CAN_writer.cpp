@@ -108,7 +108,8 @@ LOCAL_CAN_WRITER::LOCAL_CAN_WRITER(){
   msg_list.push_back(make_tuple((char*)"CAR_EGO_A_Ex",  vector<char*> {(char*)"X_High",\
                                                                      (char*)"Y_High"}));
 
-  msg_list.push_back(make_tuple((char*)"MOTOR_RPM", vector<char *>{(char *)"N"}));
+  msg_list.push_back(make_tuple((char*)"MOTOR_RPM", vector<char *>{(char *)"Curr_gear",\
+                                                                   (char *)"N"}));
   
   msg_list.push_back(make_tuple((char*)"GPSTimestamp",  vector<char*> {(char*)"GPS_mSecond",\
                                                                     (char*)"GPS_Second",\
@@ -195,7 +196,7 @@ void LOCAL_CAN_WRITER::CALLBACK_RPM(const mmc_msgs::motor_rpm_msg& msg)
   int re_value = 0;
 
   target_msg = (char*)"MOTOR_RPM";
-  temp_data = {(double)msg.N};
+  temp_data = {msg.gear_pos, (double)msg.N};
  
   msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
   kvaDbGetMsgByName(dh, target_msg, &mh);
@@ -238,13 +239,43 @@ void LOCAL_CAN_WRITER::CALLBACK_LOCAL(const mmc_msgs::to_control_team_from_local
   float east, north;
   short east_high, north_high;
 
+  uint16_t temp_intersection_id = 0;
+  uint8_t temp_intersection_id_msg = 0;
+
   for(short i=0; i<6; i++){
 
     switch(i){
 
       case(0):
         target_msg = (char*)"LOCAL_MAP_INFO";
-        temp_data = {(double)msg.is_stop_line,(double)msg.look_at_signalGroupID,(double)msg.look_at_IntersectionID,(double)msg.NEXT_LINK_ID,
+        temp_intersection_id = msg.look_at_IntersectionID;
+
+        switch(temp_intersection_id){
+          case(200):
+            temp_intersection_id_msg = 2;
+            break;
+
+          case(300):
+            temp_intersection_id_msg = 3;
+            break;
+
+          case(400):
+            temp_intersection_id_msg = 4;
+            break;
+
+          case(610):
+            temp_intersection_id_msg = 6;
+            break;
+
+          case(700):
+            temp_intersection_id_msg = 7;
+            break;
+
+          default:
+            break;
+        }
+
+        temp_data = {(double)msg.is_stop_line,(double)msg.look_at_signalGroupID,temp_intersection_id_msg,(double)msg.NEXT_LINK_ID,
         (double)msg.LINK_ID, msg.distance_to_lane_end,(double)msg.have_to_LangeChange_left,
         (double)msg.have_to_LangeChange_right,(double)msg.left_LaneChange_avail,
         (double)msg.right_LaneChange_avail,(double)msg.Speed_Limit};
@@ -409,7 +440,7 @@ int main(int argc, char **argv){
   can_status = LCW.OPEN_CAN_CHANNEL_AND_READ_DB(channel_num, filename, init_access_flag);
 
   ros::Subscriber sub1 = node.subscribe("/localization/to_control_team", 1, &LOCAL_CAN_WRITER::CALLBACK_LOCAL, &LCW);
-  ros::Subscriber sub2 = node.subscribe("/sensros/rpm", 1, &LOCAL_CAN_WRITER::CALLBACK_RPM, &LCW);
+  ros::Subscriber sub2 = node.subscribe("/sensors/rpm", 1, &LOCAL_CAN_WRITER::CALLBACK_RPM, &LCW);
   ros::Subscriber sub3 = node.subscribe("/sensors/gps/bestpos", 1, &LOCAL_CAN_WRITER::CALLBACK_TimeStamp, &LCW);
 
   LCW.pub5 = node.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/local_CAN_status", 10, true);

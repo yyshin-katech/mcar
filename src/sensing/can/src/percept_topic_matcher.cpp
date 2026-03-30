@@ -16,6 +16,10 @@ struct ObjectState {
     ros::Time last_time;
     double prev_x;
     double prev_y;
+    uint8_t status;  // 객체 타입 (1=보행자)
+    bool is_pedestrian;  // 보행자 여부
+    int attention_type;  // ★ attention_type 추가
+    unsigned int priority_id;  // ★ priority_id도 추가 (나중에 사용)
 };
 
 // ---- 전역 매핑/상태 ----
@@ -27,6 +31,7 @@ std::map<unsigned int, int> absence_count;          // 원본 tracker_id -> 부�
 const int max_absence_threshold = 20;               // 20프레임 미등장 시 회수
 const int max_objects_to_publish = 14;              // 최대 전송 객체 수
 const double min_confidence_threshold = 0.90;        // 최소 confidence 임계값
+const double pedestrian_keep_duration = 2.0;        // 보행자 데이터 유지 시간 (초)
 
 // 빈 CAN ID 할당(1~254). 이미 있으면 그대로 반환하고 부재 카운트 0으로 초기화
 uint8_t assignCanID(unsigned int object_id) {
@@ -48,14 +53,29 @@ uint8_t assignCanID(unsigned int object_id) {
 }
 
 // 부재 객체 회수: 모든 absence_count 1 증가 후, 20 이상이면 CAN ID 반환 및 상태 제거
-void cleanupStaleIDs() {
+// 보행자는 시간 기반으로 별도 체크
+void cleanupStaleIDs(const ros::Time& current_time) {
     std::vector<unsigned int> expired_ids;
+    
     for (auto &entry : absence_count) {
+        unsigned int obj_id = entry.first;
         entry.second += 1;
-        if (entry.second >= max_absence_threshold) {
-            expired_ids.push_back(entry.first);
+        
+        // 보행자인 경우 시간 기반 체크
+        auto obj_it = current_objects.find(obj_id);
+        if (obj_it != current_objects.end() && obj_it->second.is_pedestrian) {
+            double time_diff = (current_time - obj_it->second.last_time).toSec();
+            if (time_diff > pedestrian_keep_duration) {
+                expired_ids.push_back(obj_id);
+            }
+        } else {
+            // 보행자가 아닌 경우 프레임 기반 체크
+            if (entry.second >= max_absence_threshold) {
+                expired_ids.push_back(obj_id);
+            }
         }
     }
+    
     for (unsigned int obj_id : expired_ids) {
         auto it_obj_can = object_to_can_id.find(obj_id);
         if (it_obj_can != object_to_can_id.end()) {
@@ -66,6 +86,8 @@ void cleanupStaleIDs() {
         }
         current_objects.erase(obj_id);
         absence_count.erase(obj_id);
+        
+        ROS_INFO("Cleared object ID %u (exceeded time/frame threshold)", obj_id);
     }
 }
 
@@ -74,16 +96,18 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
     static ros::Publisher pub = nh.advertise<perception_ros_msg::object_array_msg>("/track_Multi_RS", 10);
 
     perception_ros_msg::object_array_msg transformed_msg;
-    transformed_msg.time = ros::Time::now();
+    ros::Time current_time = ros::Time::now();
+    transformed_msg.time = current_time;
 
     // 1) 부재 객체 회수 시도
-    cleanupStaleIDs();
+    cleanupStaleIDs(current_time);
 
     std::set<unsigned int> current_frame_ids;
 
     // priority 정렬을 위해 priority_id와 attention_type, confidence를 함께 보관
     struct PriorityObj {
         unsigned int priority_id;
+        unsigned int tracker_id;  // 원본 tracker_id 추가
         int attention_type;
         double confidence;
         perception_ros_msg::object_msg obj;
@@ -105,7 +129,8 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
         unsigned int priority_id = coreinfo.priority_id.data;  // 우선순위 정렬용
         int attention_type = coreinfo.attention_type.data;     // attention_type 추출
         double confidence = coreinfo.exist_confidence.data;    // confidence 추출
-        
+        uint8_t object_status = coreinfo.type.data;            // 객체 타입 (1=보행자)
+                
         // confidence 필터링 - 0.5 이하인 객체는 건너뛰기
         if (confidence <= min_confidence_threshold) {
             total_filtered_out++;
@@ -159,10 +184,17 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
         ads_obj.nearest_point_z = coreinfo.nearest_point.z.data;
 
         // 상태 저장(옵션)
-        current_objects[tracker_id] = {ads_obj, curr_time, curr_x, curr_y};
-
+        // current_objects[tracker_id] = {ads_obj, curr_time, curr_x, curr_y};
+        bool is_pedestrian = (object_status == 1);
+        current_objects[tracker_id] = {ads_obj, current_time, curr_x, 
+            curr_y, 
+            object_status, 
+            is_pedestrian,
+            attention_type,  // ★ attention_type 저장
+            priority_id      // ★ priority_id 저장
+        };
         // PriorityObj 구조체 생성
-        PriorityObj p_obj = {priority_id, attention_type, confidence, ads_obj};
+        PriorityObj p_obj = {priority_id, tracker_id, attention_type, confidence, ads_obj};
         all_objects.push_back(p_obj);
 
         // attention_type별로 분류 (confidence > 0.5인 객체만 이미 필터링됨)
@@ -176,6 +208,42 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
     // 3) 이번 프레임에서 관측된 객체는 부재 카운트 0으로 리셋
     for (unsigned int id : current_frame_ids) {
         absence_count[id] = 0;
+    }
+
+    for (auto& entry : current_objects) {
+        unsigned int tracker_id = entry.first;
+        ObjectState& obj_state = entry.second;
+        
+        // 현재 프레임에 없고, 보행자이며, 2초 이내인 경우
+        if (current_frame_ids.find(tracker_id) == current_frame_ids.end() &&
+            obj_state.is_pedestrian) {
+            
+            double time_diff = (current_time - obj_state.last_time).toSec();
+            
+            if (time_diff <= pedestrian_keep_duration) {
+                // 이전 데이터를 그대로 사용
+                perception_ros_msg::object_msg& ads_obj = obj_state.obj;
+                
+                // ★ 저장된 값들을 그대로 사용
+                unsigned int priority_id = obj_state.priority_id;
+                int attention_type = obj_state.attention_type;  // ★ 이전 값 사용
+                
+                PriorityObj p_obj = {priority_id, tracker_id, attention_type, 
+                                    ads_obj.confidence, ads_obj};
+                
+                all_objects.push_back(p_obj);
+                
+                // ★ attention_type에 따라 올바른 벡터에 추가
+                if (attention_type == 1) {
+                    attention1_objects.push_back(p_obj);
+                } else {
+                    attention0_objects.push_back(p_obj);
+                }
+                
+                ROS_INFO("Keeping pedestrian ID %u (missing for %.2f sec, attention_type=%d)", 
+                        tracker_id, time_diff, attention_type);
+            }
+        }
     }
 
     // 4) attention_type이 1인 객체들을 priority_id 오름차순으로 정렬
