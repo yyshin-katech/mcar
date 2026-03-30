@@ -1,7 +1,5 @@
 #include <ros/ros.h>
 #include <novatel_gps_msgs/Inspva.h>
-#include <sensor_msgs/NavSatFix.h>
-#include <ublox_msgs/NavPVT.h>
 #include <mmc_msgs/localization2D_msg.h>
 #include <proj.h>
 
@@ -11,10 +9,9 @@ public:
   GpsToPose2D()
   {
 
-    // sub_ = node_.subscribe("/sensors/gps/inspva", 10, &GpsToPose2D::inspvaCallback, this);
-    sub_ = node_.subscribe("/ublox/fix", 10, &GpsToPose2D::fixCallback, this);
-    sub2_ = node_.subscribe("/ublox/navpvt", 10, &GpsToPose2D::pavpvtCallback, this);
+    sub_ = node_.subscribe("/sensors/gps/inspva", 10, &GpsToPose2D::inspvaCallback, this);
     pub_ = node_.advertise<mmc_msgs::localization2D_msg>("/localization/pose_2d_gps", 1);
+
 
     C_proj = proj_context_create();
     P_proj = proj_create_crs_to_crs(C_proj, "EPSG:4326", "EPSG:5179", NULL);
@@ -37,33 +34,27 @@ public:
     y = b.enu.n;
   }
 
-  void pavpvtCallback(const ublox_msgs::NavPVT& msg)
-  {
-    pose_msg.yaw = 1.57 - (msg.heading*1e-5) * M_PI / 180.0;  
-    // pose_msg.yaw = -msg.heading * M_PI / 180.0;
 
-    // while (pose_msg.yaw > M_PI) pose_msg.yaw -= 2.0 * M_PI;
-    // while (pose_msg.yaw < -M_PI) pose_msg.yaw += 2.0 * M_PI;
-  }
-
-  void fixCallback(const sensor_msgs::NavSatFix& msg)
+  void inspvaCallback(const novatel_gps_msgs::InspvaConstPtr& msg)
   {
     double east, north;
-    latLonToEPSG5179(msg.latitude, msg.longitude, east, north);
+    latLonToEPSG5179(msg->latitude, msg->longitude, east, north);
 
+
+    mmc_msgs::localization2D_msg pose_msg;
     pose_msg.time = ros::Time::now();  
     pose_msg.EPSG = 5179;              
     pose_msg.east = east;
     pose_msg.north = north;
+    pose_msg.yaw = 1.57 - msg->azimuth * M_PI / 180.0;  
+
 
     pub_.publish(pose_msg);
   }
 
-  mmc_msgs::localization2D_msg pose_msg;
-  
 private:
   ros::NodeHandle node_;
-  ros::Subscriber sub_, sub2_;
+  ros::Subscriber sub_;
   ros::Publisher pub_;
 
 

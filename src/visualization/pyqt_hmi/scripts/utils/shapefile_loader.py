@@ -16,14 +16,19 @@ def load_shapefile(shp_file):
             return []
         
         features = []
-        
+
         for j, shape in enumerate(shapes):
             if len(shape.points) == 0:
                 continue
-            
+
+            xs = [p[0] for p in shape.points]
+            ys = [p[1] for p in shape.points]
             feature = {
                 'id': j,
-                'points': shape.points  # [(x, y), (x, y), ...]
+                'points': shape.points,  # [(x, y), (x, y), ...]
+                'bbox': (min(xs), min(ys), max(xs), max(ys)),
+                'cx': (min(xs) + max(xs)) / 2,
+                'cy': (min(ys) + max(ys)) / 2,
             }
             features.append(feature)
         
