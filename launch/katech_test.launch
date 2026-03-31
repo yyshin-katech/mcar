@@ -4,7 +4,7 @@
     <!-- 시나리오 선택: senario1 또는 senario3 -->
     <!-- roslaunch launch/katech_test.launch scenario:=senario1 -->
     <!-- roslaunch launch/katech_test.launch scenario:=senario3 -->
-    <arg name="scenario" default="senario1" />
+    <arg name="scenario" default="senario3" />
 
     <param name="EPSG" value="5179" />
 

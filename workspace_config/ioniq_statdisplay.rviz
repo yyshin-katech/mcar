@@ -426,6 +426,30 @@ Visualization Manager:
       text size: 12
       top: 0
       width: 128
+    - Class: jsk_rviz_plugin/Plotter2D
+      Enabled: true
+      Max Color: 255; 0; 0
+      Max Value: 2
+      Min Color: 0; 100; 255
+      Min Value: -2
+      Name: LateralOffset
+      Show Caption: true
+      Show Value: true
+      Topic: /rviz/lateral_offset
+      Value: true
+      auto color change: false
+      background color: 0; 0; 0
+      backround alpha: 0.30000001192092896
+      foreground alpha: 0.699999988079071
+      foreground color: 25; 255; 240
+      height: 150
+      left: 10
+      line width: 2
+      show border: true
+      text size: 12
+      top: 420
+      update interval: 0.03999999910593033
+      width: 300
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48

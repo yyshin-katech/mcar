@@ -390,26 +390,6 @@ class DistanceCalculator(object):
         p.station = current_s
         p.lateral_offset = current_d
 
-        link_id_map = {
-            76: 471,
-            79: 101,
-            267: 119,
-            310: 280,
-            347: 128,
-            381: 368,
-            418: 410,
-            857: 818,
-            1107: 1152,
-            184: 169,
-            183: 104,
-            440: 139,
-            413: 408,
-            852: 817,
-            842: 816,
-        }
-        if p.LINK_ID in link_id_map:
-            p.LINK_ID = link_id_map[p.LINK_ID]
-
         self.to_control_team_pub.publish(p)
 
         self.old_lane_id = p.LINK_ID
