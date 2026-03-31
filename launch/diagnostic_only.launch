@@ -33,4 +33,5 @@
     <node pkg="gps_system_localizer"                    type="lanelet_marker.py"            name="lane_marker_node"                respawn="true" />
 
     <node pkg="pyqt_hmi"                    type="lateral_offset_relay.py"            name="lateral_offset_relay"                respawn="true" />
+    <node pkg="pyqt_hmi"                    type="gps_std_relay.py"                   name="gps_std_relay"                       respawn="true" />
 </launch>

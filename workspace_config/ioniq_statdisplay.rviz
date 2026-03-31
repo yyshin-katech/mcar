@@ -449,6 +449,27 @@ Visualization Manager:
       text size: 12
       top: 420
       update interval: 0.03999999910593033
+      width: 250
+    - Align Bottom: false
+      Background Alpha: 0.30000001192092896
+      Background Color: 0; 0; 0
+      Class: jsk_rviz_plugin/OverlayText
+      Enabled: true
+      Foreground Alpha: 1
+      Foreground Color: 25; 255; 240
+      Invert Shadow: false
+      Name: GpsStdText
+      Overtake Color Properties: false
+      Overtake FG Color Properties: false
+      Overtake Position Properties: false
+      Topic: /rviz/jsk/gps_std_text
+      Value: true
+      font: DejaVu Sans Mono
+      height: 150
+      left: 10
+      line width: 2
+      text size: 12
+      top: 580
       width: 300
   Enabled: true
   Global Options:
