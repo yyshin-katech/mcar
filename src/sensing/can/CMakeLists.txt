@@ -193,7 +193,21 @@ target_link_libraries(track_CAN_writer_no_grid
   ${KVADBLIB_LIBRARY}
   ##############################
 )
-install(TARGETS ${PROJECT_NAME} track_CAN_writer_no_grid
+############################################################################################# track_CAN_writer_FD
+add_executable(track_CAN_writer_FD src/track_CAN_writer_FD.cpp)
+target_compile_options(track_CAN_writer_FD PRIVATE)
+add_dependencies(track_CAN_writer_FD ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(track_CAN_writer_FD
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+
+  ##### Linking External Library
+  ${CANLIB_LIBRARY}
+  ${KVADBLIB_LIBRARY}
+  ##############################
+)
+
+install(TARGETS ${PROJECT_NAME} track_CAN_writer_no_grid track_CAN_writer_FD
    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
