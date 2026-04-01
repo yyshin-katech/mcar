@@ -535,17 +535,27 @@ canStatus TRACK_CAN_WRITER_FD::OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num, cha
 
   cout<<"Opening the channel "<<channel_num<<"..."<<endl;
   hCAN = canOpenChannel(channel_num, open_flag);
-  
-  if(hCAN == canOK){
-    cout<<"The CAN channel "<<channel_num<<" has been opened successfully..."<<endl;
+
+  if(hCAN < canOK){
+    cout<<"[ERROR] Failed to open CAN channel "<<channel_num<<", error code: "<<hCAN<<endl;
+    return (canStatus)hCAN;
   }
+  cout<<"The CAN channel "<<channel_num<<" has been opened successfully..."<<endl;
 
   can_status = canSetBusParams(hCAN, canFD_BITRATE_500K_80P, 0, 0, 0, 0, 0);
+  if(can_status != canOK){
+    cout<<"[ERROR] canSetBusParams failed, error code: "<<can_status<<endl;
+  }
   can_status = canSetBusParamsFd(hCAN, canFD_BITRATE_1M_80P, 0, 0, 0);
+  if(can_status != canOK){
+    cout<<"[ERROR] canSetBusParamsFd failed, error code: "<<can_status<<endl;
+  }
   can_status = canSetBusOutputControl(hCAN, canDRIVER_NORMAL);
   can_status = canBusOn(hCAN);
 
-  if(can_status == canOK){
+  if(can_status != canOK){
+    cout<<"[ERROR] canBusOn failed, error code: "<<can_status<<endl;
+  }else{
     cout<<"The CAN bus is on..."<<endl;
   }
 
@@ -657,7 +667,10 @@ void TRACK_CAN_WRITER_FD::WRITE_CAN_MSG(vector<double> temp_data, char* track_ms
       kvaDbStoreSignalValuePhys(sh, &can_data, sizeof(can_data), temp_data[i]);
     }
     
-    canWrite(hCAN, id_write, &can_data, dlc, canFDMSG_FDF | canFDMSG_BRS);
+    can_status = canWrite(hCAN, id_write, &can_data, dlc, canFDMSG_FDF | canFDMSG_BRS);
+    if(can_status != canOK){
+      cout<<"[ERROR] canWrite failed for "<<track_msg<<", error code: "<<can_status<<endl;
+    }
     memset(can_data, 0, sizeof(can_data));
 }
 
@@ -686,10 +699,11 @@ void TRACK_CAN_WRITER_FD::LOOP(){
 
     perception_ros_msg::object_msg ref;
 
-    for(short i=0; i!=track.data.size(); i++){ 
+    for(short i=0; i!=track.data.size(); i++){
       ref = track.data[i];
       ref.x += (ref.vx - speed_ego) * dt.toSec();
       ref.y += ref.vy * dt.toSec();
+      track.data[i] = ref;
     }
 
     time_now_std_time = std::chrono::steady_clock::now();
@@ -877,7 +891,7 @@ int main(int argc, char **argv){
   
   // int channel_num = 0; // for test
   int channel_num = 1;
-  bool init_access_flag = false; // Init access: no (= CAN handle will be used in multithread)
+  bool init_access_flag = true; // Init access: yes (= required for CAN FD bus parameter setup)
   ///////////////////////////////////////////////////////////////////////////////////////
 
   TRACK_CAN_WRITER_FD TCW;
