@@ -784,9 +784,9 @@ void TRACK_CAN_WRITER_NO_GRID::LOOP(){
 
  
 
-    /* 3. CAN msg write    */
+    /* 3. CAN msg write    */ 
 
-    for(int i=0; i!=can_msg_info.size() && i < 10; i++){
+    for(int i=0; i!=can_msg_info.size(); i++){
       int msg_num = i;
       int track_order = -1;
 
@@ -836,7 +836,7 @@ void TRACK_CAN_WRITER_NO_GRID::LOOP(){
     std::chrono::duration<double> ex_time_total = time_now_std_time - time_prev_step;
     // cout<<"ex time(total): "<<ex_time_total.count()*1000<<" ms"<<endl;
 
-    sleep_time_std_time = (double)0.1 - ex_time_total.count();
+    sleep_time_std_time = (double)0.01 - ex_time_total.count();
     // cout<<"sleep time: "<<sleep_time_std_time*1000<<" ms"<<endl;
 
 
@@ -875,7 +875,7 @@ int main(int argc, char **argv){
   strcpy(filename, (relative_path + "/dbc/CANdb_IONIQev_PCAN2.dbc").c_str());
   
   // int channel_num = 0; // for test
-  int channel_num = 1;
+  int channel_num = 3;
   bool init_access_flag = false; // Init access: no (= CAN handle will be used in multithread)
   ///////////////////////////////////////////////////////////////////////////////////////
 
