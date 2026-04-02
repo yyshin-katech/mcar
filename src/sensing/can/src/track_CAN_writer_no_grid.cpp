@@ -540,7 +540,7 @@ canStatus TRACK_CAN_WRITER_NO_GRID::OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num
     cout<<"The CAN channel "<<channel_num<<" has been opened successfully..."<<endl;
   }
 
-  can_status = canSetBusParams(hCAN, canBITRATE_1M, 0, 0, 0, 0, 0);
+  can_status = canSetBusParams(hCAN, canBITRATE_500K, 0, 0, 0, 0, 0);
   can_status = canSetBusOutputControl(hCAN, canDRIVER_NORMAL);
   can_status = canBusOn(hCAN);
 
@@ -784,9 +784,9 @@ void TRACK_CAN_WRITER_NO_GRID::LOOP(){
 
  
 
-    /* 3. CAN msg write    */ 
+    /* 3. CAN msg write    */
 
-    for(int i=0; i!=can_msg_info.size(); i++){
+    for(int i=0; i!=can_msg_info.size() && i < 10; i++){
       int msg_num = i;
       int track_order = -1;
 
@@ -836,7 +836,7 @@ void TRACK_CAN_WRITER_NO_GRID::LOOP(){
     std::chrono::duration<double> ex_time_total = time_now_std_time - time_prev_step;
     // cout<<"ex time(total): "<<ex_time_total.count()*1000<<" ms"<<endl;
 
-    sleep_time_std_time = (double)0.01 - ex_time_total.count();
+    sleep_time_std_time = (double)0.1 - ex_time_total.count();
     // cout<<"sleep time: "<<sleep_time_std_time*1000<<" ms"<<endl;
 
 
