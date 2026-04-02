@@ -875,7 +875,7 @@ int main(int argc, char **argv){
   strcpy(filename, (relative_path + "/dbc/CANdb_IONIQev_PCAN2.dbc").c_str());
   
   // int channel_num = 0; // for test
-  int channel_num = 3;
+  int channel_num = 1;
   bool init_access_flag = false; // Init access: no (= CAN handle will be used in multithread)
   ///////////////////////////////////////////////////////////////////////////////////////
 
