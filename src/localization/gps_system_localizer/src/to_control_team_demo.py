@@ -358,29 +358,21 @@ class DistanceCalculator(object):
             # # 현재 주행할 경로쪽으로 방향이 제대로 맞으 면 오토모드 송출 아니면, 수동모드 송출 ##
             # 자율주행 모드(ad_mode==1)일 때는 yaw 검사 skip (회전 중 ODD 이탈 방지)
             if p.On_ODD == 0 and p.Road_State == 0 and self.ad_mode != 1:
-                if p.LINK_ID == 52 and p.distance_to_lane_end < 60.0:
-                    p.Speed_Limit = 15
+                if yaw_error_size < ODD_YAW_ERR_THRESHOLD:
+                    # rospy.loginfo("On ODD")
+                    p.Wrong_Way_Warn = 0
                     p.On_ODD = 0
                     p.Road_State = 0
-                elif p.LINK_ID in [61, 34, 35, 36, 37, 53, 54, 55, 67, 68, 73]:
+                elif yaw_error_size > np.deg2rad(135):  #반대방향
                     p.On_ODD = 1
                     p.Road_State = 2
-                else:
-                    if yaw_error_size < ODD_YAW_ERR_THRESHOLD:
-                        # rospy.loginfo("On ODD")
-                        p.Wrong_Way_Warn = 0
-                        p.On_ODD = 0
-                        p.Road_State = 0
-                    elif yaw_error_size > np.deg2rad(135):  #반대방향
-                        p.On_ODD = 1
-                        p.Road_State = 2
-                        p.Wrong_Way_Warn = 1
-                        p.distance_out_of_ODD = 0
-                    else:   # 단순 이탈
-                        p.On_ODD = 1
-                        p.Road_State = 2
-                        p.Wrong_Way_Warn = 0
-                        p.distance_out_of_ODD = 0
+                    p.Wrong_Way_Warn = 1
+                    p.distance_out_of_ODD = 0
+                else:   # 단순 이탈
+                    p.On_ODD = 1
+                    p.Road_State = 2
+                    p.Wrong_Way_Warn = 0
+                    p.distance_out_of_ODD = 0
             
         p.lane_name = current_lane_name
         p.host_east = e
@@ -392,6 +384,9 @@ class DistanceCalculator(object):
         p.waypoint_index = current_closest_waypoint_in_MATLAB
         p.station = current_s
         p.lateral_offset = current_d
+
+        p.have_to_LangeChange_left = 0
+        p.have_to_LangeChange_right = 0
 
         self.to_control_team_pub.publish(p)
 

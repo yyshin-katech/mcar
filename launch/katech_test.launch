@@ -39,8 +39,7 @@
   <node name="cpt7_topic_matcher"       type="cpt7_topic_matcher"     pkg="can"  respawn="true" />
   <node name="cpt7_CAN_writer"       type="cpt7_CAN_writer"     pkg="can"  respawn="true" />
 
-  <!-- <node name="track_CAN_writer_no_grid"       type="track_CAN_writer_no_grid"     pkg="can"  respawn="true" /> -->
-  <node name="track_CAN_writer_FD"           type="track_CAN_writer_FD"           pkg="can"  respawn="true" />
+  <node name="track_CAN_writer_no_grid"       type="track_CAN_writer_no_grid"     pkg="can"  respawn="true" />
 
   <node name="katri_v2x_node"       type="katri_obu_interface_node"     pkg="katri_obu_interface"  respawn="true" />
   <node name="spat_CAN_writer"       type="spat_CAN_writer"     pkg="can"  respawn="true" />
