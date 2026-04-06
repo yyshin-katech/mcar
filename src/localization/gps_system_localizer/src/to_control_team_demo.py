@@ -388,6 +388,19 @@ class DistanceCalculator(object):
         p.have_to_LangeChange_left = 0
         p.have_to_LangeChange_right = 0
 
+        # 다음 링크가 정지선 링크이고 길이가 15m 이하이면, 현재 링크에서 미리 정지선 정보 반영
+        if p.is_stop_line == 0 and p.NEXT_LINK_ID != 0:
+            for road in self.target_roads:
+                if int(road['LINK_ID'][0][0]) == p.NEXT_LINK_ID:
+                    next_is_stop = int(road['is_stop_line'][0][0])
+                    next_link_length = road['station'][0][-1]
+                    if next_is_stop == 1 and next_link_length <= 15.0:
+                        p.is_stop_line = 1
+                        p.look_at_signalGroupID = road['look_at_signalGroupID'][0][0]
+                        p.look_at_IntersectionID = road['look_at_IntersectionID'][0][0]
+                        p.distance_to_lane_end = p.distance_to_lane_end + next_link_length
+                    break
+
         self.to_control_team_pub.publish(p)
 
         self.old_lane_id = p.LINK_ID
