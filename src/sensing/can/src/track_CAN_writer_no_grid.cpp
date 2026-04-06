@@ -836,7 +836,7 @@ void TRACK_CAN_WRITER_NO_GRID::LOOP(){
     std::chrono::duration<double> ex_time_total = time_now_std_time - time_prev_step;
     // cout<<"ex time(total): "<<ex_time_total.count()*1000<<" ms"<<endl;
 
-    sleep_time_std_time = (double)0.01 - ex_time_total.count();
+    sleep_time_std_time = (double)0.1 - ex_time_total.count();
     // cout<<"sleep time: "<<sleep_time_std_time*1000<<" ms"<<endl;
 
 
