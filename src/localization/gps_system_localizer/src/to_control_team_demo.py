@@ -400,7 +400,9 @@ class DistanceCalculator(object):
                         p.look_at_IntersectionID = road['look_at_IntersectionID'][0][0]
                         p.distance_to_lane_end = p.distance_to_lane_end + next_link_length
                     break
-
+        if p.LINK_ID == 61 or p.LINK_ID == 219:
+            p.Speed_Limit = 30
+        
         self.to_control_team_pub.publish(p)
 
         self.old_lane_id = p.LINK_ID
