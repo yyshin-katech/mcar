@@ -394,7 +394,7 @@ class DistanceCalculator(object):
                 if int(road['LINK_ID'][0][0]) == p.NEXT_LINK_ID:
                     next_is_stop = int(road['is_stop_line'][0][0])
                     next_link_length = road['station'][0][-1]
-                    if next_is_stop == 1 and next_link_length <= 15.0:
+                    if next_is_stop == 1 and next_link_length <= 30.0:
                         p.is_stop_line = 1
                         p.look_at_signalGroupID = road['look_at_signalGroupID'][0][0]
                         p.look_at_IntersectionID = road['look_at_IntersectionID'][0][0]
