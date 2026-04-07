@@ -41,10 +41,10 @@ class LateralOffsetRelay:
         popup = OverlayText()
         popup.font = "DejaVu Sans Mono"
         popup.text_size = 20
-        popup.width = 400
-        popup.height = 80
-        popup.left = 550
-        popup.top = 350
+        popup.width = 250
+        popup.height = 50
+        popup.left = 10
+        popup.top = 710
 
         if msg.is_stop_line == 1:
             popup.action = popup.ADD
