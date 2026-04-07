@@ -4,7 +4,7 @@
 
     <param name="EPSG" value="5179" />
 
-    <node name="j2735_decode_node"       type="j2735_decode_node"     pkg="j2735_decode"  respawn="true" />
+    <node name="siheung_v2x_node"       type="siheung_v2x_node"     pkg="siheung_v2x"  respawn="true" />
     <!-- pyqt_hmi launch 파일 포함 -->
     <include file="$(find pyqt_hmi)/launch/pyqt_hmi.launch" />
 </launch>
