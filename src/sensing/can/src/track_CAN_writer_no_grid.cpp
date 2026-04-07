@@ -540,7 +540,7 @@ canStatus TRACK_CAN_WRITER_NO_GRID::OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num
     cout<<"The CAN channel "<<channel_num<<" has been opened successfully..."<<endl;
   }
 
-  can_status = canSetBusParams(hCAN, canBITRATE_500K, 0, 0, 0, 0, 0);
+  can_status = canSetBusParams(hCAN, canBITRATE_1M, 0, 0, 0, 0, 0);
   can_status = canSetBusOutputControl(hCAN, canDRIVER_NORMAL);
   can_status = canBusOn(hCAN);
 
