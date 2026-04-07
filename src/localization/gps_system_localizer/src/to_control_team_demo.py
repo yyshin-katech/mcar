@@ -232,6 +232,7 @@ class DistanceCalculator(object):
         p.left_LaneChange_avail = self.target_roads[current_lane_id]['left_LaneChange_avail'][0][0]
         p.right_LaneChange_avail = self.target_roads[current_lane_id]['right_LaneChange_avail'][0][0]
         p.Speed_Limit = self.target_roads[current_lane_id]['Speed_Limit'][0][0]
+        p.MANUAVER = int(self.target_roads[current_lane_id].get('MANUAVER', [[0]])[0][0])
 
         p.distance_to_lane_end = self.target_roads[current_lane_id]['station'][0][-1] - current_s
 
@@ -261,6 +262,7 @@ class DistanceCalculator(object):
             p.have_to_LangeChange_left = 0
             p.have_to_LangeChange_right = 0
             p.Speed_Limit = 0
+            p.MANUAVER = 0
             p.LINK_ID = 0
             p.NEXT_LINK_ID = 0
             p.distance_to_lane_end = 0

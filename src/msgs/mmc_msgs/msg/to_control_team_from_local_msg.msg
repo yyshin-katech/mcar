@@ -34,6 +34,8 @@ int32 waypoint_index     # index of waypoint
 
 float32 yaw_error_size # [radian]
 
+int8 MANUAVER # -1=left, 0=straight/none, 1=right
+
 int8 On_ODD
 int8 Road_State
 float32 distance_out_of_ODD # [m]
