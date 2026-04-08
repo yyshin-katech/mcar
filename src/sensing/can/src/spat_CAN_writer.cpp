@@ -13,7 +13,6 @@
 
 #include <v2x_msgs/intersection_msg.h>
 #include <v2x_msgs/intersection_array_msg.h>
-#include <mmc_msgs/to_control_team_from_local_msg.h>
 
 #include <algorithm>
 #include <math.h>
@@ -27,28 +26,22 @@
 
 using namespace std;
 
-#define MAX_SPAT_MSG 5
-
 class SPAT_CAN_WRITER{
   public:
-    ros::Subscriber sub1, sub2;
+    ros::Subscriber sub1;
 
     unsigned int kvaDb_flags = 0;
     unsigned int dlc = 4;
 
     double time1 = -1;
     float new_time = 0;
-    int alive_count = 0;    
+    int alive_count = 0;
 
     bool spat_calling = false;
-    
-    unsigned short g_intersection_id = 0;
-    unsigned char g_signalGroup_id = 0;
 
     vector<tuple<char*, vector<char*>>> msg_list;
 
     SPAT_CAN_WRITER();
-    void CALLBACK_LOCAL_TEAM(const mmc_msgs::to_control_team_from_local_msg& msg);
     void CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& data);
     short FIND_MSG_IDX(char* target_msg, vector<tuple<char*, vector<char*>>>* msg_list);
     canStatus OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num, char *filename, bool init_access_flag);
@@ -65,126 +58,55 @@ SPAT_CAN_WRITER::SPAT_CAN_WRITER(){
                                                                     (char*)"Intersection_ID_1"}));
 }
 
-void SPAT_CAN_WRITER::CALLBACK_LOCAL_TEAM(const mmc_msgs::to_control_team_from_local_msg& msg){
-
-  g_intersection_id = msg.look_at_IntersectionID;
-  g_signalGroup_id = msg.look_at_signalGroupID;
-}
-
-void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg ){
+void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg){
   spat_calling = true;
+  alive_count = (alive_count + 1) % 256;
 
-  alive_count += 1;
-  if (alive_count > 255){
-    alive_count = 0;
-  }
-
-  if (time1 == -1){
+  if (time1 == -1)
     time1 = msg.time.sec%10000 + msg.time.nsec/1000000000.0;
-  }
-
   new_time = (msg.time.sec%10000 + msg.time.nsec/1000000000.0) - time1;
-  
+
   unsigned char can_data[dlc];
-  char* target_msg;
+  memset(can_data, 0, sizeof(can_data));
+
+  char* target_msg = (char*)"V2X_SPaT_1";
   unsigned short msg_idx;
   KvaDbMessageHnd mh = 0;
   KvaDbSignalHnd sh = 0;
-  vector<double> temp_data;
   unsigned int id_write, flag = 0;
-  int re_value = 0;
-  
-  // ROS_INFO("SPaT msg CALLBACK@!!!!!!!!");
-  int temp_time =0;
-  unsigned char temp_phase = 0;
+  vector<double> temp_data;
 
-  uint16_t temp_intersection_id = 0;
-  uint8_t temp_intersection_id_msg = 0;
-
-  for(int i = 0; i<MAX_SPAT_MSG; i++)
+  // siheung_v2x가 이미 현재 링크 기반으로 필터링하여 발행
+  // data[0]에 매칭된 신호 또는 전체 0 메시지가 들어옴
+  if (!msg.data.empty() && msg.data[0].IntersectionID != 0)
   {
-    // g_intersection_id = 200;
-    // g_signalGroup_id = 9;
-    if(g_intersection_id != 0)
-    {
-      if(msg.data[i].IntersectionID == g_intersection_id)
-      {
-        // ROS_INFO("%d", msg.data[i].IntersectionID);
-        if(msg.data[i].Movements.SignalGroupID == g_signalGroup_id)
-        {
-          target_msg = (char*)"V2X_SPaT_1";
-          temp_intersection_id = msg.data[i].IntersectionID;
+    auto& d = msg.data[0];
+    temp_data = {0.0,
+                 (double)d.Movements.TimeChangeDetails,
+                 (double)d.Movements.MovementPhaseStatus,
+                 (double)d.Movements.SignalGroupID,
+                 (double)d.IntersectionID};
 
-          switch(temp_intersection_id){
-            case(200):
-              temp_intersection_id_msg = 2;
-              break;
-
-            case(300):
-              temp_intersection_id_msg = 3;
-              break;
-
-            case(400):
-              temp_intersection_id_msg = 4;
-              break;
-
-            case(610):
-              temp_intersection_id_msg = 6;
-              break;
-
-            case(700):
-              temp_intersection_id_msg = 7;
-              break;
-
-            default:
-              break;
-          }
-        
-          temp_data = {(char)0,
-          (int)msg.data[i].Movements.TimeChangeDetails,
-          (unsigned char)msg.data[i].Movements.MovementPhaseStatus,
-          (double)msg.data[i].Movements.SignalGroupID,
-          (double)msg.data[i].IntersectionID};
-
-          msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
-          kvaDbGetMsgByName(dh, target_msg, &mh);
-          kvaDbGetMsgId(mh, &id_write, &flag);
-
-          for(int j=0; j!=get<1>(msg_list[msg_idx]).size(); j++){
-            kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[j], &sh);
-            kvaDbStoreSignalValuePhys(sh, &can_data, sizeof(can_data), temp_data[j]);
-          }
-          re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
-          memset(can_data, 0, sizeof(can_data));
-
-          ROS_INFO("Intersection ID : %d", msg.data[i].IntersectionID);
-          ROS_INFO("signalGroup : %d", msg.data[i].Movements.SignalGroupID);
-          ROS_INFO("eventState : %d", temp_phase);
-          ROS_INFO("minEndTime : %d", temp_time);
-        }
-      }
-    }
-    else
-    {
-      target_msg = (char*)"V2X_SPaT_1";
-      temp_data = {(char)0,
-      (int)0,
-      (unsigned char)0,
-      (double)0,
-      (double)0};
-
-      msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
-      kvaDbGetMsgByName(dh, target_msg, &mh);
-      kvaDbGetMsgId(mh, &id_write, &flag);
-
-      for(int j=0; j!=get<1>(msg_list[msg_idx]).size(); j++){
-        kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[j], &sh);
-        kvaDbStoreSignalValuePhys(sh, &can_data, sizeof(can_data), temp_data[j]);
-      }
-      re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
-      memset(can_data, 0, sizeof(can_data));
-    }
+    ROS_INFO("[SPaT CAN] IntID=%d SigGrp=%d Phase=%d minEnd=%.1fs",
+             d.IntersectionID, d.Movements.SignalGroupID,
+             d.Movements.MovementPhaseStatus,
+             d.Movements.TimeChangeDetails / 10.0);
   }
+  else
+  {
+    // 신호 없는 링크: 전부 0
+    temp_data = {0.0, 0.0, 0.0, 0.0, 0.0};
+  }
+
+  msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
+  kvaDbGetMsgByName(dh, target_msg, &mh);
+  kvaDbGetMsgId(mh, &id_write, &flag);
+
+  for(int j=0; j!=get<1>(msg_list[msg_idx]).size(); j++){
+    kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[j], &sh);
+    kvaDbStoreSignalValuePhys(sh, &can_data, sizeof(can_data), temp_data[j]);
+  }
+  canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
 }
 
 short SPAT_CAN_WRITER::FIND_MSG_IDX(char* target_msg, vector<tuple<char*, vector<char*>>>* msg_list){
@@ -271,9 +193,7 @@ int main(int argc, char **argv){
 
   can_status = SPaTCW.OPEN_CAN_CHANNEL_AND_READ_DB(channel_num, filename, init_access_flag);
 
-  ros::Subscriber sub1 = node.subscribe("/katri_v2x_node/katri_spat", 1, &SPAT_CAN_WRITER::CALLBACK_SPAT, &SPaTCW);
-  // ros::Subscriber sub1 = node.subscribe("/ktri_obu_interface_node/katri_spat", 1, &SPAT_CAN_WRITER::CALLBACK_SPAT, &SPaTCW);
-  ros::Subscriber sub2 = node.subscribe("/localization/to_control_team", 1, &SPAT_CAN_WRITER::CALLBACK_LOCAL_TEAM, &SPaTCW);
+  ros::Subscriber sub1 = node.subscribe("/siheung_spat", 1, &SPAT_CAN_WRITER::CALLBACK_SPAT, &SPaTCW);
 
   ros::waitForShutdown();   
   canBusOff(hCAN);
