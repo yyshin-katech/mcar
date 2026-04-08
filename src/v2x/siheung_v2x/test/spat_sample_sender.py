@@ -64,8 +64,20 @@ ORIGINAL_WSM_PACKET = bytes([
 # J2735 MessageFrame UPER 부분만 (WSM 헤더 제외)
 J2735_MESSAGEFRAME = ORIGINAL_WSM_PACKET[16:]
 
+# WSMP 서브헤더 생성 (03 80 + BER 길이)
+def build_wsmp_subheader(payload_len):
+    """실제 OBU 패킷의 WSMP 서브헤더"""
+    hdr = bytes([0x03, 0x80])
+    if payload_len < 0x80:
+        hdr += bytes([payload_len])
+    elif payload_len <= 0xFF:
+        hdr += bytes([0x81, payload_len])
+    else:
+        hdr += bytes([0x82, (payload_len >> 8) & 0xFF, payload_len & 0xFF])
+    return hdr
+
 # OBU 5바이트 헤더 + J2735 MessageFrame
-def build_obu_spat_packet(seq_no=0):
+def build_obu_spat_packet(seq_no=0, with_wsmp=False):
     """isMsgFrame=0 (MessageFrame) SPaT 패킷"""
     obu_header = bytes([
         0x00,       # Frame Type: OBU→PC
@@ -74,6 +86,9 @@ def build_obu_spat_packet(seq_no=0):
         0x00,       # isMsgFrame: 0 = MessageFrame
         0x00,       # Reserved
     ])
+    if with_wsmp:
+        wsmp = build_wsmp_subheader(len(J2735_MESSAGEFRAME))
+        return obu_header + wsmp + J2735_MESSAGEFRAME
     return obu_header + J2735_MESSAGEFRAME
 
 
@@ -115,6 +130,7 @@ def main():
     parser.add_argument('--port', type=int, default=9999, help='UDP port (default: 9999)')
     parser.add_argument('--host', type=str, default='127.0.0.1', help='Target host')
     parser.add_argument('--loop', type=float, default=0, help='반복 전송 Hz (0=1회)')
+    parser.add_argument('--wsmp', action='store_true', help='WSMP 서브헤더 포함 (실제 OBU 시뮬)')
     parser.add_argument('--info', action='store_true', help='기대 디코딩 결과 출력')
     args = parser.parse_args()
 
@@ -125,10 +141,11 @@ def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     seq = 0
-    packet = build_obu_spat_packet(seq)
+    packet = build_obu_spat_packet(seq, with_wsmp=args.wsmp)
 
+    wsmp_str = " + WSMP" if args.wsmp else ""
     print(f"Target: {args.host}:{args.port}")
-    print(f"Packet size: {len(packet)} bytes (OBU 5 + J2735 {len(J2735_MESSAGEFRAME)})")
+    print(f"Packet size: {len(packet)} bytes (OBU 5{wsmp_str} + J2735 {len(J2735_MESSAGEFRAME)})")
     print(f"Original WSM: {len(ORIGINAL_WSM_PACKET)} bytes")
     print()
 
@@ -137,7 +154,7 @@ def main():
         print(f"반복 전송: {args.loop} Hz (Ctrl+C로 중지)")
         try:
             while True:
-                packet = build_obu_spat_packet(seq)
+                packet = build_obu_spat_packet(seq, with_wsmp=args.wsmp)
                 sock.sendto(packet, (args.host, args.port))
                 print(f"\r  seq={seq:3d}, sent {len(packet)} bytes", end='', flush=True)
                 seq = (seq + 1) % 256

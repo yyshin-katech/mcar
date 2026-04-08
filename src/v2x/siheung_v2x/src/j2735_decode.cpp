@@ -89,6 +89,31 @@ void toControlTeamCallback(const mmc_msgs::to_control_team_from_local_msg::Const
 
 class SpatDecoder{
     public:
+        // WSMP 서브헤더 건너뛰기 (03 80 + BER 길이)
+        // 실제 OBU 패킷: [OBU 5B] + [WSMP subheader] + [J2735 UPER]
+        // 테스트 패킷:   [OBU 5B] + [J2735 UPER] (WSMP 없음)
+        static size_t skipWsmpHeader(const uint8_t* body, size_t body_len)
+        {
+            if (body_len < 4)
+                return 0;
+
+            if (body[0] != 0x03 || body[1] != 0x80)
+                return 0;  // WSMP 헤더 없음 → 스킵 불필요
+
+            size_t offset = 2;
+            uint8_t ber_byte = body[offset];
+            if (ber_byte < 0x80)
+                offset += 1;        // short form: 1바이트 길이
+            else if (ber_byte == 0x81)
+                offset += 2;        // long form: 1+1 바이트
+            else if (ber_byte == 0x82)
+                offset += 3;        // long form: 1+2 바이트
+            else
+                offset += 1;        // fallback
+
+            return offset;
+        }
+
         // SPaT 구조체 → ROS 메시지 변환 및 발행
         void publishSpat(j2735SPAT* spat, ros::Publisher& spat_pub)
         {
@@ -201,6 +226,15 @@ class SpatDecoder{
 
             const uint8_t* body = raw + OBU_HEADER_SIZE;
             size_t body_len = raw_len - OBU_HEADER_SIZE;
+
+            // WSMP 서브헤더 건너뛰기 (실제 OBU 패킷에 포함됨)
+            size_t wsmp_off = skipWsmpHeader(body, body_len);
+            if (wsmp_off > 0)
+            {
+                ROS_DEBUG("[V2X] WSMP subheader detected (%zu bytes), skipping", wsmp_off);
+                body += wsmp_off;
+                body_len -= wsmp_off;
+            }
 
             if (is_msg_frame == 0)
             {
