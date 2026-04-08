@@ -115,6 +115,8 @@ class SpatDecoder{
         }
 
         // SPaT 구조체 → ROS 메시지 변환 및 발행
+        // to_control_team의 intersection_id, signalGroupID, MANUAVER 기반으로
+        // 현재 링크에 필요한 신호만 필터링하여 발행
         void publishSpat(j2735SPAT* spat, ros::Publisher& spat_pub)
         {
             // 현재 링크 정보
@@ -126,31 +128,61 @@ class SpatDecoder{
                 cur_manuaver = g_link_info.manuaver;
             }
 
+            // MANUAVER → 타겟 movementName 매핑 (실제 디코딩 결과 기준)
+            // -1=LEFT, 0=STRAIGHT, 1=RIGHT
+            std::string target_name;
+            if (cur_manuaver == -1)
+                target_name = "LEFT";
+            else if (cur_manuaver == 1)
+                target_name = "RIGHT";
+            else
+                target_name = "STRAIGHT";
+
             v2x_msgs::intersection_array_msg spat_msg;
             spat_msg.time = ros::Time::now();
+
+            // 신호 불필요 링크: 모든 필드 0인 빈 메시지 발행
+            if (cur_intersection_id == 0)
+            {
+                v2x_msgs::intersection_msg zero_msg;
+                spat_msg.data.push_back(zero_msg);
+                spat_pub.publish(spat_msg);
+                return;
+            }
 
             for (size_t i = 0; i < spat->intersections.count; ++i)
             {
                 auto& intersection = spat->intersections.tab[i];
                 int iid = intersection.id.id;
 
+                // intersection_id 필터
+                if (iid != cur_intersection_id)
+                    continue;
+
                 for (size_t j = 0; j < intersection.states.count; ++j)
                 {
                     auto& movement = intersection.states.tab[j];
+
+                    // signalGroupID 필터
+                    if (cur_signal_group != 0 &&
+                        (int)movement.signalGroup != cur_signal_group)
+                        continue;
+
+                    // movementName 추출
+                    std::string move_name;
+                    if (movement.movementName_option && movement.movementName.buf)
+                        move_name = std::string((char*)movement.movementName.buf, movement.movementName.len);
+
+                    // MANUAVER 방향 필터
+                    if (!move_name.empty() && move_name != target_name)
+                        continue;
 
                     v2x_msgs::intersection_msg int_msg;
                     int_msg.IntersectionID = iid;
                     int_msg.RoadRegulatorID = intersection.id.region_option ? intersection.id.region : 0;
                     int_msg.MsgCount = intersection.revision;
                     int_msg.NumOfMovementState = intersection.states.count;
-
-                    // movementName (STR / LEFT / PED 등)
-                    if (movement.movementName_option && movement.movementName.buf)
-                    {
-                        int_msg.Movements.MovementStateName = std::string(
-                            (char*)movement.movementName.buf, movement.movementName.len);
-                    }
-
+                    int_msg.Movements.MovementStateName = move_name;
                     int_msg.Movements.SignalGroupID = movement.signalGroup;
 
                     if (movement.state_time_speed.count > 0)
@@ -173,39 +205,33 @@ class SpatDecoder{
 
             spat_pub.publish(spat_msg);
 
-            // 현재 링크 매칭 신호 로그
-            // MANUAVER: -1→LEFT, 0→STR, 1→RIGHT(없으면 STR 사용)
-            if (cur_intersection_id != 0)
+            // 매칭 결과 로그
+            if (!spat_msg.data.empty())
             {
-                const char* target_name = (cur_manuaver == -1) ? "LEFT" :
-                                           (cur_manuaver ==  1) ? "RIGHT" : "STR";
-
-                for (auto& d : spat_msg.data)
+                auto& d = spat_msg.data[0];
+                const char* phase = "UNKNOWN";
+                switch (d.Movements.MovementPhaseStatus)
                 {
-                    if ((int)d.IntersectionID == cur_intersection_id &&
-                        (int)d.Movements.SignalGroupID == cur_signal_group &&
-                        d.Movements.MovementStateName == target_name)
-                    {
-                        const char* phase = "UNKNOWN";
-                        switch (d.Movements.MovementPhaseStatus)
-                        {
-                            case 0: phase = "unavailable"; break;
-                            case 1: phase = "dark"; break;
-                            case 2: phase = "stop-Then-Proceed"; break;
-                            case 3: phase = "STOP(red)"; break;
-                            case 4: phase = "pre-Movement"; break;
-                            case 5: phase = "GO(green-perm)"; break;
-                            case 6: phase = "GO(green-prot)"; break;
-                            case 7: phase = "clearance(perm)"; break;
-                            case 8: phase = "clearance(prot)"; break;
-                            case 9: phase = "caution"; break;
-                        }
-                        ROS_INFO("[SPaT] IntID=%d SigGrp=%d Move=%s Phase=%s minEnd=%d",
-                                 cur_intersection_id, cur_signal_group, target_name, phase,
-                                 d.Movements.TimeChangeDetails);
-                        break;
-                    }
+                    case 0: phase = "unavailable"; break;
+                    case 1: phase = "dark"; break;
+                    case 2: phase = "stop-Then-Proceed"; break;
+                    case 3: phase = "STOP(red)"; break;
+                    case 4: phase = "pre-Movement"; break;
+                    case 5: phase = "GO(green-perm)"; break;
+                    case 6: phase = "GO(green-prot)"; break;
+                    case 7: phase = "clearance(perm)"; break;
+                    case 8: phase = "clearance(prot)"; break;
+                    case 9: phase = "caution"; break;
                 }
+                ROS_INFO("[SPaT] IntID=%d SigGrp=%d Move=%s Phase=%s minEnd=%.1fs",
+                         cur_intersection_id, cur_signal_group,
+                         target_name.c_str(), phase,
+                         d.Movements.TimeChangeDetails / 10.0);
+            }
+            else
+            {
+                ROS_DEBUG("[SPaT] IntID=%d SigGrp=%d Move=%s → 매칭 없음",
+                          cur_intersection_id, cur_signal_group, target_name.c_str());
             }
         }
 
