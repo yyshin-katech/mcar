@@ -13,6 +13,7 @@
 
 #include <v2x_msgs/intersection_msg.h>
 #include <v2x_msgs/intersection_array_msg.h>
+#include <mmc_msgs/to_control_team_from_local_msg.h>
 
 #include <algorithm>
 #include <math.h>
@@ -29,6 +30,7 @@ using namespace std;
 class SPAT_CAN_WRITER{
   public:
     ros::Subscriber sub1;
+    uint16_t cur_intersection_id = 0;
 
     unsigned int kvaDb_flags = 0;
     unsigned int dlc = 8;
@@ -43,6 +45,7 @@ class SPAT_CAN_WRITER{
 
     SPAT_CAN_WRITER();
     void CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& data);
+    void CALLBACK_LOCAL(const mmc_msgs::to_control_team_from_local_msg& data);
     short FIND_MSG_IDX(char* target_msg, vector<tuple<char*, vector<char*>>>* msg_list);
     canStatus OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num, char *filename, bool init_access_flag);
     void LOOP();
@@ -56,6 +59,10 @@ SPAT_CAN_WRITER::SPAT_CAN_WRITER(){
                                                                     (char*)"eventState_1",\
                                                                     (char*)"signalGroup_1",\
                                                                     (char*)"Intersection_ID_1"}));
+}
+
+void SPAT_CAN_WRITER::CALLBACK_LOCAL(const mmc_msgs::to_control_team_from_local_msg& data){
+  cur_intersection_id = data.look_at_IntersectionID;
 }
 
 void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg){
@@ -76,9 +83,12 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg)
   unsigned int id_write, flag = 0;
   vector<double> temp_data;
 
-  // siheung_v2x가 이미 현재 링크 기반으로 필터링하여 발행
-  // data[0]에 매칭된 신호 또는 전체 0 메시지가 들어옴
-  if (!msg.data.empty() && msg.data[0].IntersectionID != 0)
+  // 현재 링크의 교차로 ID가 0이면 (신호 불필요 구간) 0 전송
+  if (cur_intersection_id == 0)
+  {
+    temp_data = {0.0, 0.0, 0.0, 0.0, 0.0};
+  }
+  else if (!msg.data.empty() && msg.data[0].IntersectionID != 0)
   {
     auto& d = msg.data[0];
     temp_data = {0.0,
@@ -94,8 +104,8 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg)
   }
   else
   {
-    // 신호 없는 링크: 전부 0
-    temp_data = {0.0, 0.0, 0.0, 0.0, 0.0};
+    // 매칭 없지만 교차로 구간: 이전 값 유지 위해 전송 skip
+    return;
   }
 
   msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
@@ -194,6 +204,7 @@ int main(int argc, char **argv){
   can_status = SPaTCW.OPEN_CAN_CHANNEL_AND_READ_DB(channel_num, filename, init_access_flag);
 
   ros::Subscriber sub1 = node.subscribe("/siheung_spat", 1, &SPAT_CAN_WRITER::CALLBACK_SPAT, &SPaTCW);
+  ros::Subscriber sub2 = node.subscribe("/localization/to_control_team", 1, &SPAT_CAN_WRITER::CALLBACK_LOCAL, &SPaTCW);
 
   ros::waitForShutdown();   
   canBusOff(hCAN);
