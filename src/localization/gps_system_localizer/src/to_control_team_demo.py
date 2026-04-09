@@ -400,11 +400,14 @@ class DistanceCalculator(object):
                         p.is_stop_line = 1
                         p.look_at_signalGroupID = road['look_at_signalGroupID'][0][0]
                         p.look_at_IntersectionID = road['look_at_IntersectionID'][0][0]
+                        p.MANUAVER = int(road.get('MANUAVER', [[0]])[0][0])
                         p.distance_to_lane_end = p.distance_to_lane_end + next_link_length
                     break
         if p.LINK_ID == 61 or p.LINK_ID == 219:
             p.Speed_Limit = 30
-        
+        # p.look_at_IntersectionID = 134
+        # p.look_at_signalGroupID  = 60
+        # p.MANUAVER = -1
         self.to_control_team_pub.publish(p)
 
         self.old_lane_id = p.LINK_ID
