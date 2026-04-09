@@ -403,6 +403,27 @@ class DistanceCalculator(object):
                         p.MANUAVER = int(road.get('MANUAVER', [[0]])[0][0])
                         p.distance_to_lane_end = p.distance_to_lane_end + next_link_length
                     break
+
+        # LINK_ID 348, 336: 다음링크 + 그 다음링크(정지선)의 길이까지 합산
+        if p.is_stop_line == 0 and p.LINK_ID in (348, 336) and p.NEXT_LINK_ID != 0:
+            for road in self.target_roads:
+                if int(road['LINK_ID'][0][0]) == p.NEXT_LINK_ID:
+                    next_link_length = road['station'][0][-1]
+                    next_next_link_id = int(road['NEXT_LINK_ID'][0][0])
+                    if next_next_link_id != 0:
+                        for road2 in self.target_roads:
+                            if int(road2['LINK_ID'][0][0]) == next_next_link_id:
+                                next_next_is_stop = int(road2['is_stop_line'][0][0])
+                                if next_next_is_stop == 1:
+                                    next_next_link_length = road2['station'][0][-1]
+                                    p.is_stop_line = 1
+                                    p.look_at_signalGroupID = road2['look_at_signalGroupID'][0][0]
+                                    p.look_at_IntersectionID = road2['look_at_IntersectionID'][0][0]
+                                    p.MANUAVER = int(road2.get('MANUAVER', [[0]])[0][0])
+                                    p.distance_to_lane_end += next_link_length + next_next_link_length
+                                break
+                    break
+
         if p.LINK_ID == 61 or p.LINK_ID == 219:
             p.Speed_Limit = 30
         # p.look_at_IntersectionID = 134
