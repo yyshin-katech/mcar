@@ -92,7 +92,7 @@ canStatus OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num, char *filename, bool ini
   return canOK;
 }
 
-void IONIQ_CAN_READER()
+void IONIQ5_CAN_READER()
 {
   ros::Rate rate(freq_for_channel_0);
 
@@ -330,7 +330,7 @@ void IONIQ_CAN_READER()
 int main(int argc, char **argv)
 {
   cout << "Initializing ..." << endl;
-  ros::init(argc, argv, "IONIQ_CAN_reader");
+  ros::init(argc, argv, "IONIQ5_CAN_reader");
   ros::NodeHandle node("~");
   ros::AsyncSpinner spinner(0);
   spinner.start();
@@ -350,7 +350,7 @@ int main(int argc, char **argv)
 
   if (can_status == canOK)
   {
-    IONIQ_CAN_READER();
+    IONIQ5_CAN_READER();
   }
 
   ros::waitForShutdown();

@@ -279,13 +279,13 @@ install(TARGETS ${PROJECT_NAME} vspd_CAN_writer
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-############################################################################################## IONIQ_CAN_reader
-add_executable(IONIQ_CAN_reader src/IONIQ_CAN_reader.cpp)
-target_compile_options(IONIQ_CAN_reader PRIVATE)
-add_dependencies(IONIQ_CAN_reader ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(IONIQ_CAN_reader 
+############################################################################################## IONIQ5_CAN_reader
+add_executable(IONIQ5_CAN_reader src/IONIQ5_CAN_reader.cpp)
+target_compile_options(IONIQ5_CAN_reader PRIVATE)
+add_dependencies(IONIQ5_CAN_reader ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(IONIQ5_CAN_reader
   ${PROJECT_NAME}
-  ${catkin_LIBRARIES} 
+  ${catkin_LIBRARIES}
   # ${catkin_LIBRARY_DIRS}
 
   ##### Linking External Library
@@ -293,7 +293,26 @@ target_link_libraries(IONIQ_CAN_reader
   ${KVADBLIB_LIBRARY}
   ##############################
 )
-install(TARGETS ${PROJECT_NAME} IONIQ_CAN_reader
+install(TARGETS ${PROJECT_NAME} IONIQ5_CAN_reader
+   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+############################################################################################## DTG_CAN_writer
+add_executable(DTG_CAN_writer src/DTG_CAN_writer.cpp)
+target_compile_options(DTG_CAN_writer PRIVATE)
+add_dependencies(DTG_CAN_writer ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(DTG_CAN_writer
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+
+  ##### Linking External Library
+  ${CANLIB_LIBRARY}
+  ${KVADBLIB_LIBRARY}
+  ##############################
+)
+install(TARGETS ${PROJECT_NAME} DTG_CAN_writer
    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

@@ -24,6 +24,7 @@
 // #include <novatel_gps_msgs/NovatelMessageHeader.h>
 // #include <novatel_gps_msgs/NovatelPosition.h>
 #include <ublox_msgs/NavPVT.h>
+#include <std_msgs/UInt8.h>
 
 #include <algorithm>
 #include <math.h>
@@ -52,6 +53,7 @@ class LOCAL_CAN_WRITER{
     int alive_count = 0;    
 
     bool local_calling = false;
+    uint8_t md_ad_req = 0;
 
     vector<tuple<char*, vector<char*>>> msg_list;
 
@@ -60,6 +62,7 @@ class LOCAL_CAN_WRITER{
     void CALLBACK_RPM(const mmc_msgs::motor_rpm_msg& msg);
     // void CALLBACK_TimeStamp(const novatel_gps_msgs::NovatelPosition& msg);
     void CALLBACK_TimeStamp(const ublox_msgs::NavPVT::ConstPtr& msg);
+    void CALLBACK_ModeCommand(const std_msgs::UInt8::ConstPtr& msg);
     short FIND_MSG_IDX(char* target_msg, vector<tuple<char*, vector<char*>>>* msg_list);
     canStatus OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num, char *filename, bool init_access_flag);
     void LOOP();
@@ -105,7 +108,8 @@ LOCAL_CAN_WRITER::LOCAL_CAN_WRITER(){
                                                                       (char*)"Wrong_Way_Warn",\
                                                                      (char*)"On_ODD",\
                                                                      (char*)"Road_State",\
-                                                                     (char*)"distance_out_of_ODD"}));
+                                                                     (char*)"distance_out_of_ODD",\
+                                                                     (char*)"MD_AD_Req"}));
 
   msg_list.push_back(make_tuple((char*)"CAR_EGO_A_Ex",  vector<char*> {(char*)"X_High",\
                                                                      (char*)"Y_High"}));
@@ -208,6 +212,10 @@ void LOCAL_CAN_WRITER::CALLBACK_RPM(const mmc_msgs::motor_rpm_msg& msg)
 
   re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
   memset(can_data, 0, sizeof(can_data));
+}
+
+void LOCAL_CAN_WRITER::CALLBACK_ModeCommand(const std_msgs::UInt8::ConstPtr& msg){
+  md_ad_req = msg->data;  // 0: Manual, 1: Auto
 }
 
 void LOCAL_CAN_WRITER::CALLBACK_LOCAL(const mmc_msgs::to_control_team_from_local_msg& msg ){
@@ -315,7 +323,7 @@ void LOCAL_CAN_WRITER::CALLBACK_LOCAL(const mmc_msgs::to_control_team_from_local
 
       case(5):
         target_msg = (char*)"On_ODD_Stat";
-        temp_data = {(double)msg.GPS_Over, (double)msg.Take_Over_Request, (double)msg.Wrong_Way_Warn, (double)msg.On_ODD, (double)msg.Road_State, msg.distance_out_of_ODD};
+        temp_data = {(double)msg.GPS_Over, (double)msg.Take_Over_Request, (double)msg.Wrong_Way_Warn, (double)msg.On_ODD, (double)msg.Road_State, msg.distance_out_of_ODD, (double)md_ad_req};
       break;
 
     }
@@ -430,7 +438,7 @@ int main(int argc, char **argv){
   string relative_path = ros::package::getPath("can");
   char filename[100];
 
-  strcpy(filename, (relative_path + "/dbc/CANdb_IONIQ5_AD_CAN_v3.dbc").c_str());
+  strcpy(filename, (relative_path + "/dbc/CANdb_IONIQ5_AD_CAN_v5.dbc").c_str());
   int channel_num = 0;
   bool init_access_flag = false;
 
@@ -441,6 +449,7 @@ int main(int argc, char **argv){
   ros::Subscriber sub1 = node.subscribe("/localization/to_control_team", 1, &LOCAL_CAN_WRITER::CALLBACK_LOCAL, &LCW);
   ros::Subscriber sub2 = node.subscribe("/sensors/rpm", 1, &LOCAL_CAN_WRITER::CALLBACK_RPM, &LCW);
   ros::Subscriber sub3 = node.subscribe("/ublox/navpvt", 1, &LOCAL_CAN_WRITER::CALLBACK_TimeStamp, &LCW);
+  ros::Subscriber sub4 = node.subscribe("/vehicle/mode_command", 1, &LOCAL_CAN_WRITER::CALLBACK_ModeCommand, &LCW);
 
   ros::waitForShutdown();   
   canBusOff(hCAN);

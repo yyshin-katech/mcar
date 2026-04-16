@@ -24,12 +24,13 @@
   <node name="chassis_CAN_reader"            type="chassis_CAN_reader"            pkg="can"  respawn="true" />
   <node name="percept_topic_matcher"       type="percept_topic_matcher"     pkg="can"  respawn="true" />
   <node name="local_CAN_writer"       type="local_CAN_writer"               pkg="can" respawn="true"/>
-  <node name="IONIQ_CAN_reader"             type="IONIQ_CAN_reader"             pkg="can"  respawn="true" />
+  <node name="IONIQ5_CAN_reader"             type="IONIQ5_CAN_reader"             pkg="can"  respawn="true" />
   <node name="vspd_CAN_writer"              type="vspd_CAN_writer"              pkg="can"  respawn="true" />
   <!-- <node name="cpt7_topic_matcher"       type="cpt7_topic_matcher"     pkg="can"  respawn="true" /> -->
   <!-- <node name="cpt7_CAN_writer"       type="cpt7_CAN_writer"     pkg="can"  respawn="true" /> -->
 
   <node name="track_CAN_writer_no_grid"       type="track_CAN_writer_no_grid"     pkg="can"  respawn="true" />
+  <node name="DTG_CAN_writer"                type="DTG_CAN_writer"               pkg="can"  respawn="true" />
 
   <node name="katri_v2x_node"       type="katri_obu_interface_node"     pkg="katri_obu_interface"  respawn="true" />
   <node name="spat_CAN_writer"       type="spat_CAN_writer"     pkg="can"  respawn="true" />
