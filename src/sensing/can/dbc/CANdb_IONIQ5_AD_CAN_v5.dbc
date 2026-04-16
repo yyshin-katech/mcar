@@ -1,0 +1,465 @@
+VERSION ""
+
+
+NS_ : 
+	NS_DESC_
+	CM_
+	BA_DEF_
+	BA_
+	VAL_
+	CAT_DEF_
+	CAT_
+	FILTER
+	BA_DEF_DEF_
+	EV_DATA_
+	ENVVAR_DATA_
+	SGTYPE_
+	SGTYPE_VAL_
+	BA_DEF_SGTYPE_
+	BA_SGTYPE_
+	SIG_TYPE_REF_
+	VAL_TABLE_
+	SIG_GROUP_
+	SIG_VALTYPE_
+	SIGTYPE_VALTYPE_
+	BO_TX_BU_
+	BA_DEF_REL_
+	BA_REL_
+	BA_DEF_DEF_REL_
+	BU_SG_REL_
+	BU_EV_REL_
+	BU_BO_REL_
+	SG_MUL_VAL_
+
+BS_:
+
+BU_: XXX supervisor serviceprovider longitudinal logger led lateral ignition gear configurator camera_percept any A1_remote A1_driver NUC IPC VCU ADCU Mobileye Instrumentation Vehicle ESR
+
+
+BO_ 902 WHL_SPD11: 8 NUC
+ SG_ WHL_SPD_RR : 48|14@1+ (0.03125,0) [0|511.96875] "km/h" Vector__XXX
+ SG_ WHL_SPD_RL : 32|14@1+ (0.03125,0) [0|511.96875] "km/h" Vector__XXX
+ SG_ WHL_SPD_FR : 16|14@1+ (0.03125,0) [0|511.96875] "km/h" Vector__XXX
+ SG_ WHL_SPD_FL : 0|14@1+ (0.03125,0) [0|511.96875] "km/h" Vector__XXX
+
+BO_ 688 SAS11: 5 NUC
+ SG_ SAS_Stat : 24|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ SAS_Speed : 16|8@1+ (4,0) [0|1020] "" Vector__XXX
+ SG_ SAS_Angle : 0|16@1- (0.1,0) [-3276.8|3276.7] "Deg" Vector__XXX
+
+BO_ 544 ESP12: 8 NUC
+ SG_ LAT_ACCEL : 0|11@1+ (0.01,-10.23) [0|10.24] "m/s^2" Vector__XXX
+ SG_ LONG_ACCEL : 13|11@1+ (0.01,-10.23) [-10.23|10.24] "m/s^2" Vector__XXX
+ SG_ CYL_PRES : 26|12@1+ (0.1,0) [0|409.5] "Bar" Vector__XXX
+ SG_ YAW_RATE : 40|13@1+ (0.01,-40.95) [-40.95|40.96] "вк/s" Vector__XXX
+
+BO_ 291 MGI_vSpd_Gateway: 2 NUC
+ SG_ mgi_veh_direction : 14|2@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ mgi_veh_speed : 0|14@1+ (0.03125,0) [0|507.873] "" Vector__XXX
+
+BO_ 84 TurnSignalControl: 4 A1_driver
+ SG_ life_count : 8|8@1+ (1,0) [0|0] ""  supervisor,ignition
+ SG_ turn_signal_control_mode : 16|2@1+ (1,0) [0|0] ""  supervisor,ignition
+ SG_ target_turn_signal : 18|2@1+ (1,0) [0|0] ""  supervisor,ignition
+
+BO_ 17 OperationControl: 3 A1_driver
+ SG_ life_count : 8|8@1+ (1,0) [0|0] ""  supervisor
+ SG_ operation_sw : 16|1@1+ (1,0) [0|0] ""  supervisor
+ SG_ autonomous_sw : 17|1@1+ (1,0) [0|0] ""  supervisor
+ SG_ emergency_sw : 18|1@1+ (1,0) [0|0] ""  supervisor
+
+BO_ 81 LongitudinalControl: 8 A1_driver
+ SG_ life_count : 8|8@1+ (1,0) [0|0] ""  supervisor,longitudinal
+ SG_ longitudinal_control_mode : 16|3@1+ (1,0) [0|0] ""  supervisor,longitudinal
+ SG_ target_acceleration : 19|11@1- (0.01,0) [0|0] "m/s^2"  supervisor,longitudinal
+
+BO_ 83 LateralControl: 7 A1_driver
+ SG_ life_count : 8|8@1+ (1,0) [0|0] ""  supervisor,lateral
+ SG_ steering_control_mode : 16|8@1+ (1,0) [0|0] ""  supervisor,lateral
+ SG_ target_steering_angle : 34|14@1- (0.1,0) [0|0] "deg"  supervisor,lateral
+
+BO_ 82 GearControl: 3 A1_driver
+ SG_ life_count : 8|8@1+ (1,0) [0|0] ""  gear,supervisor
+ SG_ gear_control_mode : 16|2@1+ (1,0) [0|0] ""  gear,supervisor
+ SG_ target_gear : 20|4@1+ (1,0) [0|0] ""  gear,supervisor
+
+BO_ 33 BrainState: 4 A1_driver
+ SG_ life_count : 8|8@1+ (1,0) [0|0] ""  supervisor
+ SG_ brain_status : 16|3@1+ (1,0) [0|7] ""  supervisor
+
+BO_ 16 AutonomousState: 7 supervisor
+ SG_ life_count : 8|8@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ operation_mode : 16|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ autonomous_mode : 17|2@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ error_code : 24|16@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ warning_code : 40|16@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 22 GPSTimestamp: 8 NUC
+ SG_ GPS_mSecond : 48|10@1+ (1,0) [0|999] "" Vector__XXX
+ SG_ GPS_Second : 40|8@1+ (1,0) [0|59] "" Vector__XXX
+ SG_ GPS_Minute : 32|8@1+ (1,0) [0|59] "" Vector__XXX
+ SG_ GPS_Hour : 24|8@1+ (1,0) [0|23] "" Vector__XXX
+ SG_ GPS_Day : 16|8@1+ (1,0) [0|31] "" Vector__XXX
+ SG_ GPS_Month : 8|8@1+ (1,0) [0|12] "" Vector__XXX
+ SG_ GPS_Year : 0|8@1+ (1,0) [0|255] "" Vector__XXX
+
+BO_ 512 from_Control: 1 ADCU
+ SG_ LC_flag : 2|2@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ AEB_flag : 0|2@1+ (1,0) [0|3] "" Vector__XXX
+
+BO_ 870 MOTOR_RPM: 7 Vector__XXX
+ SG_ VS_CGW_PC4 : 40|8@1+ (1,0) [0|255] "km/h" Vector__XXX
+ SG_ Curr_gear : 24|8@1+ (1,0) [0|8] "" Vector__XXX
+ SG_ N : 8|16@1+ (0.25,0) [0|16383.75] "rpm" Vector__XXX
+
+BO_ 529 Pedestrian_Stat_1: 8 NUC
+ SG_ rel_pos_y_3 : 53|10@1- (0.01,0) [-5.12|5.11] "m" Vector__XXX
+ SG_ rel_pos_x_3 : 41|12@1- (0.01,10.24) [-10.24|30.71] "m" Vector__XXX
+ SG_ on_crosswalk_3 : 40|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ obj_type_3 : 36|4@1+ (1,0) [0|7] "" Vector__XXX
+ SG_ ped_obj_id_3 : 32|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ rel_pos_y_2 : 21|10@1- (0.01,0) [-5.12|5.11] "m" Vector__XXX
+ SG_ rel_pos_x_2 : 9|12@1- (0.01,10.24) [-10.24|30.71] "m" Vector__XXX
+ SG_ on_crosswalk_2 : 8|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ obj_type_2 : 4|4@1+ (1,0) [0|7] "" Vector__XXX
+ SG_ ped_obj_id_2 : 0|4@1+ (1,0) [0|15] "" Vector__XXX
+
+BO_ 528 Pedestrian_Stat: 8 NUC
+ SG_ rel_pos_y_1 : 53|10@1- (0.01,0) [-5.12|5.11] "m" Vector__XXX
+ SG_ rel_pos_x_1 : 41|12@1- (0.01,10.24) [-10.24|30.71] "m" Vector__XXX
+ SG_ on_crosswalk_1 : 40|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ obj_type_1 : 36|4@1+ (1,0) [0|7] "" Vector__XXX
+ SG_ ped_obj_id_1 : 32|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ rel_pos_y : 21|10@1- (0.01,0) [-5.12|5.11] "m" Vector__XXX
+ SG_ rel_pos_x : 9|12@1- (0.01,10.24) [-10.24|30.71] "m" Vector__XXX
+ SG_ on_crosswalk : 8|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ obj_type : 4|4@1+ (1,0) [0|7] "" Vector__XXX
+ SG_ ped_obj_id : 0|4@1+ (1,0) [0|15] "" Vector__XXX
+
+BO_ 280 CPT7_Position_RPRate: 8 NUC
+ SG_ cpt7_rollrate : 32|32@1- (1,0) [-3.4E+038|3.4E+038] "" Vector__XXX
+ SG_ cpt7_pitchrate : 0|32@1- (1,0) [-3.4E+038|3.4E+038] "" Vector__XXX
+
+BO_ 279 CPT7_Position_RP: 8 NUC
+ SG_ cpt7_roll : 32|32@1- (1,0) [-3.4E+038|3.4E+038] "" Vector__XXX
+ SG_ cpt7_pitch : 0|32@1- (1,0) [-3.4E+038|3.4E+038] "" Vector__XXX
+
+BO_ 278 CPT7_Vertical_Acc: 8 NUC
+ SG_ cpt7_vertAcc : 0|64@1- (1,0) [-1.7E+308|1.7E+308] "m/s^2" Vector__XXX
+
+BO_ 277 CPT7_Lateral_Acc: 8 NUC
+ SG_ cpt7_latAcc : 0|64@1- (1,0) [-1.7E+308|1.7E+308] "m/s^2" Vector__XXX
+
+BO_ 513 Mornitoring: 4 ADCU
+ SG_ Logging_sig : 16|16@1+ (0.01,-10.23) [-10.23|10.24] "" Vector__XXX
+ SG_ Chasis_VS_KF : 0|16@1- (0.01,0) [-327.68|327.67] "km/h" Vector__XXX
+
+BO_ 1831 LOCAL_POS_SIGMA: 8 NUC
+ SG_ lon_sigma : 39|32@0- (1,0) [-3.4E+038|3.4E+038] "m" Vector__XXX
+ SG_ lat_sigma : 7|32@0- (1,0) [-3.4E+038|3.4E+038] "m" Vector__XXX
+
+BO_ 1830 CAR_EGO_A_Ex: 4 NUC
+ SG_ Y_High : 23|16@0+ (1,0) [0|1000] "" Vector__XXX
+ SG_ X_High : 7|16@0+ (1,0) [0|1000] "" Vector__XXX
+
+BO_ 1824 LOCAL_MAP_INFO: 8 NUC
+ SG_ is_stop_line : 41|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ look_at_signalGroupID : 0|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ look_at_IntersectionID : 4|4@1+ (1,0) [0|9] "" Vector__XXX
+ SG_ NEXT_LINK_ID : 8|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ LINK_ID : 16|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ distance_to_lane_end : 24|16@1+ (0.1,0) [0|6553.5] "m" Vector__XXX
+ SG_ have_to_LangeChange_left : 44|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ have_to_LangeChange_right : 45|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ left_LaneChange_avail : 46|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ right_LaneChange_avail : 47|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ Speed_Limit : 48|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ guard_zone : 42|2@1+ (1,0) [0|3] "" Vector__XXX
+
+BO_ 64 On_ODD_Stat: 3 NUC
+ SG_ GPS_Over : 3|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ Take_Over_Request : 16|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ Wrong_Way_Warn : 7|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ distance_out_of_ODD : 8|8@1+ (1,0) [0|255] "m" Vector__XXX
+ SG_ Road_State : 1|2@1+ (1,0) [0|3] "" Vector__XXX
+ SG_ On_ODD : 0|1@1+ (1,0) [0|1] "" Vector__XXX
+
+BO_ 769 V2X_SPaT_1: 4 NUC
+ SG_ movementName_1 : 24|4@1+ (1,0) [0|2] "" Vector__XXX
+ SG_ minEndTime_1 : 0|12@1+ (1,0) [0|4095] "" Vector__XXX
+ SG_ eventState_1 : 12|4@1+ (1,0) [0|9] "" Vector__XXX
+ SG_ signalGroup_1 : 16|5@1+ (1,0) [0|16] "" Vector__XXX
+ SG_ Intersection_ID_1 : 28|4@1+ (1,0) [0|9] "" Vector__XXX
+
+BO_ 276 CPT7_Longitude_Acc: 8 NUC
+ SG_ cpt7_longAcc : 0|64@1- (1,0) [-1.7E+308|1.7E+308] "m/s^2" Vector__XXX
+
+BO_ 1897 LKA_Right_Lane_B: 4 Mobileye
+ SG_ View_Range_Availability : 31|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ View_Range : 16|15@1+ (0.00390625,0) [0|127.996] "m" Vector__XXX
+ SG_ Heading_Angle : 0|16@1+ (0.000976562,-31.999) [-0.357|0.357] "radians" Vector__XXX
+
+BO_ 1896 LKA_Right_Lane_A: 8 Mobileye
+ SG_ Width_left_marking : 56|8@1+ (0.01,0) [0|2.5] "m" Vector__XXX
+ SG_ Curvature_Derivative : 40|16@1+ (3.72529E-009,-0.000122067) [-0.00012|0.00012] "1/meter^2" Vector__XXX
+ SG_ Curvature : 24|16@1+ (9.76563E-007,-0.031999) [-0.02|0.02] "1/m" Vector__XXX
+ SG_ Position : 8|16@1- (0.00390625,0) [-128|127] "m" Vector__XXX
+ SG_ Model_Degree : 6|2@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ Quality : 4|2@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ Lane_Type : 0|4@1+ (1,0) [0|15] "" Vector__XXX
+
+BO_ 275 NMEA_Heading: 8 IPC
+ SG_ nmea_heading : 0|64@1- (1,0) [0|359.99] "degree" Vector__XXX
+
+BO_ 274 NMEA_Speed: 8 IPC
+ SG_ nmea_speed : 0|64@1- (1,0) [-1.7E+308|1.7E+308] "km/h" Vector__XXX
+
+BO_ 273 NMEA_Position_Lon: 8 IPC
+ SG_ nmea_longitude : 0|64@1- (1,0) [-1.7E+308|1.7E+308] "degree" Vector__XXX
+
+BO_ 272 NMEA_Position_Lat: 8 IPC
+ SG_ nmea_latitude : 0|64@1- (1,0) [-1.7E+308|1.7E+308] "degree" Vector__XXX
+
+BO_ 262 CPT7_Position_Yawrate: 8 IPC
+ SG_ cpt7_yawrate : 0|64@1- (1,0) [-1.7E+308|1.7E+308] "radian/s" Vector__XXX
+
+BO_ 261 CPT7_Position_Azimuth: 8 IPC
+ SG_ cpt7_azimuth : 0|64@1- (1,0) [-1.7E+308|1.7E+308] "degree" Vector__XXX
+
+BO_ 260 CPT7_Position_Heading: 4 IPC
+ SG_ cpt7_heading : 0|32@1- (1,0) [-3.4E+038|3.4E+038] "degree" Vector__XXX
+
+BO_ 259 CPT7_Position_East: 8 IPC
+ SG_ cpt7_easting : 0|64@1- (1,0) [-1.7E+308|1.7E+308] "m" Vector__XXX
+
+BO_ 258 CPT7_Position_North: 8 IPC
+ SG_ cpt7_northing : 0|64@1- (1,0) [-1.7E+308|1.7E+308] "m" Vector__XXX
+
+BO_ 257 CPT7_Position_Lon: 8 IPC
+ SG_ cpt7_longitude : 0|64@1- (1,0) [-1.7E+308|1.7E+308] "degree" Vector__XXX
+
+BO_ 256 CPT7_Position_Lat: 8 IPC
+ SG_ cpt7_latitude : 0|64@1- (1,0) [-1.7E+308|1.7E+308] "" Vector__XXX
+
+BO_ 103 DiagnosticCAM: 1 IPC
+ SG_ Mobileye_AliveCnt : 0|8@1+ (1,0) [0|255] "" Vector__XXX
+
+BO_ 102 DiagnosticRADAR: 1 IPC
+ SG_ Radar_AliveCnt : 0|8@1+ (1,0) [0|255] "" Vector__XXX
+
+BO_ 101 DiagnosticHMI: 2 IPC
+ SG_ HMI_AliveCnt : 8|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ HMI_StatCode : 0|8@1+ (1,0) [0|15] "" Vector__XXX
+
+BO_ 100 DiagnosticOBU: 2 IPC
+ SG_ OBU_AliveCnt : 8|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ OBU_StatCode : 0|3@1+ (1,0) [0|7] "" Vector__XXX
+
+BO_ 99 DiagnosticGPS: 8 NUC
+ SG_ IMU_StatCode : 8|3@1+ (1,0) [0|7] "" Vector__XXX
+ SG_ GPS_StatCode : 0|3@1+ (1,0) [0|7] "" Vector__XXX
+ SG_ GPS_INS_AliveCnt : 16|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ INS_StatCode : 56|8@1+ (1,0) [0|14] "" Vector__XXX
+ SG_ GPSRTK_StatCode : 48|8@1+ (1,0) [0|80] "" Vector__XXX
+ SG_ GPS_INS_SolutionStat : 40|8@1+ (1,0) [0|22] "" Vector__XXX
+
+BO_ 98 DiagnosticLiDAR: 3 IPC
+ SG_ Left_Lidar_StatCode : 16|3@1+ (1,0) [0|7] "" Vector__XXX
+ SG_ Right_Lidar_StatCode : 8|3@1+ (1,0) [0|7] "" Vector__XXX
+ SG_ Center_Lidar_StatCode : 0|3@1+ (1,0) [0|7] "" Vector__XXX
+
+BO_ 96 DiagnosticIPC: 2 IPC
+ SG_ IPC_SWC_StatCode : 0|3@1+ (1,0) [0|7] "" Vector__XXX
+ SG_ IPC_AliveCount : 8|8@1+ (1,0) [0|255] "" Vector__XXX
+
+BO_ 97 DiagnosticADCU: 2 ADCU
+ SG_ ADCU_AliveCount : 8|8@1+ (1,0) [0|255] "-" Vector__XXX
+ SG_ ADCU_SWC_StatCode : 0|3@1+ (1,0) [0|7] "" Vector__XXX
+
+BO_ 1849 ObstacleDataA: 8 Mobileye
+ SG_ ObstaclePositionX : 8|12@1+ (0.0625,0) [0|0] "m" Vector__XXX
+ SG_ ObstaclePositionY : 24|10@1- (0.0625,0) [-31.93|31.93] "" Vector__XXX
+ SG_ ObstacleRelSpd : 41|12@1- (0.0625,0) [-127.93|127.93] "m/s" Vector__XXX
+
+BO_ 1850 ObstacleDataB: 8 Mobileye
+ SG_ ObstacleLane : 24|2@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 1792 AWSDisplay: 8 Mobileye
+ SG_ HeadwayMeasurement : 17|7@1+ (0.1,0) [0|0] "s" Vector__XXX
+
+BO_ 1894 LKA_Left_Lane_A: 8 Mobileye
+ SG_ Lane_Type : 0|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ Quality : 4|2@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ Model_Degree : 6|2@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ Position : 8|16@1- (0.00390625,0) [-128|127] "m" Vector__XXX
+ SG_ Curvature : 24|16@1+ (9.76563E-007,-0.031999) [-0.02|0.02] "1/m" Vector__XXX
+ SG_ Curvature_Derivative : 40|16@1+ (3.72529E-009,-0.000122067) [-0.00012|0.00012] "1/meter^2" Vector__XXX
+ SG_ Width_left_marking : 56|8@1+ (0.01,0) [0|2.5] "m" Vector__XXX
+
+BO_ 1895 LKA_Left_Lane_B: 4 Mobileye
+ SG_ Heading_Angle : 0|16@1+ (0.000976562,-31.999) [-0.357|0.357] "radians" Vector__XXX
+ SG_ View_Range : 16|15@1+ (0.00390625,0) [0|127.996] "m" Vector__XXX
+ SG_ View_Range_Availability : 31|1@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 1829 CAR_EGO_SD: 8 NUC
+ SG_ EGO_D : 39|32@0- (0.01,0) [-4|4] "" Vector__XXX
+ SG_ EGO_S : 7|32@0+ (0.01,0) [0|5000] "" Vector__XXX
+
+BO_ 1828 CAR_EGO_B: 8 NUC
+ SG_ WAYPOINT : 39|32@0+ (1,0) [0|4294967295] "" Vector__XXX
+ SG_ YAW : 7|32@0- (1,0) [-3.4E+038|3.4E+038] "" Vector__XXX
+
+BO_ 1827 CAR_EGO_A: 8 NUC
+ SG_ Y : 39|32@0- (1,0) [-3.4E+038|3.4E+038] "m" Vector__XXX
+ SG_ X : 7|32@0- (1,0) [-3.4E+038|3.4E+038] "m" Vector__XXX
+
+BO_ 1825 LANE_INFO_A: 8 NUC
+ SG_ RIGHT_LINK_ID : 56|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ LEFT_LINK_ID : 48|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ TIME : 23|32@0+ (0.1,0) [0|429496729.5] "" Vector__XXX
+ SG_ ALLIVE_CNT : 7|8@0+ (1,0) [0|255] "" Vector__XXX
+ SG_ LANE_ID : 15|8@0- (1,0) [-4|10] "" Vector__XXX
+
+BO_ 1826 LANE_INFO_B: 8 NUC
+ SG_ M_EXIT : 39|32@0- (0.1,0) [-214748364.8|214748364.7] "" Vector__XXX
+ SG_ M_ENTER : 7|32@0- (0.1,0) [-214748364.8|214748364.7] "" Vector__XXX
+
+
+
+CM_ "CANdb__ADEV_IONIQ__KATECH__ACAN_v10__220919.dbc Generated by EROOMAT";
+CM_ SG_ 512 AEB_flag "0: None
+1: AEB";
+CM_ SG_ 870 VS_CGW_PC4 "PT-CAN EMS11 Indirect routing message. In case of Delphi ECU, Output period tolerance(+1ms) will be applied to Engine Lamda3.";
+CM_ BO_ 513 "Vehicle State(like vehicle speed)";
+CM_ BO_ 769 "V2X SPaT Message 
+On Intersection ID 100
+";
+CM_ SG_ 769 movementName_1 "movementName
+STRAIGHT
+LEFT";
+BA_DEF_ BO_  "VFrameFormat" ENUM  "StandardCAN","ExtendedCAN","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","StandardCAN_FD","ExtendedCAN_FD";
+BA_DEF_ BO_  "CANFD_BRS" ENUM  "0","1";
+BA_DEF_ BU_  "CANoeStartDelay" INT 0 0;
+BA_DEF_ BU_  "CANoeDrift" INT 0 0;
+BA_DEF_ BU_  "CANoeJitterMin" INT 0 0;
+BA_DEF_ BU_  "CANoeJitterMax" INT 0 0;
+BA_DEF_ BU_  "ECU" STRING ;
+BA_DEF_ BU_  "NodeLayerModules" STRING ;
+BA_DEF_  "DBName" STRING ;
+BA_DEF_  "MultiplexExtEnabled" ENUM  "No","Yes";
+BA_DEF_  "BusType" STRING ;
+BA_DEF_ BO_  "GenMsgCycleTime" INT 0 65535;
+BA_DEF_ SG_  "SigType" ENUM  "Default","Range","RangeSigned","ASCII","Discrete","Control","ReferencePGN","DTC","StringDelimiter","StringLength","StringLengthControl","MessageCounter","MessageChecksum";
+BA_DEF_DEF_  "VFrameFormat" "StandardCAN";
+BA_DEF_DEF_  "CANFD_BRS" "0";
+BA_DEF_DEF_  "CANoeStartDelay" 0;
+BA_DEF_DEF_  "CANoeDrift" 0;
+BA_DEF_DEF_  "CANoeJitterMin" 0;
+BA_DEF_DEF_  "CANoeJitterMax" 0;
+BA_DEF_DEF_  "ECU" "";
+BA_DEF_DEF_  "NodeLayerModules" "";
+BA_DEF_DEF_  "DBName" "";
+BA_DEF_DEF_  "MultiplexExtEnabled" "";
+BA_DEF_DEF_  "BusType" "CAN";
+BA_DEF_DEF_  "GenMsgCycleTime" 0;
+BA_DEF_DEF_  "SigType" "Default";
+BA_ "BusType" "CAN";
+BA_ "DBName" "CANdb_IONIQ5_PCAN1";
+BA_ "GenMsgCycleTime" BO_ 902 20;
+BA_ "GenMsgCycleTime" BO_ 688 10;
+BA_ "GenMsgCycleTime" BO_ 544 10;
+BA_ "GenMsgCycleTime" BO_ 291 10;
+BA_ "GenMsgCycleTime" BO_ 84 200;
+BA_ "GenMsgCycleTime" BO_ 17 20;
+BA_ "GenMsgCycleTime" BO_ 81 20;
+BA_ "GenMsgCycleTime" BO_ 83 20;
+BA_ "GenMsgCycleTime" BO_ 82 20;
+BA_ "GenMsgCycleTime" BO_ 33 20;
+BA_ "GenMsgCycleTime" BO_ 16 20;
+BA_ "GenMsgCycleTime" BO_ 22 50;
+BA_ "GenMsgCycleTime" BO_ 512 20;
+BA_ "GenMsgCycleTime" BO_ 529 100;
+BA_ "GenMsgCycleTime" BO_ 528 100;
+BA_ "GenMsgCycleTime" BO_ 280 200;
+BA_ "GenMsgCycleTime" BO_ 279 20;
+BA_ "GenMsgCycleTime" BO_ 278 200;
+BA_ "GenMsgCycleTime" BO_ 277 200;
+BA_ "GenMsgCycleTime" BO_ 513 20;
+BA_ "GenMsgCycleTime" BO_ 1831 50;
+BA_ "GenMsgCycleTime" BO_ 1830 20;
+BA_ "GenMsgCycleTime" BO_ 1824 20;
+BA_ "GenMsgCycleTime" BO_ 64 200;
+BA_ "GenMsgCycleTime" BO_ 769 100;
+BA_ "GenMsgCycleTime" BO_ 276 200;
+BA_ "GenMsgCycleTime" BO_ 275 100;
+BA_ "GenMsgCycleTime" BO_ 274 100;
+BA_ "GenMsgCycleTime" BO_ 273 100;
+BA_ "GenMsgCycleTime" BO_ 272 100;
+BA_ "GenMsgCycleTime" BO_ 262 100;
+BA_ "GenMsgCycleTime" BO_ 261 100;
+BA_ "GenMsgCycleTime" BO_ 260 100;
+BA_ "GenMsgCycleTime" BO_ 259 100;
+BA_ "GenMsgCycleTime" BO_ 258 100;
+BA_ "GenMsgCycleTime" BO_ 257 100;
+BA_ "GenMsgCycleTime" BO_ 256 100;
+BA_ "GenMsgCycleTime" BO_ 103 1000;
+BA_ "GenMsgCycleTime" BO_ 102 1000;
+BA_ "GenMsgCycleTime" BO_ 101 1000;
+BA_ "GenMsgCycleTime" BO_ 100 1000;
+BA_ "GenMsgCycleTime" BO_ 99 1000;
+BA_ "GenMsgCycleTime" BO_ 98 1000;
+BA_ "GenMsgCycleTime" BO_ 96 1000;
+BA_ "GenMsgCycleTime" BO_ 97 1000;
+BA_ "GenMsgCycleTime" BO_ 1829 20;
+BA_ "GenMsgCycleTime" BO_ 1828 20;
+BA_ "GenMsgCycleTime" BO_ 1827 20;
+BA_ "GenMsgCycleTime" BO_ 1825 20;
+BA_ "GenMsgCycleTime" BO_ 1826 20;
+VAL_ 84 turn_signal_control_mode 1 "AD control" 0 "Inactive" ;
+VAL_ 84 target_turn_signal 3 "Both blinking" 2 "Right blinking" 1 "Left blinking" 0 "Off" ;
+VAL_ 81 longitudinal_control_mode 5 "accel torque/brake pos" 4 "Accel pos/brake torque" 3 "Pedal torque control" 2 "Pedal pos control" 1 "Acceleration control" 0 "Inactive" ;
+VAL_ 83 steering_control_mode 2 "Angle control" 1 "Torque control" 0 "Inactive" ;
+VAL_ 82 gear_control_mode 1 "AD control" 0 "Inactive" ;
+VAL_ 82 target_gear 4 "D" 3 "N" 2 "R" 1 "P" ;
+VAL_ 33 brain_status 3 "Error" 2 "Warning" 1 "OK" 0 "N/A" ;
+VAL_ 16 operation_mode 1 "System Run" 0 "N/A" ;
+VAL_ 16 autonomous_mode 2 "Error" 1 "Autonomous Mode" 0 "N/A" ;
+VAL_ 870 Curr_gear 7 "R" 6 "N" 5 "D" 0 "P" ;
+VAL_ 64 Road_State 2 "out-of ODD, school-zone etc..." 1 "Forward ODD Departure Warning" 0 "can AD or doing AD" ;
+VAL_ 64 On_ODD 1 "Out of ODD cannot info AD" 0 "On ODD, can into auto-drive mode" ;
+VAL_ 769 eventState_1 9 "caution-Conflicting-Traffic" 8 "protected-clearance : yellow" 7 "permissive-clearance" 6 "protected-Movement-Allowed" 5 "permissive-Movement-Allowed" 4 "pre-Movement : red+yellow partly" 3 "stop-And-Remain : red right" 2 "stop-Then-Proceed : flashing red" 1 "dark" 0 "unavailable" ;
+VAL_ 1897 View_Range_Availability 0 "Not Valid" 1 "Valid" ;
+VAL_ 1896 Model_Degree 0 "Parabolic model" 1 "Linear model" 2 "3rd-degree model" ;
+VAL_ 1896 Quality 0 "Low quality" 1 "Low quality" 2 "High quality" 3 "High quality" ;
+VAL_ 1896 Lane_Type 0 "Dashed" 1 "Solid" 2 "undecided" 3 "Road Edge" 4 "Double Lane" 5 "Bott's Dots" 6 "invalid" ;
+VAL_ 99 INS_StatCode 14 "WAITING_ALIGNMENTORIENTATION" 13 "Reserved" 12 "MOTION_DETECT" 11 "INITIALIZING_BIASES" 10 "WAITING_AZIMUTH" 9 "WAITING_INITIALPOS" 8 "DETERMINING_ORIENTATION" 7 "INS_ALIGNMENT_COMPLETE" 6 "INS_SOLUTION_FREE" 5 "Reserved" 4 "Reserved" 3 "INS_SOLUTION_GOOD" 2 "INS_HIGH_VARIANCE" 1 "INS_ALIGNING" 0 "INS_INACTIVE" ;
+VAL_ 99 GPSRTK_StatCode 80 "INS_PPP_BASIC" 79 "INS_PPP_BASIC_CONVERGING" 78 "PPP_BASIC" 77 "PPP_BASIC_CONVERGING" 76 "Reserved" 75 "Reserved" 74 "INS_PPP" 73 "INS_PPP_CONVERGING" 72 "OUT_OF_BOUNDS" 71 "WARNING" 70 "OPERATIONAL" 69 "PPP" 68 "PPP_CONVERGING" 67 "EXT_CONSTRAINED" 66 "Reserved" 65 "Reserved" 64 "Reserved" 63 "Reserved" 62 "Reserved" 61 "Reserved" 60 "Reserved" 59 "Reserved" 58 "Reserved" 57 "Reserved" 56 "INS_RTKFIXED" 55 "INS_RTKFLOAT" 54 "INS_PSRDIFF" 53 "INS_PSRSP" 52 "INS_SBAS" 51 "RTK_DIRECT_INS" 50 "NARROW_INT" 49 "WIDE_INT" 48 "L1_INT" 47 "Reserved" 46 "Reserved" 45 "Reserved" 44 "Reserved" 43 "Reserved" 42 "Reserved" 41 "Reserved" 40 "Reserved" 39 "Reserved" 38 "Reserved" 37 "Reserved" 36 "Reserved" 35 "Reserved" 34 "NARROW_FLOAT" 33 "Reserved" 32 "L1_FLOAT" 31 "Reserved" 30 "Reserved" 29 "Reserved" 28 "Reserved" 27 "Reserved" 26 "Reserved" 25 "Reserved" 24 "Reserved" 23 "Reserved" 22 "Reserved" 21 "Reserved" 20 "Reserved" 19 "PROGAGATED" 18 "WAAS" 17 "PSRDIFF" 16 "SINGLE" 15 "Reserved" 14 "Reserved" 13 "Reserved" 12 "Reserved" 11 "Reserved" 10 "Reserved" 9 "Reserved" 8 "DOPPLER_VELOCITY" 7 "Reserved" 6 "Reserved" 5 "Reserved" 4 "Reserved" 3 "Reserved" 2 "FIXEDHEIGHT" 1 "FIXEDPOS" 0 "NONE" ;
+VAL_ 99 GPS_INS_SolutionStat 22 "INVALID_RATE" 21 "Reserved" 20 "UNAUTHORIZED" 19 "INVALID_FIX" 18 "PENDING" 17 "Reserved" 16 "Reserved" 15 "Reserved" 14 "Reserved" 13 "INTEGRITY_WARNING" 12 "Reserved" 11 "Reserved" 10 "Reserved" 9 "RESIDUALS" 8 "VARIANCE" 7 "V_H_LIMIT" 6 "COLD_START" 5 "TEST_DIST" 4 "COV_TRACE" 3 "SINGULARITY" 2 "NO_CONVERGENCE" 1 "INSUFFICIENT_OBS" 0 "SOL_COMPUTED" ;
+VAL_ 1894 Lane_Type 0 "Dashed" 1 "Solid" 2 "undecided" 3 "Road Edge" 4 "Double Lane" 5 "Bott's Dots" 6 "invalid" ;
+VAL_ 1894 Quality 0 "Low quality" 1 "Low quality" 2 "High quality" 3 "High quality" ;
+VAL_ 1894 Model_Degree 0 "Parabolic model" 1 "Linear model" 2 "3rd-degree model" ;
+VAL_ 1895 View_Range_Availability 0 "Not Valid" 1 "Valid" ;
+SIG_VALTYPE_ 280 cpt7_rollrate : 1;
+SIG_VALTYPE_ 280 cpt7_pitchrate : 1;
+SIG_VALTYPE_ 279 cpt7_roll : 1;
+SIG_VALTYPE_ 279 cpt7_pitch : 1;
+SIG_VALTYPE_ 278 cpt7_vertAcc : 2;
+SIG_VALTYPE_ 277 cpt7_latAcc : 2;
+SIG_VALTYPE_ 1831 lon_sigma : 1;
+SIG_VALTYPE_ 1831 lat_sigma : 1;
+SIG_VALTYPE_ 276 cpt7_longAcc : 2;
+SIG_VALTYPE_ 275 nmea_heading : 2;
+SIG_VALTYPE_ 274 nmea_speed : 2;
+SIG_VALTYPE_ 273 nmea_longitude : 2;
+SIG_VALTYPE_ 272 nmea_latitude : 2;
+SIG_VALTYPE_ 262 cpt7_yawrate : 2;
+SIG_VALTYPE_ 261 cpt7_azimuth : 2;
+SIG_VALTYPE_ 260 cpt7_heading : 1;
+SIG_VALTYPE_ 259 cpt7_easting : 2;
+SIG_VALTYPE_ 258 cpt7_northing : 2;
+SIG_VALTYPE_ 257 cpt7_longitude : 2;
+SIG_VALTYPE_ 256 cpt7_latitude : 2;
+SIG_VALTYPE_ 1828 YAW : 1;
+SIG_VALTYPE_ 1827 Y : 1;
+SIG_VALTYPE_ 1827 X : 1;
+
