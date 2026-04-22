@@ -1,87 +1,55 @@
-# mcar_v13 프로젝트 메모리
+# MCAR Project Memory Index
 
-## 프로젝트 개요
-- ROS (noetic) 기반 자율주행 시스템
-- 경로: `/home/ads/mcar_v13`
-- 메인 브랜치: `main`, 작업 브랜치: `ioniq5`
-- GitHub: `yyshin-katech/mcar`
+## Memory Files
+- [build-deps.md](build-deps.md) — 빌드 의존성 (apt, Kvaser SDK, CMake 노트)
+- [feedback_no_tmux_panes.md](feedback_no_tmux_panes.md) — ROS 에이전트팀 실행/종료 패턴 (백그라운드, 좀비 프로세스 정리)
+- [can_channel_map.md](can_channel_map.md) — CAN 채널 할당표 (노드별 채널, DBC, R/W)
+- [kvaser_driver_kernel.md](kvaser_driver_kernel.md) — Kvaser canlib 채널 0개 진단/복구 (DKMS↔커널 매칭, 5.15.0-139만 빌드됨)
+- [project_ioniq5_work.md](project_ioniq5_work.md) — ioniq5 브랜치 2026-04 작업 이력
 
-## 주요 패키지 구조
-- `src/sensing/can/` - CAN 통신 (Kvaser canlib/kvaDbLib)
-- `src/msgs/katech_custom_msgs/` - 커스텀 메시지 정의
-- `src/msgs/mmc_msgs/` - 기존 메시지 정의
-- `src/localization/` - GPS/localization
-- `src/visualization/` - HMI, rviz
-- `src/diagnostic/` - 각종 진단 노드
-- 상세: [can_package.md](can_package.md)
+## Project Overview
+- ROS Noetic catkin workspace for autonomous driving (KATECH)
+- Location: `/home/katech/mcar/`
+- Main branch: `main` (2026-01-07 이후 변경 없음), active branches: `ioniq5`, `siheung_dev`
+- sudo password: `1`
 
-## 설정
-- `.claude/settings.json`: `bypassPermissions` 모드
-- 사용자 언어: 한국어
+## Branch별 지도/설정
+- **ioniq5**: MAPFILE_PATH=`mapfiles/K_CITY_20251201` (K-City 지도)
+- **siheung_dev**: MAPFILE_PATH=`mapfiles/$(arg scenario)` (senario1/senario3 선택), SHP_MAP_PATH=`src/shp_map/$(arg scenario)`
+  - `scenario` arg: `senario1`(기본) 또는 `senario3`
+  - senario3 mat: link_233, link_653, link_783 삭제됨 (2026-04 pull 반영)
 
-## 커밋/푸시 규칙
-- 커밋·푸시 시 메모리 파일도 프로젝트 `.claude/`에 동기화하여 함께 커밋
-- 메모리 원본: `/home/ads/.claude/projects/-home-ads-mcar-v13/memory/`
-- 복사 대상: `/home/ads/mcar_v13/.claude/`
-- 대상 파일: `MEMORY.md`, `can_package.md` (메모리 파일 추가 시 갱신)
+## Build
+- Build command: `source /opt/ros/noetic/setup.bash && catkin_make`
+- 35+ ROS packages (sensing, localization, diagnostic, v2x, visualization, msgs)
+- See [build-deps.md](build-deps.md) for details
 
-## 최근 작업 이력
-- DBC 파일을 `CANdb_IONIQev_PCAN1.dbc` → `CANdb_IONIQ5_AD_CAN_v3.dbc`로 변경 (7개 src 파일)
-- `IONIQ_CAN_reader.cpp`: `V_CAN_Release.dbc` 사용, CAN FD 지원 (500K/1M), 14개 전체 메시지 수신
-- `CHASSIS_CAN_READER`: 기존 VCU 메시지 → IONIQ5 AD CAN 메시지로 교체
-- launch에서 `vision_CAN_reader`, `front_RADAR_CAN_reader` 제거
-- `vcu_diagnostic`: `/sensors/v_can` 구독, GearInfo `life_count`로 VCU 상태 체크
-- `chassis_CAN_reader`: BrainState `life_count`로 ADCU diagnostic 추가 (`/diagnostic/adcu` 퍼블리시)
-- launch: `chassis_CAN_reader`, `IONIQ_CAN_reader` 활성화
-- `cpt7_gps_diagnostic`: Novatel → ublox NavPVT(`/ublox/navpvt`) 구독으로 변경
-- `cpt7_gps_diagnostic`: GPSRTK_StatCode를 fixType → carrSoln(`(flags>>6)&0x03`)으로 변경 (0=No RTK, 1=Float, 2=Fixed)
-- `stat_display`: GPS 색상 판단을 carrSoln 기반으로 변경 (Fixed=2 초록, Float/No RTK 주황)
-- `stat_display`: LIDAR `lidar_status=2` 강제 덮어쓰기 버그 수정, CAM/RADAR 항상 정상 처리
-- `stat_display`: `local_msg.Road_State=1` 강제 설정 버그 제거 (ODD 팝업 원인)
-- `to_control_team_demo.py`: ODD_YAW_ERR_THRESHOLD 5°→30°로 완화
-- `pyqt_hmi`: "Vehicle Top View" 타이틀 제거, 차량 뷰 center_y 0.75→0.5로 상향
-- `pyqt_hmi`: Driving Mode 표시를 eps_status → `/sensors/ioniq5_ad_can` autonomous_mode(0=Manual,1=Auto)로 변경
-- `pyqt_hmi`: ODD 초기값 2→0, local_callback에 update_sensors_signal.emit() 추가 (ODD 깜빡임 수정)
-- `cpt7_gps_diagnostic`: AliveCnt를 항상 증가시키도록 변경 (GPS 텍스트 빨강 깜빡임 수정)
-- `pyqt_hmi`: GPS Information 그룹 추가 (Curr LANE, GPSRTK 표시), Auto/Manual 버튼 크기 확대
-- `pyqt_hmi`: 차량 뷰에 스티어링 휠 아이콘 추가 (`/sensors/v_can` steering_angle 연동, 각도 회전)
-- `pyqt_hmi`: 스티어링 업데이트를 pyqtSignal로 변경 (ROS 콜백 스레드 안전)
-- `pyqt_hmi`: GPSRTK 표시를 carrSoln 기반으로 변경 (Fixed/Float/No RTK)
-- `stat_display`: Local_Text_Gen에 LANE/RTK 텍스트 추가, 배경 투명, 글자색 흰색
-- `stat_display`: Local_Text_Gen stray "11" 문자 버그 수정
-- `vspd_CAN_writer`: 신규 노드 추가 - `/sensors/v_can` 구독, 휠스피드 평균→km/h, gear_status R=reverse, 0x123 MGI_vSpd_Gateway 100Hz 전송
-- `chassis_CAN_reader`: DBC v3→v4로 변경
-- `ublox_gps/node.cpp`: rtcmCallback 및 /rtcm 구독 제거 (GPS 장치 자체에서 RTCM 수신), configure/poll 등 초기화 코드는 원복 유지
-- `ublox_gps/config/zed_f9k.yaml`: tmode3=0 추가 (ZED-F9P HPG 제품은 tmode3 필수, 0=Disabled 로버모드)
-- `to_control_team_demo.py`: LINK_ID 10 속도 제한(40km/h) 주석 처리(비활성화)
-- `diagnostic_only.launch`: base2ego TF 프레임 슬래시 수정 (`ego_frame` → `/ego_frame`, rviz frame_id 매칭)
-- `to_control_team_demo.py`: ODD_OCCUPIED_OFFSET_THRESHOLD 0.95m → 2.0m로 완화
-- `ublox_gps/config/zed_f9k.yaml`: config_on_startup=false로 변경 (GPS에 설정 명령 전송 방지)
-- `pyqt_hmi`: vehicle_view 리디자인 (IONIQ5 스타일 차체, 동심원 그리드, 그라데이션/유리창/라이트/바퀴)
-- `pyqt_hmi`: 맵 경로 `/home/yuyeong/` → `/home/ads/`로 수정
-- `pyqt_hmi`: `/track_Multi_RS` 구독, 오브젝트 실시간 표시 (차량=빨강, 보행자=파랑, ID+거리)
-- `pyqt_hmi`: 오브젝트 좌표 매핑 수정 (x=앞→화면위, y=왼→화면왼)
-- `pyqt_hmi`: 시스템 고장/ODD 팝업 오버레이 추가 (stat_display와 동일 로직)
-- `pyqt_hmi`: 신호등 표시 추가 (SPAT 파싱, 원형 색상 인디케이터 + 남은 시간)
-- `pyqt_hmi`: 신호등 색상 매핑을 stat_display와 동일하게 수정 (color 1=초록, 2=주황, 3=빨강)
-- `pyqt_hmi`: 맵 렌더링 최적화 - bbox 기반 자차 주변 200m 이내 feature만 그리기
-- stat_display 신호등 색상 매핑: phase 3→color 3(빨강렌더), phase 8→color 2(주황), phase 6→color 1(초록렌더)
-- `pyqt_hmi`: 오브젝트 orientation 회전 적용 + 방향 화살표 표시
-- `pyqt_hmi`: 현재 속도를 v_can wheel_speed 4개 평균 × 3.6 (m/s→km/h)로 변경 (/sensors/chassis 미사용)
-- v_can DBC wheel_speed 단위: m/s (V_CAN_Release.dbc, scale=0.01)
-- `pyqt_hmi`: 기어 상태 표시 추가 (P/R/N/D, D=초록, R=빨강, P/N=회색)
-- v_can DBC gear_status: 0=N/A, 1=P, 2=R, 3=N, 4=D
-- `pyqt_hmi`: diagnostic 상태 체크를 msg_received 플래그 + 미수신 카운터 방식으로 변경 (1초 미수신 시 비정상, 깜빡임 수정)
-- `pyqt_hmi`: bag 녹화 UI 추가 (차량 뷰 오른쪽 위, 경로 설정, REC/STOP, rosbag record -a --split 10GB)
-- `pyqt_hmi`: vehicle_view 성능 최적화 - setter에서 update() 제거, periodic_update 타이머(10Hz)에서만 단일 repaint
+## Key Packages
+- **sensing/can**: CAN communication (Kvaser canlib + kvadblib), DBC-based signal encode/decode
+- **localization/gps_system_localizer**: GPS-based localization, publishes to control team
+- **diagnostic/**: System health monitoring (GPS, lidar, radar, camera, V2X, VCU, HMI, IPC)
+- **v2x/siheung_v2x**: V2X communication (j3224_decode에서 리네임, KSR1600 추가)
+- **visualization/pyqt_hmi**: PyQt HMI (vehicle view, diagnostic, rosbag 녹화 등)
 
-## Diagnostic 구조
-| 토픽 | 메시지 타입 | 소스 노드 | 판단 기준 |
-|------|-------------|-----------|-----------|
-| `/diagnostic/vcu` | `vcu_diagnostic_msg` | vcu_diagnostic | V_CAN GearInfo life_count |
-| `/diagnostic/adcu` | `k_adcu_diagnostic_msg` | chassis_CAN_reader | AD_CAN BrainState life_count |
-| `/diagnostic/cpt7_gps` | `cpt7_gps_diagnostic_msg` | cpt7_gps_diagnostic | ublox NavPVT carrSoln |
-- 공통 패턴: 콜백에서 msg_received 플래그 설정, 타이머에서 플래그 확인 후 리셋
-- GPSRTK_StatCode: carrSoln 값 (0=No RTK, 1=Float, 2=Fixed)
-- stat_display GPS 색상: carrSoln>=2(Fixed) 초록, <2(Float/No RTK) 주황, 통신끊김 빨강
-- GPS fixType: 0=NO_FIX, 2=2D, 3=3D, 4=GNSS+DR (GPS_INS_SolutionStat에 사용)
+## CAN 구성 (ioniq5 브랜치)
+- 전체 AD CAN 노드 DBC v5 통일 (CANdb_IONIQ5_AD_CAN_v5.dbc)
+- ch0: chassis_CAN_reader + local/spat/ped_detector/diagnostic writers
+- ch1: track_CAN_writer_no_grid (PCAN2)
+- ch2: IONIQ5_CAN_reader (V_CAN_Release.dbc)
+- ch3: DTG_CAN_writer (2gen-2ch-C_IoniqEV_v2.dbc)
+- See [can_channel_map.md](can_channel_map.md) for full details
+
+## Localization Details
+- **통일 좌표계: EPSG:5179** (Korea 2000 / Unified CS)
+- `to_control_team_demo.py`: .mat file based, Frenet coordinate, ODD判定
+- `to_control_team_demo_shp.py`: .shp file based (siheung_dev)
+- Key msgs: `localization2D_msg`, `to_control_team_from_local_msg`, `chassis_msg`
+
+## Launch Files
+- **katech_test.launch**: 메인 런치 (브랜치별 설정 다름 — Branch별 지도/설정 참조)
+- **diagnostic_only.launch**: diagnostic 노드 + lanelet_marker + rviz_filter + model_publisher
+
+## File Conventions
+- C++ nodes in sensing/can use Kvaser canlib API + kvaDbLib for DBC parsing
+- Python nodes use `#!/usr/bin/env python3.8`
+- Map files: `.mat` (MATLAB) in mapfiles/ or `.shp` (Shapefile) in shp_map/
