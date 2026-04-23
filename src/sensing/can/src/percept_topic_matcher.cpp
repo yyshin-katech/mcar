@@ -32,6 +32,7 @@ const int max_absence_threshold = 20;               // 20프레임 미등장 시
 const int max_objects_to_publish = 14;              // 최대 전송 객체 수
 const double min_confidence_threshold = 0.90;        // 최소 confidence 임계값
 const double pedestrian_keep_duration = 2.0;        // 보행자 데이터 유지 시간 (초)
+const double ego_overlap_margin = 1.0;              // m, OBB가 자차 원점을 이 margin 내로 포함하면 자차 오검지로 제외
 
 // 빈 CAN ID 할당(1~254). 이미 있으면 그대로 반환하고 부재 카운트 0으로 초기화
 uint8_t assignCanID(unsigned int object_id) {
@@ -120,6 +121,7 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
     // 현재 프레임에서 수신된 전체 객체 수
     const size_t total_tracks = data->lidarframe.objects.objects.size();
     int total_filtered_out = 0;  // confidence <= 0.5로 필터링된 객체 수
+    int ego_overlap_filtered_out = 0;  // 자차 OBB 겹침으로 필터링된 객체 수
 
     // 2) 현재 프레임 처리 - 모든 객체를 처리 (attention_type 구분 없이)
     for (const auto& obj : data->lidarframe.objects.objects) {
@@ -136,21 +138,37 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
             total_filtered_out++;
             continue;
         }
-        
+
+        double curr_x = coreinfo.center.x.data;
+        double curr_y = coreinfo.center.y.data;
+        double direction_x = coreinfo.direction.x.data;
+        double direction_y = coreinfo.direction.y.data;
+
+        // 자차 원점이 오브젝트 OBB(+margin) 내부면 자차 오검지로 간주하여 제외
+        {
+            double yaw = std::atan2(direction_y, direction_x);
+            double cos_o = std::cos(yaw);
+            double sin_o = std::sin(yaw);
+            // 원점(0,0)을 오브젝트 로컬 프레임으로 역회전
+            double local_x = -curr_x * cos_o - curr_y * sin_o;
+            double local_y =  curr_x * sin_o - curr_y * cos_o;
+            if (std::abs(local_x) <= coreinfo.size.x.data / 2.0 + ego_overlap_margin &&
+                std::abs(local_y) <= coreinfo.size.y.data / 2.0 + ego_overlap_margin) {
+                ego_overlap_filtered_out++;
+                continue;
+            }
+        }
+
         current_frame_ids.insert(tracker_id);
 
         // CAN ID 할당/획득
         uint8_t tracker_can_id = assignCanID(tracker_id);
 
-        // 좌표/속도 등 추출
-        double curr_x = coreinfo.center.x.data;
-        double curr_y = coreinfo.center.y.data;
+        // 속도/가속도 추출
         double vx = coreinfo.velocity.x.data;
         double vy = coreinfo.velocity.y.data;
         double ax = coreinfo.acceleration.x.data;
         double ay = coreinfo.acceleration.y.data;
-        double direction_x = coreinfo.direction.x.data;
-        double direction_y = coreinfo.direction.y.data;       
 
         ros::Time curr_time = ros::Time::now();
 
@@ -289,6 +307,7 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
            << ", attention_type=1 prioritized, sorted by priority_id, limited to " << max_objects_to_publish << "):\n";
     output << "Total received objects: " << total_tracks
            << ", Filtered out (confidence <= " << min_confidence_threshold << "): " << total_filtered_out
+           << ", Filtered out (ego overlap margin=" << ego_overlap_margin << "m): " << ego_overlap_filtered_out
            << ", Passed filter: " << all_objects.size() << "\n";
     output << "After filtering - Attention=1: " << attention1_objects.size()
            << ", Attention=0: " << attention0_objects.size() 
