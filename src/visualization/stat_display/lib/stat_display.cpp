@@ -19,6 +19,7 @@ STAT_DISPLAY::STAT_DISPLAY()
     mode_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/mode_text", 1);
     odd_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/odd_text", 1);
     speed_limit_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/speed_limit_text", 1);
+    gps_std_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/gps_std_text", 1);
 
     sound_pub = nh.advertise<sound_play::SoundRequest>("/robotsound", 1);
 
@@ -233,6 +234,8 @@ void STAT_DISPLAY::diag_timerCallback(const ros::TimerEvent&)
     this->MODE_Text_Gen();
 
     this->ODD_Text_Gen();
+
+    this->GPS_STD_Text_Gen();
 }
 
 void STAT_DISPLAY::timerCallback(const ros::TimerEvent&)
@@ -1394,4 +1397,47 @@ void STAT_DISPLAY::SPEED_LIMIT_Text_Gen()
     speed_limit_pub.publish(SPEED_LIMIT_text);
 
 
+}
+
+void STAT_DISPLAY::GPS_STD_Text_Gen()
+{
+    std_msgs::ColorRGBA state_color;
+
+    double h_cm = cpt7_msg.lon_std * 100.0;
+    double v_cm = cpt7_msg.lat_std * 100.0;
+
+    char buf[96];
+    snprintf(buf, sizeof(buf), "GPS std\nH: %6.2f cm\nV: %6.2f cm", h_cm, v_cm);
+    GPS_STD_text.text = buf;
+
+    GPS_STD_text.action = GPS_STD_text.ADD;
+    GPS_STD_text.font = "DejaVu Sans Mono";
+    GPS_STD_text.text_size = 16;
+    GPS_STD_text.width = 260;
+    GPS_STD_text.height = 90;
+    GPS_STD_text.left = 20;
+    GPS_STD_text.top = 380;
+
+    if (cpt7_msg.lon_std > 0.05 || cpt7_msg.lat_std > 0.05)
+    {   // 정밀도 나쁨: 주황
+        state_color.r = 1.0;
+        state_color.g = 0.5;
+        state_color.b = 0.0;
+    }
+    else
+    {   // 정밀도 양호: 청록
+        state_color.r = 0.1;
+        state_color.g = 1.0;
+        state_color.b = 0.94;
+    }
+    state_color.a = 1.0;
+    GPS_STD_text.fg_color = state_color;
+
+    state_color.r = 0.4;
+    state_color.g = 0.4;
+    state_color.b = 0.4;
+    state_color.a = 0.5;
+    GPS_STD_text.bg_color = state_color;
+
+    gps_std_pub.publish(GPS_STD_text);
 }
