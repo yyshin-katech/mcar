@@ -32,7 +32,9 @@ const int max_absence_threshold = 20;               // 20프레임 미등장 시
 const int max_objects_to_publish = 14;              // 최대 전송 객체 수
 const double min_confidence_threshold = 0.90;        // 최소 confidence 임계값
 const double pedestrian_keep_duration = 2.0;        // 보행자 데이터 유지 시간 (초)
-const double ego_overlap_margin = 1.0;              // m, OBB가 자차 원점을 이 margin 내로 포함하면 자차 오검지로 제외
+const double ego_length = 4.65;                     // m, IONIQ5 전장
+const double ego_width  = 1.89;                     // m, IONIQ5 전폭
+const double ego_overlap_margin = 0.3;              // m, 자차 footprint와 OBB 겹침 판정 시 추가 여유
 
 // 빈 CAN ID 할당(1~254). 이미 있으면 그대로 반환하고 부재 카운트 0으로 초기화
 uint8_t assignCanID(unsigned int object_id) {
@@ -92,6 +94,27 @@ void cleanupStaleIDs(const ros::Time& current_time) {
     }
 }
 
+// 자차 footprint(원점 중심, axis-aligned 직사각형)와 객체 OBB의 겹침 판정 (SAT)
+static inline bool ego_obb_overlap(double obj_cx, double obj_cy, double obj_yaw,
+                                   double obj_size_x, double obj_size_y,
+                                   double ego_len, double ego_wid, double margin) {
+    const double ehx = ego_len * 0.5 + margin;
+    const double ehy = ego_wid * 0.5 + margin;
+    const double ohx = obj_size_x * 0.5;
+    const double ohy = obj_size_y * 0.5;
+    const double c = std::cos(obj_yaw);
+    const double s = std::sin(obj_yaw);
+    const double ac = std::abs(c);
+    const double as = std::abs(s);
+
+    // 4개 분리축에 대해 중심거리 투영 > (자차 반치수 + 객체 반치수) 이면 분리됨 → 겹침 없음
+    if (std::abs(obj_cx) > ehx + ohx * ac + ohy * as) return false;            // ego x
+    if (std::abs(obj_cy) > ehy + ohx * as + ohy * ac) return false;            // ego y
+    if (std::abs(obj_cx * c + obj_cy * s) > ehx * ac + ehy * as + ohx) return false;  // obj x
+    if (std::abs(-obj_cx * s + obj_cy * c) > ehx * as + ehy * ac + ohy) return false; // obj y
+    return true;
+}
+
 void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
     static ros::NodeHandle nh;
     static ros::Publisher pub = nh.advertise<perception_ros_msg::object_array_msg>("/track_Multi_RS", 10);
@@ -144,16 +167,12 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
         double direction_x = coreinfo.direction.x.data;
         double direction_y = coreinfo.direction.y.data;
 
-        // 자차 원점이 오브젝트 OBB(+margin) 내부면 자차 오검지로 간주하여 제외
+        // 자차 footprint(4.65×1.89m, 원점 중심)와 OBB가 겹치면 자차 오검지로 간주하여 제외
         {
             double yaw = std::atan2(direction_y, direction_x);
-            double cos_o = std::cos(yaw);
-            double sin_o = std::sin(yaw);
-            // 원점(0,0)을 오브젝트 로컬 프레임으로 역회전
-            double local_x = -curr_x * cos_o - curr_y * sin_o;
-            double local_y =  curr_x * sin_o - curr_y * cos_o;
-            if (std::abs(local_x) <= coreinfo.size.x.data / 2.0 + ego_overlap_margin &&
-                std::abs(local_y) <= coreinfo.size.y.data / 2.0 + ego_overlap_margin) {
+            if (ego_obb_overlap(curr_x, curr_y, yaw,
+                                coreinfo.size.x.data, coreinfo.size.y.data,
+                                ego_length, ego_width, ego_overlap_margin)) {
                 ego_overlap_filtered_out++;
                 continue;
             }
@@ -307,7 +326,8 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
            << ", attention_type=1 prioritized, sorted by priority_id, limited to " << max_objects_to_publish << "):\n";
     output << "Total received objects: " << total_tracks
            << ", Filtered out (confidence <= " << min_confidence_threshold << "): " << total_filtered_out
-           << ", Filtered out (ego overlap margin=" << ego_overlap_margin << "m): " << ego_overlap_filtered_out
+           << ", Filtered out (ego footprint " << ego_length << "x" << ego_width
+           << "+" << ego_overlap_margin << "m overlap): " << ego_overlap_filtered_out
            << ", Passed filter: " << all_objects.size() << "\n";
     output << "After filtering - Attention=1: " << attention1_objects.size()
            << ", Attention=0: " << attention0_objects.size() 
