@@ -34,7 +34,10 @@ const double min_confidence_threshold = 0.90;        // 최소 confidence 임계
 const double pedestrian_keep_duration = 2.0;        // 보행자 데이터 유지 시간 (초)
 const double ego_length = 4.65;                     // m, IONIQ5 전장
 const double ego_width  = 1.89;                     // m, IONIQ5 전폭
-const double ego_overlap_margin = 0.3;              // m, 자차 footprint와 OBB 겹침 판정 시 추가 여유
+const double ego_rear_overhang = 0.79;              // m, IONIQ5 후방 오버행 (뒷바퀴 중심~후범퍼)
+// ROS 원점(=뒷바퀴 중심)에서 자차 기하 중심까지 전방 오프셋
+const double ego_center_x = ego_length / 2.0 - ego_rear_overhang;  // ≈ 1.535m
+const double ego_overlap_margin = 0.1;              // m, 자차 footprint와 OBB 겹침 판정 시 추가 여유
 
 // 빈 CAN ID 할당(1~254). 이미 있으면 그대로 반환하고 부재 카운트 0으로 초기화
 uint8_t assignCanID(unsigned int object_id) {
@@ -94,9 +97,10 @@ void cleanupStaleIDs(const ros::Time& current_time) {
     }
 }
 
-// 자차 footprint(원점 중심, axis-aligned 직사각형)와 객체 OBB의 겹침 판정 (SAT)
+// 자차 footprint(axis-aligned 직사각형, 중심은 (ego_cx, ego_cy))와 객체 OBB의 겹침 판정 (SAT)
 static inline bool ego_obb_overlap(double obj_cx, double obj_cy, double obj_yaw,
                                    double obj_size_x, double obj_size_y,
+                                   double ego_cx, double ego_cy,
                                    double ego_len, double ego_wid, double margin) {
     const double ehx = ego_len * 0.5 + margin;
     const double ehy = ego_wid * 0.5 + margin;
@@ -106,12 +110,14 @@ static inline bool ego_obb_overlap(double obj_cx, double obj_cy, double obj_yaw,
     const double s = std::sin(obj_yaw);
     const double ac = std::abs(c);
     const double as = std::abs(s);
+    const double dx = obj_cx - ego_cx;  // 자차 직사각형 중심 기준 상대 좌표
+    const double dy = obj_cy - ego_cy;
 
     // 4개 분리축에 대해 중심거리 투영 > (자차 반치수 + 객체 반치수) 이면 분리됨 → 겹침 없음
-    if (std::abs(obj_cx) > ehx + ohx * ac + ohy * as) return false;            // ego x
-    if (std::abs(obj_cy) > ehy + ohx * as + ohy * ac) return false;            // ego y
-    if (std::abs(obj_cx * c + obj_cy * s) > ehx * ac + ehy * as + ohx) return false;  // obj x
-    if (std::abs(-obj_cx * s + obj_cy * c) > ehx * as + ehy * ac + ohy) return false; // obj y
+    if (std::abs(dx) > ehx + ohx * ac + ohy * as) return false;             // ego x
+    if (std::abs(dy) > ehy + ohx * as + ohy * ac) return false;             // ego y
+    if (std::abs(dx * c + dy * s) > ehx * ac + ehy * as + ohx) return false;  // obj x
+    if (std::abs(-dx * s + dy * c) > ehx * as + ehy * ac + ohy) return false; // obj y
     return true;
 }
 
@@ -167,11 +173,12 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
         double direction_x = coreinfo.direction.x.data;
         double direction_y = coreinfo.direction.y.data;
 
-        // 자차 footprint(4.65×1.89m, 원점 중심)와 OBB가 겹치면 자차 오검지로 간주하여 제외
+        // 자차 footprint(4.65×1.89m, 뒷바퀴 중심 기준 +1.535m 전방)와 OBB가 겹치면 자차 오검지로 제외
         {
             double yaw = std::atan2(direction_y, direction_x);
             if (ego_obb_overlap(curr_x, curr_y, yaw,
                                 coreinfo.size.x.data, coreinfo.size.y.data,
+                                ego_center_x, 0.0,
                                 ego_length, ego_width, ego_overlap_margin)) {
                 ego_overlap_filtered_out++;
                 continue;
