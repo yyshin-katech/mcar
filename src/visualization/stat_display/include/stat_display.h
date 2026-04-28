@@ -11,6 +11,7 @@
 #include <visualization_msgs/Marker.h>
 #include <std_msgs/String.h>
 #include <ros/ros.h>
+#include <ros/package.h>
 #include <tf/transform_datatypes.h>
 #include <tf/LinearMath/Vector3.h>
 #include <tf/LinearMath/Quaternion.h>

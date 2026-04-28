@@ -1085,7 +1085,7 @@ void STAT_DISPLAY::system_status_check()
 
 void STAT_DISPLAY::sound_play(const std::string& sensor_name)
 {
-    static std::string base_path = "/home/ads/mcar_v13/src/visualization/stat_display/sound_files/";
+    static std::string base_path = ros::package::getPath("stat_display") + "/sound_files/";
     std::string path;
     static uint8_t play_count = 0;
 

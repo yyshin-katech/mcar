@@ -9,6 +9,7 @@ project(stat_display)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  roslib
   rospy
   std_msgs
   katech_diagnostic_msgs
@@ -34,7 +35,7 @@ catkin_package(
 catkin_package(
  INCLUDE_DIRS include
  LIBRARIES ${PROJECT_NAME}
- CATKIN_DEPENDS roscpp rospy std_msgs katech_diagnostic_msgs tf mmc_msgs
+ CATKIN_DEPENDS roscpp roslib rospy std_msgs katech_diagnostic_msgs tf mmc_msgs
 )
 ###########
 ## Build ##
