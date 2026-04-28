@@ -749,6 +749,8 @@ class MainDisplayWindow(QMainWindow):
             if not self.auto_button.isChecked():
                 self.auto_button.setChecked(True)
                 self.manual_button.setChecked(False)
+            # Auto 모드 진입 후엔 재요청 막기
+            self.auto_button.setEnabled(False)
         else:
             self.mode_display_label.setText("Manual")
             self.mode_display_label.setStyleSheet("""
@@ -764,6 +766,8 @@ class MainDisplayWindow(QMainWindow):
             if not self.manual_button.isChecked():
                 self.manual_button.setChecked(True)
                 self.auto_button.setChecked(False)
+            # Manual일 때만 Auto 요청 가능
+            self.auto_button.setEnabled(True)
             
         self.speed_label.setText(str(self.speed_limit))
         self.current_speed_label.setText(str(int(self.current_speed)))
@@ -896,9 +900,14 @@ class MainDisplayWindow(QMainWindow):
         if self.auto_button.isChecked():
             self.manual_button.setChecked(False)
             self.selected_mode = 1
-            rospy.loginfo("모드 변경: Autonomous")
+            rospy.loginfo("모드 변경 요청: Autonomous (1초 펄스)")
+            # MD_AD_Req는 mode change request 신호이므로 1초간 1을 유지한 뒤 0으로 복귀
+            QTimer.singleShot(1000, self._reset_mode_request)
         else:
             self.auto_button.setChecked(True)
+
+    def _reset_mode_request(self):
+        self.selected_mode = 0
 
     def on_manual_button_clicked(self):
         if self.manual_button.isChecked():
