@@ -19,11 +19,7 @@
 
 #include <algorithm>
 #include <math.h>
-#include <ctime>
-#include <time.h>
-#include <sys/timeb.h>
 #include <chrono>
-#include <thread>
 
 #include <kvaDbLib.h>
 #include <canlib.h>
@@ -39,44 +35,20 @@ KvaDbHnd dh = 0;
 
 class TRACK_CAN_WRITER_NO_GRID{
   public:
-    // ros::Subscriber sub1, sub2, sub3, sub4, sub5, sub6, sub7;
-    
-    unsigned short freq_for_channel_2 = 1000; // Hz
-    
     ros::Time track_time = ros::Time::now();
     ros::Time time1 = ros::Time::now();
-    ros::Time time2 = ros::Time::now();
-    ros::Duration alive_timeout = ros::Duration(1.0);
     ros::Duration dt;
 
-    ros::Time time_now_ros_time = ros::Time::now();
-    ros::Time time_prev_ros_time = ros::Time::now();
-    ros::WallTime time_test_ros_walltime = ros::WallTime::now();
-
-
-    std::chrono::_V2::steady_clock::time_point time_now_std_time = std::chrono::steady_clock::now();
     std::chrono::_V2::steady_clock::time_point time_prev_step = std::chrono::steady_clock::now();
-    std::chrono::duration<double> ex_time_std_time;
-    std::chrono::duration<double> loop_time_std_time;
-    
-    double sleep_time_std_time;
+
     bool track_calling = false;
 
-    // unsigned int id_write, flag = 0;
     unsigned int kvaDb_flags = 0;
     unsigned int dlc = 8;
 
-    int alive_count = 0;
-
     float speed_ego = 0;
-    float east_velocity = 0;
-    float north_velocity = 0;
-    struct time_struct{double millisecond, second, minute, hour, day, month, year;};
-    struct timeb international_time;
-    struct tm *local_time;
-    time_struct time_now;
     vector<tuple<char*, vector<char*>>> msg_list;
-    
+
     perception_ros_msg::object_array_msg *track_stored = new perception_ros_msg::object_array_msg;
     perception_ros_msg::object_array_msg track;
 
@@ -85,8 +57,6 @@ class TRACK_CAN_WRITER_NO_GRID{
     void CALLBACK_INSPVA(const novatel_gps_msgs::InspvaConstPtr& data);
     void CALLBACK_TRACK      (const perception_ros_msg::object_array_msg& data);
     short FIND_MSG_IDX(char* target_msg, vector<tuple<char*, vector<char*>>>* msg_list);
-    void GET_DATETIME();
-    float GET_FUNC_VAL(const struct lane& lane, const short& x);
     canStatus OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num, char *filename, bool init_access_flag);
     void LOOP();
     
@@ -113,7 +83,6 @@ class TRACK_CAN_WRITER_NO_GRID{
     bool write_or_not[14] = {0};
     KvaDbMessageHnd mh = 0;
     KvaDbSignalHnd sh = 0;
-    std::vector<track_info> track_ordered_info;  // track_Multi_RS 순서 저장
     float MAHAL_DIST(const perception_ros_msg::object_array_msg& track_data);
     void CAN_MSG_PREPARE(int track_idx, int msg_num);
     void WRITE_CAN_MSG(vector<double> temp_data, char* track_msg);
@@ -506,20 +475,6 @@ short TRACK_CAN_WRITER_NO_GRID::FIND_MSG_IDX(char* target_msg, vector<tuple<char
 }
 
 
-void TRACK_CAN_WRITER_NO_GRID::GET_DATETIME(){
-  ftime(&international_time);
-  local_time = localtime(&international_time.time);
-
-  time_now.millisecond = international_time.millitm;
-  time_now.second = local_time->tm_sec;
-  time_now.minute = local_time->tm_min;
-  time_now.hour = local_time->tm_hour;
-  time_now.day = local_time->tm_mday;
-  time_now.month = local_time->tm_mon + 1;
-  time_now.year = local_time->tm_year + 1900;\
-} 
-
-
 canStatus TRACK_CAN_WRITER_NO_GRID::OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num, char *filename, bool init_access_flag){
   canInitializeLibrary();
 
@@ -662,52 +617,30 @@ void TRACK_CAN_WRITER_NO_GRID::WRITE_CAN_MSG(vector<double> temp_data, char* tra
 
 
 void TRACK_CAN_WRITER_NO_GRID::LOOP(){
-  ros::Rate rate(freq_for_channel_2);
+  // 첫 iter에서 ex_time_total이 클래스 생성~LOOP 진입 사이 시간으로 잡혀 sleep을 건너뛰는 문제 방지
+  time_prev_step = std::chrono::steady_clock::now();
 
   while(ros::ok()){
-     
     time1 = ros::Time::now();
-    std::chrono::_V2::steady_clock::time_point time_start_std_time = std::chrono::steady_clock::now();
 
-    
     if(track_calling == false){
       track.data.clear();
-      track = *track_stored; // track을 쓰면 된다.
+      track = *track_stored;
     }
-    
+
     // 센서퓨전은 70ms 마다 일어나지만 AutoBox로 10ms 마다 트랙정보를 전달해야 하므로 CV모델로 사이값을 보간하여 송신한다
     if(track.time.toSec() < 5){
       dt = ros::Duration(0);
-
     }else{
       dt = time1 - track.time;
     }
 
     perception_ros_msg::object_msg ref;
-
-    for(short i=0; i!=track.data.size(); i++){ 
+    for(short i=0; i!=track.data.size(); i++){
       ref = track.data[i];
       ref.x += (ref.vx - speed_ego) * dt.toSec();
       ref.y += ref.vy * dt.toSec();
     }
-
-    time_now_std_time = std::chrono::steady_clock::now();
-    ex_time_std_time = (time_now_std_time - time_start_std_time);
-    time_start_std_time = std::chrono::steady_clock::now();
-                         
-                           
-    unsigned char can_data_for_fault[1];
-    unsigned char can_data[dlc];
-    char* target_msg;
-    unsigned short msg_idx;
-    KvaDbMessageHnd mh = 0;
-    KvaDbSignalHnd sh = 0;
-    unsigned int id_write, flag = 0;
-
-    
-    time_now_std_time = std::chrono::steady_clock::now();
-    ex_time_std_time = (time_now_std_time - time_start_std_time);
-    time_start_std_time = std::chrono::steady_clock::now();
 
     /* 1. Select max 14 track using mahalanobis distance  */
     vector<track_info> mahal_output;  // size : # of track at this timestep
@@ -716,7 +649,7 @@ void TRACK_CAN_WRITER_NO_GRID::LOOP(){
 
     empty_now_track.track_order = -1;
     empty_now_track.track_id = -1;
-    empty_now_track.mahal_dist = -1;   
+    empty_now_track.mahal_dist = -1;
 
     for(int i=0; i!=track.data.size(); i++){
       track_info t;
@@ -724,68 +657,53 @@ void TRACK_CAN_WRITER_NO_GRID::LOOP(){
       t.track_id = track.data[i].id;
       t.mahal_dist = (float)MAHAL_DIST(track);
       mahal_output.push_back(t);
-    } 
+    }
 
-    // sort current track data w.r.t. mahal dist output (ascending order)
     sort(mahal_output.begin(), mahal_output.end());
 
-    // select max 14 tracks from sorted data
     if(mahal_output.size() >= TRACK_MAX_SIZE){
       for(int i=0; i<TRACK_MAX_SIZE; i++){
           now_track.push_back(mahal_output.at(i));
-      } 
+      }
     }
-
     else{
       for(int i=0; i!=mahal_output.size(); i++){
         now_track.push_back(mahal_output.at(i));
       }
-
       for(int i=mahal_output.size(); i<TRACK_MAX_SIZE; i++){
         now_track.push_back(empty_now_track);
       }
     }
 
     /* 2. CAN msg number assignment  */
-    // write_or_not : check the continuity of track between previous and current timestep
-    //                if true, that track existed at previous timestep
-    
-    memset(write_or_not,false,sizeof(write_or_not));
+    memset(write_or_not, false, sizeof(write_or_not));
 
-
-        
-    find_struct output[TRACK_MAX_SIZE];    
+    find_struct output[TRACK_MAX_SIZE];
     for(int i=0; i!=now_track.size(); i++){
       output[i] = isIn_func(can_msg_info, now_track.at(i));
     }
-  
-    // queue q : compare current track data to previous timestep
-    //           value of queue will be assigned to newly made track
+
     queue<int> q;
-    for(int i=0;i!=sizeof(write_or_not);i++){
+    for(int i=0; i!=sizeof(write_or_not); i++){
       if(write_or_not[i] == false){
         q.push(i);
         can_msg_info.at(i) = empty_now_track;
       }
     }
-   
-    // store track data that detects newly at current timestep
+
     for(int i=0; i!=(sizeof(output)/sizeof(find_struct)); i++){
       if(output[i].isIn == false){
         int idx = q.front();
         q.pop();
         can_msg_info.at(idx) = output[i].track_data;
-        }
+      }
     }
-    
+
     vector<double> data_data(6);
     vector<double> data_data_add(6);
     vector<double> data_data_addii(5);
 
- 
-
-    /* 3. CAN msg write    */ 
-
+    /* 3. CAN msg write    */
     for(int i=0; i!=can_msg_info.size(); i++){
       int msg_num = i;
       int track_order = -1;
@@ -800,16 +718,14 @@ void TRACK_CAN_WRITER_NO_GRID::LOOP(){
         WRITE_CAN_MSG(data_data, msg_name);
 
         string strr = "TRACK_ADD_" + to_string(i);
-        char *msg_add_name = &strr[0];   
+        char *msg_add_name = &strr[0];
         WRITE_CAN_MSG(data_data_add, msg_add_name);
 
         string strrr = "TRACK_ADDii_" + to_string(i);
-        char *msg_addii_name = &strrr[0];   
+        char *msg_addii_name = &strrr[0];
         WRITE_CAN_MSG(data_data_addii, msg_addii_name);
-
       }
       else{
-        // find track_order from track_id
         for(int j=0; j!=track.data.size(); j++){
           if(track.data[j].id == can_msg_info[i].track_id){
             track_order = j;
@@ -819,44 +735,15 @@ void TRACK_CAN_WRITER_NO_GRID::LOOP(){
       }
     }
 
-    /* Check Result */
-    for(int i=0; i!=can_msg_info.size(); i++){
-        cout << can_msg_info[i].track_id << " ";
-    }
-    cout << endl;
-
-
-    time_now_std_time = std::chrono::steady_clock::now();
-    ex_time_std_time = (time_now_std_time - time_start_std_time);
-    // cout<<"ex time(sort):   "<<ex_time_std_time.count()*1000<<" ms"<<endl;
-    time_start_std_time = std::chrono::steady_clock::now();
-
-    
-    time_now_std_time = std::chrono::steady_clock::now();
+    auto time_now_std_time = std::chrono::steady_clock::now();
     std::chrono::duration<double> ex_time_total = time_now_std_time - time_prev_step;
-    // cout<<"ex time(total): "<<ex_time_total.count()*1000<<" ms"<<endl;
 
-    sleep_time_std_time = (double)0.1 - ex_time_total.count();  // 10Hz (100ms)
-    // cout<<"sleep time: "<<sleep_time_std_time*1000<<" ms"<<endl;
-
-
+    double sleep_time_std_time = 0.1 - ex_time_total.count();  // 10Hz (100ms)
     if(sleep_time_std_time > 0){
       ros::Duration(sleep_time_std_time).sleep();
     }
-    
-    // rate.sleep();
 
-    time_now_std_time = std::chrono::steady_clock::now();
-    loop_time_std_time = time_now_std_time - time_prev_step;
-    // cout<<"loop time:  "<<loop_time_std_time.count()*1000<<" ms"<<endl;
-    time_prev_step = time_now_std_time;
-
-    time_now_ros_time = ros::Time::now();
-    ros::Duration loop_time_ros_time = time_now_ros_time - time_prev_ros_time;
-    // cout<<"loop time(ros):  "<<loop_time_ros_time.toSec()*1000<<" ms"<<endl;
-    time_prev_ros_time = time_now_ros_time;
-
-    // cout<<"-------------------------------------------------------"<<endl;
+    time_prev_step = std::chrono::steady_clock::now();
   }
 }
 
