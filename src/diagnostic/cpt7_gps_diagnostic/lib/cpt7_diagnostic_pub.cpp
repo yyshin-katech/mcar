@@ -2,6 +2,7 @@
 
 
 CPT7_DIAGNOSTIC_PUB::CPT7_DIAGNOSTIC_PUB()
+    : network_failed(false), ping_thread_stop(false)
 {
     pub = nh.advertise<katech_diagnostic_msgs::cpt7_gps_diagnostic_msg>("diagnostic/cpt7_gps", 1);
     sub = nh.subscribe("/ublox/navpvt", 1, &CPT7_DIAGNOSTIC_PUB::navpvt_callback, this);
@@ -19,11 +20,18 @@ CPT7_DIAGNOSTIC_PUB::CPT7_DIAGNOSTIC_PUB()
     cpt7_msg.GPS_INS_AliveCnt = 0;
     cpt7_msg.lon_std = 0;
     cpt7_msg.lat_std = 0;
+    cpt7_msg.Network_Status = 0;
+
+    ping_thread = std::thread(&CPT7_DIAGNOSTIC_PUB::pingLoop, this);
 }
 
 CPT7_DIAGNOSTIC_PUB::~CPT7_DIAGNOSTIC_PUB()
 {
-
+    ping_thread_stop = true;
+    if (ping_thread.joinable())
+    {
+        ping_thread.join();
+    }
 }
 
 // NavPVT fixType
@@ -64,32 +72,7 @@ void CPT7_DIAGNOSTIC_PUB::navpvt_callback(const ublox_msgs::NavPVT::ConstPtr& ms
 
 void CPT7_DIAGNOSTIC_PUB::timerCallback(const ros::TimerEvent&)
 {
-    std::string ip = "8.8.8.8";
-    static uint8_t callback_cnt = 0;
-    static bool ret = 0;
-
-    if (callback_cnt % 10 == 0)
-    {
-        ret = this->pingCheck(ip);
-        if(ret == 1)
-        {
-            cpt7_msg.Network_Status = 1;
-        }
-        else
-        {
-            cpt7_msg.Network_Status = 0;
-        }
-    }
-    callback_cnt++;
-
-    if(ret == 0)
-    {
-        cpt7_msg.Network_Status = 0;
-    }
-    else
-    {
-        cpt7_msg.Network_Status = 1;
-    }
+    cpt7_msg.Network_Status = network_failed.load() ? 1 : 0;
 
     cpt7_msg.GPS_INS_AliveCnt = alive_cnt++;
     if(!msg_received)
@@ -106,4 +89,19 @@ bool CPT7_DIAGNOSTIC_PUB::pingCheck(const std::string& ip)
     std::string cmd = "ping -c 1 -W 1 " + ip + " > /dev/null 2>&1";
     int result = system(cmd.c_str());
     return (result == 0) ? 0 : 1;  // 성공 시 0, 실패 시 1
+}
+
+void CPT7_DIAGNOSTIC_PUB::pingLoop()
+{
+    const std::string ip = "8.8.8.8";
+    while (!ping_thread_stop.load())
+    {
+        bool failed = (pingCheck(ip) == 1);
+        network_failed.store(failed);
+
+        for (int i = 0; i < 10 && !ping_thread_stop.load(); ++i)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    }
 }

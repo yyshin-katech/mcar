@@ -14,6 +14,9 @@
 #include <sys/types.h>
 #include <netinet/ip_icmp.h>
 
+#include <atomic>
+#include <thread>
+
 #include <ros/ros.h>
 #include <ros/package.h>
 
@@ -42,9 +45,14 @@ class CPT7_DIAGNOSTIC_PUB
         unsigned char alive_cnt;
         bool msg_received;
 
+        std::atomic<bool> network_failed;
+        std::atomic<bool> ping_thread_stop;
+        std::thread ping_thread;
+
         void navpvt_callback(const ublox_msgs::NavPVT::ConstPtr& msg);
         void timerCallback(const ros::TimerEvent&);
         bool pingCheck(const std::string& ip);
+        void pingLoop();
 };
 
 
