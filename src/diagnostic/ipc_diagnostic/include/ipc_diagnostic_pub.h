@@ -38,6 +38,7 @@ class IPC_DIAGNOSTIC_PUB
         ros::Timer timer_;
 
         uint8_t percept_callback_cnt, percept_callback_cnt_old;
+        int miss_cnt;
 
         katech_diagnostic_msgs::ipc_diagnostic_msg ipc_msg;
 
