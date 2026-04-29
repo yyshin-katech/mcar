@@ -181,7 +181,7 @@ class DistanceCalculator(object):
             msg.ipc_status,
             ]
         if any(s != 0 for s in statuses):
-            self.takeoverreq = 0
+            self.takeoverreq = 1
         else:
             self.takeoverreq = 0
         # if (msg.gps_status != 0 or
