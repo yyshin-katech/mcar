@@ -71,6 +71,15 @@ class MainDisplayWindow(QMainWindow):
         self.selected_mode = 0
         self.autonomous_mode = 0
         self.gps_rtk_code = 0
+        self.gps_lon_std = 0.0
+        self.gps_lat_std = 0.0
+        self.adcu_swc_code = 0
+        self.lidar_center_code = 0
+        self.lidar_right_code = 0
+        self.lidar_left_code = 0
+        self.v2x_stat_code = 0
+        self.vcu_stat_code = 0
+        self.ipc_swc_code = 0
         self.link_id = 0
         self.gear_status = 0
         self.road_state = 0
@@ -80,6 +89,7 @@ class MainDisplayWindow(QMainWindow):
         self.look_at_signal_group_id = 0
         self.traffic_light_color = 0   # 0=unknown, 1=green, 2=orange, 3=red
         self.traffic_light_time = 0
+        self.GPS_STD_WARN_M = 0.05  # 5cm 초과 시 정밀도 경고
 
         # UI 초기화
         self.init_ui()
@@ -468,8 +478,21 @@ class MainDisplayWindow(QMainWindow):
             }
         """)
 
+        self.gps_std_label = QLabel("GPS std\nH: --.-- cm\nV: --.-- cm")
+        self.gps_std_label.setStyleSheet("""
+            QLabel {
+                font-size: 14px;
+                font-weight: bold;
+                color: #1afff0;
+                background-color: transparent;
+                font-family: 'DejaVu Sans Mono', monospace;
+                padding: 5px;
+            }
+        """)
+
         gps_layout.addWidget(self.lane_label)
         gps_layout.addWidget(self.gpsrtk_label)
+        gps_layout.addWidget(self.gps_std_label)
         gps_group.setLayout(gps_layout)
 
         return gps_group
@@ -605,30 +628,39 @@ class MainDisplayWindow(QMainWindow):
     def gps_callback(self, msg):
         self.diag_flags['gps']['received'] = True
         self.gps_rtk_code = msg.GPSRTK_StatCode
+        self.gps_lon_std = msg.lon_std
+        self.gps_lat_std = msg.lat_std
 
     def adcu_callback(self, msg):
         self.diag_flags['adcu']['received'] = True
+        self.adcu_swc_code = msg.ADCU_SWC_StatCode
 
     def lidar_callback(self, msg):
         self.diag_flags['lidar']['received'] = True
+        self.lidar_center_code = msg.LIDAR_Center_StatCode
+        self.lidar_right_code = msg.LIDAR_Right_StatCode
+        self.lidar_left_code = msg.LIDAR_Left_StatCode
 
     def radar_callback(self, msg):
         self.diag_flags['radar']['received'] = True
 
     def v2x_callback(self, msg):
         self.diag_flags['v2x']['received'] = True
+        self.v2x_stat_code = msg.V2X_StatCode
 
     def hmi_callback(self, msg):
         self.diag_flags['hmi']['received'] = True
 
     def vcu_callback(self, msg):
         self.diag_flags['vcu']['received'] = True
+        self.vcu_stat_code = msg.VCU_StatCode
 
     def cam_callback(self, msg):
         self.diag_flags['cam']['received'] = True
 
     def ipc_callback(self, msg):
         self.diag_flags['ipc']['received'] = True
+        self.ipc_swc_code = msg.IPC_SWC_StatCode
         
     def ioniq5_ad_can_callback(self, msg):
         self.autonomous_mode = msg.autonomous_mode
@@ -717,18 +749,46 @@ class MainDisplayWindow(QMainWindow):
     def update_vehicle_view(self):
         pass
         
+    def _evaluate_diag_status(self, name, received):
+        """0=정상, 1=warning(StatCode 기반), 2=error(메시지 단절)"""
+        d = self.diag_flags[name]
+        if received:
+            d['miss_cnt'] = 0
+        else:
+            d['miss_cnt'] += 1
+            if d['miss_cnt'] > self.DIAG_MISS_THRESHOLD:
+                return 2
+
+        # 메시지 수신 중 → StatCode 도메인 조건으로 warning 판정
+        if name == 'gps':
+            if self.gps_rtk_code < 2:
+                return 1  # No RTK or Float
+            if self.gps_lon_std > self.GPS_STD_WARN_M or self.gps_lat_std > self.GPS_STD_WARN_M:
+                return 1  # 정밀도 5cm 초과
+        elif name == 'lidar':
+            if 1 in (self.lidar_center_code, self.lidar_right_code, self.lidar_left_code):
+                return 1
+        elif name == 'v2x':
+            if self.v2x_stat_code == 1:
+                return 1
+        elif name == 'vcu':
+            if self.vcu_stat_code == 1:
+                return 1
+        elif name == 'ipc':
+            if self.ipc_swc_code == 1:
+                return 1
+        elif name == 'adcu':
+            if self.adcu_swc_code == 1:
+                return 1
+        return 0
+
     def periodic_update(self):
         """주기적 업데이트"""
-        # diagnostic msg_received 플래그 확인 + 카운터 (stat_display 패턴)
+        # diagnostic 상태 결정 (수신 여부 + StatCode 도메인 조건)
         for name, d in self.diag_flags.items():
-            if d['received']:
-                d['received'] = False
-                d['miss_cnt'] = 0
-                setattr(self, d['status_attr'], 0)
-            else:
-                d['miss_cnt'] += 1
-                if d['miss_cnt'] > self.DIAG_MISS_THRESHOLD:
-                    setattr(self, d['status_attr'], 2)
+            received = d['received']
+            d['received'] = False
+            setattr(self, d['status_attr'], self._evaluate_diag_status(name, received))
 
         mode_msg = UInt8()
         mode_msg.data = self.selected_mode
@@ -794,6 +854,25 @@ class MainDisplayWindow(QMainWindow):
         rtk_map = {2: "Fixed", 1: "Float", 0: "No RTK"}
         rtk_str = rtk_map.get(self.gps_rtk_code, "N/A")
         self.gpsrtk_label.setText("GPSRTK: " + rtk_str)
+
+        # GPS std (H/V cm + 5cm 임계 색상)
+        h_cm = self.gps_lon_std * 100.0
+        v_cm = self.gps_lat_std * 100.0
+        self.gps_std_label.setText("GPS std\nH: {:6.2f} cm\nV: {:6.2f} cm".format(h_cm, v_cm))
+        if self.gps_lon_std > self.GPS_STD_WARN_M or self.gps_lat_std > self.GPS_STD_WARN_M:
+            std_color = "#ff8800"  # 주황: 정밀도 나쁨
+        else:
+            std_color = "#1afff0"  # 청록: 정밀도 양호
+        self.gps_std_label.setStyleSheet("""
+            QLabel {{
+                font-size: 14px;
+                font-weight: bold;
+                color: {color};
+                background-color: transparent;
+                font-family: 'DejaVu Sans Mono', monospace;
+                padding: 5px;
+            }}
+        """.format(color=std_color))
 
         # 센서 인디케이터 업데이트
         self.update_sensor_display()
