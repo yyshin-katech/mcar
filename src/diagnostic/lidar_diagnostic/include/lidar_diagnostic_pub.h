@@ -7,11 +7,10 @@
 #include <iostream>
 #include <string>
 #include <cstdlib>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <netinet/ip_icmp.h>
+
+#include <atomic>
+#include <thread>
+#include <chrono>
 
 #include <ros/ros.h>
 #include <ros/package.h>
@@ -36,14 +35,6 @@ class LIDAR_DIAGNOSTIC_PUB
         };
         std::vector<struct_LIDAR> lidar;
 
-        typedef struct struct_con_stat{
-            bool Center;
-            bool Right;
-            bool Left;
-        };
-
-        struct_con_stat connection_stat;
-        
         ros::NodeHandle nh;
 
         ros::Publisher pub;
@@ -53,18 +44,17 @@ class LIDAR_DIAGNOSTIC_PUB
 
         katech_diagnostic_msgs::lidar_diagnostic_msg lidar_msg;
 
+        std::atomic<bool> center_failed;
+        std::atomic<bool> right_failed;
+        std::atomic<bool> left_failed;
+        std::atomic<bool> ping_thread_stop;
+        std::thread ping_thread;
+
         void timer_callback(const ros::TimerEvent&);
         void percept_callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& msg);
 
-        bool checkConnection(const std::string& ip, uint16_t port);
         bool pingCheck(const std::string& ip);
-
-        bool checkCenterLidarConnection();
-        bool checkRightLidarConnection();
-        bool checkLeftLidarConnection();
-
-
-
+        void pingLoop();
 };
 
 #endif

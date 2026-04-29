@@ -1,202 +1,67 @@
 #include <lidar_diagnostic_pub.h>
 
 LIDAR_DIAGNOSTIC_PUB::LIDAR_DIAGNOSTIC_PUB()
+    : center_failed(false), right_failed(false), left_failed(false), ping_thread_stop(false)
 {
     lidar = {{"192.168.1.201", 5578},
             {"192.168.1.203", 6688},
             {"192.168.1.202", 4455}};
 
-    connection_stat = {0, 0, 0};
-
     pub = nh.advertise<katech_diagnostic_msgs::lidar_diagnostic_msg>("/diagnostic/lidar", 1);
     sub = nh.subscribe("/percept_topic", 5, &LIDAR_DIAGNOSTIC_PUB::percept_callback, this);
 
     timer_ = nh.createTimer(ros::Duration(0.1), &LIDAR_DIAGNOSTIC_PUB::timer_callback, this);
+
+    ping_thread = std::thread(&LIDAR_DIAGNOSTIC_PUB::pingLoop, this);
 }
 
 LIDAR_DIAGNOSTIC_PUB::~LIDAR_DIAGNOSTIC_PUB()
 {
-
+    ping_thread_stop = true;
+    if (ping_thread.joinable())
+    {
+        ping_thread.join();
+    }
 }
 
 void LIDAR_DIAGNOSTIC_PUB::timer_callback(const ros::TimerEvent&)
 {
-    static uint8_t count = 0;
-    if(count % 3 == 0)
-    {
-        connection_stat.Center = this->checkCenterLidarConnection();
-        ROS_INFO("Cennter Connection check");
-    }
-    else if(count % 3 == 1)
-    {
-        connection_stat.Right = this->checkRightLidarConnection();
-    }
-    else if(count % 3 == 2)
-    {
-        connection_stat.Left = this->checkLeftLidarConnection();
-    }
-    count++;
-    
-    if(connection_stat.Center == 1)
-    {
-        lidar_msg.LIDAR_Center_StatCode = 1;
-    }
-    else
-    {
-        lidar_msg.LIDAR_Center_StatCode = 0;
-    }
+    lidar_msg.LIDAR_Center_StatCode = center_failed.load() ? 1 : 0;
+    lidar_msg.LIDAR_Right_StatCode  = right_failed.load()  ? 1 : 0;
+    lidar_msg.LIDAR_Left_StatCode   = left_failed.load()   ? 1 : 0;
 
-    if(connection_stat.Right == 1)
-    {
-        lidar_msg.LIDAR_Right_StatCode = 1;
-    }
-    else
-    {
-        lidar_msg.LIDAR_Right_StatCode = 0;
-    }
-
-    if(connection_stat.Left == 1)
-    {
-        lidar_msg.LIDAR_Left_StatCode = 1;
-    }
-    else
-    {
-        lidar_msg.LIDAR_Left_StatCode = 0;
-    }
     lidar_msg.time = ros::Time::now();
-
     pub.publish(lidar_msg);
 }
 
 void LIDAR_DIAGNOSTIC_PUB::percept_callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& msg)
 {
-    static uint8_t callback_count = 0;
-
-    // if(callback_count++ > 9)
-    {
-        lidar_msg.LIDAR_AliveCount++;
-        callback_count = 0;
-    }
-}
-
-bool LIDAR_DIAGNOSTIC_PUB::checkConnection(const std::string& ip, uint16_t port)
-{
-    int sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock == -1) return false;
-
-    // 소켓을 논블로킹 모드로 설정
-    int flags = fcntl(sock, F_GETFL, 0);
-    fcntl(sock, F_SETFL, flags | O_NONBLOCK);
-
-    struct sockaddr_in addr;
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);
-    inet_pton(AF_INET, ip.c_str(), &addr.sin_addr);
-
-    int result = connect(sock, (struct sockaddr*)&addr, sizeof(addr));
-    if (result == 0) {
-        close(sock);
-        return true; // 즉시 연결 성공
-    }
-
-    // EINPROGRESS이면 연결 시도 중
-    if (errno != EINPROGRESS) {
-        close(sock);
-        return false;
-    }
-
-    fd_set writefds;
-    FD_ZERO(&writefds);
-    FD_SET(sock, &writefds);
-
-    struct timeval tv;
-    tv.tv_sec = 0;
-    tv.tv_usec = 100000;
-
-    result = select(sock + 1, nullptr, &writefds, nullptr, &tv);
-    if (result > 0) {
-        int sock_error;
-        socklen_t len = sizeof(sock_error);
-        getsockopt(sock, SOL_SOCKET, SO_ERROR, &sock_error, &len);
-        close(sock);
-        return (sock_error == 0); // 0이면 연결 성공
-    }
-
-    // 타임아웃 또는 select 실패
-    close(sock);
-    return false;
-    // struct sockaddr_in server;
-    // server.sin_family = AF_INET;
-    // server.sin_port = htons(port);
-    // if (inet_pton(AF_INET, ip.c_str(), &server.sin_addr) <= 0) {
-    //     close(sock);
-    //     return false;
-    // }
-
-    // bool isConnected = (connect(sock, (struct sockaddr *)&server, sizeof(server)) == 0);
-    // close(sock);
-    // return isConnected;
+    lidar_msg.LIDAR_AliveCount++;
 }
 
 bool LIDAR_DIAGNOSTIC_PUB::pingCheck(const std::string& ip)
 {
-    int sock = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
-    if (sock < 0) return false;  // root 권한 필요
-    
-    struct timeval tv;
-    tv.tv_sec = 0;
-    tv.tv_usec = 100000;  // 100ms
-    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-    
-    struct sockaddr_in addr;
-    addr.sin_family = AF_INET;
-    inet_pton(AF_INET, ip.c_str(), &addr.sin_addr);
-    
-    // ICMP Echo Request 패킷 구성
-    char packet[64] = {0};
-    struct icmphdr *icmp = (struct icmphdr *)packet;
-    icmp->type = ICMP_ECHO;
-    icmp->code = 0;
-    icmp->un.echo.id = getpid();
-    icmp->un.echo.sequence = 1;
-    
-    sendto(sock, packet, sizeof(packet), 0, 
-           (struct sockaddr*)&addr, sizeof(addr));
-    
-    char buffer[1024];
-    int result = recv(sock, buffer, sizeof(buffer), 0);
-    
-    close(sock);
-    return (result > 0);
+    std::string cmd = "ping -c 1 -W 1 " + ip + " > /dev/null 2>&1";
+    int result = system(cmd.c_str());
+    return (result == 0);
 }
 
-
-bool LIDAR_DIAGNOSTIC_PUB::checkCenterLidarConnection()
+void LIDAR_DIAGNOSTIC_PUB::pingLoop()
 {
-    std::string ip = lidar[0].ip;
-    uint16_t port = static_cast<uint16_t>(lidar[0].port);
+    while (!ping_thread_stop.load())
+    {
+        center_failed.store(!pingCheck(lidar[0].ip));
+        if (ping_thread_stop.load()) break;
 
-    bool result = this->pingCheck(ip);
+        right_failed.store(!pingCheck(lidar[1].ip));
+        if (ping_thread_stop.load()) break;
 
-    return result;
-}
+        left_failed.store(!pingCheck(lidar[2].ip));
 
-bool LIDAR_DIAGNOSTIC_PUB::checkRightLidarConnection()
-{
-    std::string ip = lidar[1].ip;
-    uint16_t port = static_cast<uint16_t>(lidar[1].port);
-
-    bool result = this->pingCheck(ip);
-
-    return result;
-}
-
-bool LIDAR_DIAGNOSTIC_PUB::checkLeftLidarConnection()
-{
-    std::string ip = lidar[2].ip;
-    uint16_t port = static_cast<uint16_t>(lidar[2].port);
-
-    bool result = this->pingCheck(ip);
-
-    return result;
+        // ping_thread_stop을 100ms 단위로 체크 (총 1초 sleep)
+        for (int i = 0; i < 10 && !ping_thread_stop.load(); ++i)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    }
 }

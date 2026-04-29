@@ -458,7 +458,7 @@ void STAT_DISPLAY::LIDAR_Text_Gen()
     {
         if(lidar_msg.LIDAR_Center_StatCode == 1) lidar_status = 1;
         else if(lidar_msg.LIDAR_Right_StatCode == 1) lidar_status = 1;
-        else if(lidar_msg.LIDAR_Right_StatCode == 1) lidar_status = 1;
+        else if(lidar_msg.LIDAR_Left_StatCode == 1) lidar_status = 1;
     }
     if(lidar_status == 0)
     {   //흰색 정상
@@ -621,18 +621,21 @@ void STAT_DISPLAY::V2X_Text_Gen()
     V2X_text.top = 50+30+30+30;
 
     V2X_AliveCnt_Check(v2x_msg.V2X_AliveCount);
-    v2x_status = 0;
-    v2x_msg.V2X_StatCode = 0;
-    if((v2x_status == 0) || (v2x_msg.V2X_StatCode == 0))
-    {   //흰색 정상
-        state_color.r = 0;
-        state_color.g = 0.8;
+
+    // v2x_status: AliveCount 기반 (0=정상, 2=노드 stale)
+    // V2X_StatCode: SPaT 콜백 기반 (0=정상, 1=SPaT 30틱 끊김)
+    // 노드 stale을 SPaT 끊김보다 심각도 높게 처리
+    if(v2x_status == 2)
+    {   // 빨강 error (노드 dead)
+        state_color.r = 1;
+        state_color.g = 0;
         state_color.b = 0;
         state_color.a = 1;
         V2X_text.fg_color = state_color;
     }
-    else if((v2x_status == 1) || (v2x_msg.V2X_StatCode == 1))
-    {   // 주황 warning
+    else if(v2x_msg.V2X_StatCode == 1)
+    {   // 주황 warning (SPaT 끊김)
+        v2x_status = 1;
         state_color.r = 1;
         state_color.g = 0.5;
         state_color.b = 0;
@@ -640,9 +643,9 @@ void STAT_DISPLAY::V2X_Text_Gen()
         V2X_text.fg_color = state_color;
     }
     else
-    {   // 빨강 error
-        state_color.r = 1;
-        state_color.g = 0;
+    {   //흰색 정상
+        state_color.r = 0;
+        state_color.g = 0.8;
         state_color.b = 0;
         state_color.a = 1;
         V2X_text.fg_color = state_color;

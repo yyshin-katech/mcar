@@ -7,12 +7,10 @@
 #include <iostream>
 #include <string>
 #include <cstdlib>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <netinet/ip_icmp.h>
+
+#include <atomic>
+#include <thread>
+#include <chrono>
 
 
 #include <ros/ros.h>
@@ -50,12 +48,15 @@ class V2X_DIAGNOSTIC_PUB
         uint8_t v2x_callback_cnt, v2x_callback_cnt_old;
         uint8_t conn_stat;
 
+        std::atomic<bool> ping_failed;
+        std::atomic<bool> ping_thread_stop;
+        std::thread ping_thread;
+
         void timer_callback(const ros::TimerEvent&);
         void v2x_callback(const v2x_msgs::intersection_array_msg::ConstPtr& msg);
 
         bool pingCheck(const std::string& ip);
-        // bool checkConnection(const std::string& ip, uint16_t port);
-
+        void pingLoop();
 };
 
 #endif

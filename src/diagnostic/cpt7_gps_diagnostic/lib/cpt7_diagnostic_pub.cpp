@@ -22,7 +22,8 @@ CPT7_DIAGNOSTIC_PUB::CPT7_DIAGNOSTIC_PUB()
     cpt7_msg.lat_std = 0;
     cpt7_msg.Network_Status = 0;
 
-    ping_thread = std::thread(&CPT7_DIAGNOSTIC_PUB::pingLoop, this);
+    // GPS는 /dev/ttyACM0 USB serial이라 인터넷 ping은 무관 — 비활성
+    // ping_thread = std::thread(&CPT7_DIAGNOSTIC_PUB::pingLoop, this);
 }
 
 CPT7_DIAGNOSTIC_PUB::~CPT7_DIAGNOSTIC_PUB()
