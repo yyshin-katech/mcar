@@ -35,7 +35,7 @@ void V2X_DIAGNOSTIC_PUB::timer_callback(const ros::TimerEvent&)
         count++;
         if(count > 30)
         {
-            v2x_msg.V2X_StatCode = 1;
+            v2x_msg.V2X_StatCode = 0;
             count = 0;
         }
         else
