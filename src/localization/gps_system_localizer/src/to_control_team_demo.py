@@ -31,7 +31,7 @@ MAX_LANE_ID = 79
 
 ODD_CNT_THRESHOLD = 200
 ODD_OCCUPIED_OFFSET_THRESHOLD = 2.0
-ODD_YAW_ERR_THRESHOLD = np.deg2rad(30)
+ODD_YAW_ERR_THRESHOLD = np.deg2rad(50)
 
 class DistanceCalculator(object):
     def __init__(self):
