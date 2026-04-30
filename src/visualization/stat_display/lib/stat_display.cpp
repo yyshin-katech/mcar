@@ -1118,34 +1118,31 @@ void STAT_DISPLAY::sound_play(const std::string& sensor_name)
     sound_msg.arg = path;
     sound_msg.arg2 = "";
 
-    if(lo_chassis_msg.vcu_EPS_Status == 2)
+    // EPS 게이트 제거: /sensors/chassis 발행자 부재로 vcu_EPS_Status가 항상 0이라 영구 mute였음.
+    if(local_msg.Road_State == 1)
     {
-        if(local_msg.Road_State == 1)
+        if(play_count >= 4)
         {
-            if(play_count >= 4)
-            {
-                sound_pub.publish(sound_msg);
-                play_count = 0;
-            }
-            else
-            {
-                play_count++;
-            }
+            sound_pub.publish(sound_msg);
+            play_count = 0;
         }
         else
         {
-            if(play_count >= 2)
-            {
-                sound_pub.publish(sound_msg);
-                play_count = 0;
-            }
-            else
-            {
-                play_count++;
-            }
+            play_count++;
         }
     }
-    
+    else
+    {
+        if(play_count >= 2)
+        {
+            sound_pub.publish(sound_msg);
+            play_count = 0;
+        }
+        else
+        {
+            play_count++;
+        }
+    }
 }
 
 void STAT_DISPLAY::Local_Text_Gen()
