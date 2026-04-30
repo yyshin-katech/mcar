@@ -6,6 +6,7 @@
 - [can_channel_map.md](can_channel_map.md) — CAN 채널 할당표 (노드별 채널, DBC, R/W)
 - [kvaser_driver_kernel.md](kvaser_driver_kernel.md) — Kvaser canlib 채널 0개 진단. 5.15.0-139가 정규 커널(GRUB/apt hold 고정, 2026-04-23)
 - [wifi_ax211.md](wifi_ax211.md) — Intel AX211(51f1) Wi-Fi 복구: linux-modules-iwlwifi-*-generic 사용 (backport-dkms는 5.15 미지원)
+- [audio_setup.md](audio_setup.md) — NUC13ANH-B 오디오(ALC256 analog 잭만, HDMI 미지원), PulseAudio 카드 프로파일 off 복구 절차
 - [project_ioniq5_work.md](project_ioniq5_work.md) — ioniq5 브랜치 2026-04 작업 이력
 
 ## Project Overview
