@@ -9,7 +9,7 @@ import math
 
 from PyQt5.QtCore import Qt, QPointF, QRectF
 from PyQt5.QtGui import (QBrush, QColor, QFont, QLinearGradient, QPainter,
-                         QPainterPath, QPen)
+                         QPainterPath, QPen, QTransform)
 
 from utils.theme import (AMBER_0, BG_0, TEXT_3, mono_font)
 from widgets.vehicle_view import VehicleViewWidget
@@ -17,6 +17,10 @@ from widgets.vehicle_view import VehicleViewWidget
 
 _RING_RADII = [(10, "10m", False), (25, "25m", True),
                (50, "50m", False), (100, "100m", False)]
+
+# Pseudo-3D camera: vertical compression simulates a forward-tilted view.
+# 1.00 = pure top-down, 0.50 ≈ 60° tilt. 0.62 ≈ isometric-ish.
+_TILT_Y_SCALE = 0.62
 
 
 class VehicleViewA1(VehicleViewWidget):
@@ -27,7 +31,7 @@ class VehicleViewA1(VehicleViewWidget):
         palette.setColor(self.backgroundRole(), BG_0)
         self.setPalette(palette)
 
-    # ─── paintEvent: keep parent's structure but with A-1 styling ───
+    # ─── paintEvent: world tilted, HUD upright ───
     def paintEvent(self, _event):
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
@@ -37,14 +41,23 @@ class VehicleViewA1(VehicleViewWidget):
         cx = self.width() / 2
         cy = self.height() / 2
 
+        # World layer — isometric tilt around the ego (cx, cy)
+        p.save()
+        tilt = QTransform()
+        tilt.translate(cx, cy)
+        tilt.scale(1.0, _TILT_Y_SCALE)
+        tilt.translate(-cx, -cy)
+        p.setWorldTransform(tilt)
+
         self._draw_rings(p, cx, cy)
         self._draw_detection_cones(p, cx, cy)
         self.draw_map(p)
         self.draw_objects(p, cx, cy)
         self._draw_ego_a1(p, cx, cy)
-        self._draw_corners(p)
+        p.restore()
 
-        # heading + position overlay (compact)
+        # HUD layer — untilted overlays
+        self._draw_corners(p)
         p.setFont(mono_font(9))
         p.setPen(QPen(QColor(160, 170, 180), 1))
         info_y = 22
