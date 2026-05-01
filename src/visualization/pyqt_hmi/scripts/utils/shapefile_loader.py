@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import shapefile
 import os
+
 
 def load_shapefile(shp_file):
     """Load shapefile and return line features"""
     try:
+        import shapefile  # PyShp; lazy-imported so the module loads without it
         sf = shapefile.Reader(shp_file)
         print(f"Loading shapefile: {os.path.basename(shp_file)}")
         

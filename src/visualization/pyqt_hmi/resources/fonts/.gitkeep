@@ -1,0 +1,5 @@
+# Optional font drop-in directory.
+#
+# Place Inter*.otf/.ttf and JetBrainsMono*.ttf here to use them at runtime.
+# theme.load_application_fonts() loads everything in this dir at startup.
+# When absent, theme falls back to Pretendard / Noto Sans CJK KR / DejaVu Sans Mono.

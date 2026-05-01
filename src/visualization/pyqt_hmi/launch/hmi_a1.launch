@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="map_file"
+       default="$(env HOME)/mcar/src/localization/gps_system_localizer/src/A2_LINK_epsg5179.shp"/>
+  <arg name="bag_dir" default="$(env HOME)/bag_data"/>
+
+  <node name="ioniq5_hmi_a1" pkg="pyqt_hmi" type="main_display_a1.py" output="screen" required="true">
+    <env name="PYTHONPATH" value="$(find pyqt_hmi)/scripts:$(env PYTHONPATH)"/>
+    <param name="map_file" value="$(arg map_file)"/>
+    <param name="bag_dir" value="$(arg bag_dir)"/>
+  </node>
+</launch>

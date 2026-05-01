@@ -17,4 +17,5 @@
   <depend>v2x_msgs</depend>
 
   <exec_depend>python3-pyqt5</exec_depend>
+  <exec_depend>python3-pyqt5.qtsvg</exec_depend>
 </package>
