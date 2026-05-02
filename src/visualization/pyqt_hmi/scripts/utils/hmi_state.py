@@ -1,8 +1,17 @@
 # -*- coding: utf-8 -*-
-"""HmiStateController — owns ROS subscriptions and emits Qt signals.
+"""HMI state controller — owns ROS subscriptions and emits framework signals.
 
-Logic is copied from widgets/main_window.py to avoid touching the legacy
-window. Both windows can share this controller in a follow-up refactor.
+Two layers:
+- ``BaseHmiStateController`` — Qt-free. All ROS callbacks, diagnostic
+  debounce, popup decision, bag subprocess, mode pulse logic. Subclasses
+  plug in ``_emit(name, *args)``, ``_start_tick(period_ms, callback)``,
+  ``_schedule_mode_pulse_reset(ms)``.
+- ``HmiStateController(BaseHmiStateController, QObject)`` — thin Qt adapter
+  exposing the original 16 ``pyqtSignal`` s. Sole consumer is
+  ``MainWindowA1`` — its ``_wire_controller`` keeps working unchanged.
+
+The web bridge (``web_hmi_bridge.py``) uses the Base directly with a
+rospy-Timer based scheduler.
 """
 import datetime
 import os
@@ -32,32 +41,20 @@ GPS_STD_WARN_M = 0.05  # 5 cm precision threshold (mirrors legacy)
 DIAG_MISS_THRESHOLD = 10  # 10 ticks × 100 ms = 1 s
 
 
-class HmiStateController(QObject):
-    """Single source of truth for the A-1 HMI runtime state."""
-
-    # ─── signals (consumed by MainWindowA1) ──────────────────────
-    speed_changed       = pyqtSignal(float)            # km/h
-    gear_changed        = pyqtSignal(int)              # 1=P, 2=R, 3=N, 4=D
-    mode_changed        = pyqtSignal(int)              # autonomous_mode 0/1
-    aeb_changed         = pyqtSignal(bool)
-    steering_changed    = pyqtSignal(float)            # deg
-    ego_pose_changed    = pyqtSignal(float, float, float)  # east, north, yaw
-    objects_changed     = pyqtSignal(list)
-    traffic_changed     = pyqtSignal(int, int)         # color (0-3), time_decisec
-    diag_changed        = pyqtSignal(dict)             # {name: status}
-    gps_changed         = pyqtSignal(int, float, float) # rtk_code, lon_std, lat_std
-    speed_limit_changed = pyqtSignal(int)
-    link_lane_changed   = pyqtSignal(object, object)    # link_id, lane label
-    odd_changed         = pyqtSignal(int, int)          # on_odd, road_state
-    popup_changed       = pyqtSignal(str, str)          # text, severity
-    bag_state_changed   = pyqtSignal(bool, str)         # recording, info
-    topic_event         = pyqtSignal(str)               # key, for Hz tracking
+class BaseHmiStateController:
+    """Framework-agnostic HMI state. Subclass to plug in emit + timers."""
 
     DIAG_KEYS = ['gps', 'adcu', 'lidar', 'radar', 'v2x', 'hmi', 'vcu', 'cam', 'ipc']
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    SIGNAL_NAMES = (
+        'speed_changed', 'gear_changed', 'mode_changed', 'aeb_changed',
+        'steering_changed', 'ego_pose_changed', 'objects_changed',
+        'traffic_changed', 'diag_changed', 'gps_changed',
+        'speed_limit_changed', 'link_lane_changed', 'odd_changed',
+        'popup_changed', 'bag_state_changed', 'topic_event',
+    )
 
+    def __init__(self):
         # diag state
         self.diag_status = {k: 2 for k in self.DIAG_KEYS}
         self.diag_flags = {k: {'received': False, 'miss_cnt': 0} for k in self.DIAG_KEYS}
@@ -86,29 +83,46 @@ class HmiStateController(QObject):
         self.on_odd = 0
         self.road_state = 0
 
+        # ego pose
+        self.host_east = 0.0
+        self.host_north = 0.0
+        self.host_yaw = 0.0
+
         # traffic
         self.look_at_intersection_id = 0
         self.look_at_signal_group_id = 0
         self.traffic_light_color = 0
         self.traffic_light_time = 0
 
+        # objects
+        self.objects = []
+
         # bag
         self.bag_process = None
         self.bag_recording = False
+        self.bag_info = ""
         self.bag_dir = os.path.expanduser("~/bag_data")
 
-        # mode publisher
+        # mode publisher + pulse
         self.selected_mode = 0
         self._mode_pub = rospy.Publisher('/vehicle/mode_command', UInt8, queue_size=1)
-        self._mode_pulse_timer = None
 
         # subscribe
         self._init_subscribers()
 
-        # 100 ms tick — diag debounce, popup, mode publish, traffic light
-        self._tick = QTimer(self)
-        self._tick.timeout.connect(self._periodic_update)
-        self._tick.start(100)
+        # 100 ms tick — diag debounce, popup, mode publish
+        self._start_tick(100, self._periodic_update)
+
+    # ─── hooks: subclass MUST implement ──────────────────────────
+    def _emit(self, name, *args):  # pragma: no cover - abstract
+        raise NotImplementedError
+
+    def _start_tick(self, period_ms, callback):  # pragma: no cover
+        raise NotImplementedError
+
+    def _schedule_mode_pulse_reset(self, ms):  # pragma: no cover
+        """Schedule one-shot reset of selected_mode after `ms`. Cancels any prior."""
+        raise NotImplementedError
 
     # ─── ROS subscribers ─────────────────────────────────────────
     def _init_subscribers(self):
@@ -136,64 +150,64 @@ class HmiStateController(QObject):
         self.gps_rtk_code = msg.GPSRTK_StatCode
         self.gps_lon_std = msg.lon_std
         self.gps_lat_std = msg.lat_std
-        self.gps_changed.emit(self.gps_rtk_code, self.gps_lon_std, self.gps_lat_std)
-        self.topic_event.emit('gps')
+        self._emit('gps_changed', self.gps_rtk_code, self.gps_lon_std, self.gps_lat_std)
+        self._emit('topic_event', 'gps')
 
     def _cb_adcu(self, msg):
         self.diag_flags['adcu']['received'] = True
         self.adcu_swc_code = msg.ADCU_SWC_StatCode
-        self.topic_event.emit('adcu')
+        self._emit('topic_event', 'adcu')
 
     def _cb_lidar(self, msg):
         self.diag_flags['lidar']['received'] = True
         self.lidar_center_code = msg.LIDAR_Center_StatCode
         self.lidar_right_code = msg.LIDAR_Right_StatCode
         self.lidar_left_code = msg.LIDAR_Left_StatCode
-        self.topic_event.emit('lidar')
+        self._emit('topic_event', 'lidar')
 
     def _cb_radar(self, _msg):
         self.diag_flags['radar']['received'] = True
-        self.topic_event.emit('radar')
+        self._emit('topic_event', 'radar')
 
     def _cb_v2x(self, msg):
         self.diag_flags['v2x']['received'] = True
         self.v2x_stat_code = msg.V2X_StatCode
-        self.topic_event.emit('v2x')
+        self._emit('topic_event', 'v2x')
 
     def _cb_hmi(self, _msg):
         self.diag_flags['hmi']['received'] = True
-        self.topic_event.emit('hmi')
+        self._emit('topic_event', 'hmi')
 
     def _cb_vcu(self, msg):
         self.diag_flags['vcu']['received'] = True
         self.vcu_stat_code = msg.VCU_StatCode
-        self.topic_event.emit('vcu')
+        self._emit('topic_event', 'vcu')
 
     def _cb_cam(self, _msg):
         self.diag_flags['cam']['received'] = True
-        self.topic_event.emit('cam')
+        self._emit('topic_event', 'cam')
 
     def _cb_ipc(self, msg):
         self.diag_flags['ipc']['received'] = True
         self.ipc_swc_code = msg.IPC_SWC_StatCode
-        self.topic_event.emit('ipc')
+        self._emit('topic_event', 'ipc')
 
     # ─── vehicle / sensors callbacks ─────────────────────────────
     def _cb_ad_can(self, msg):
         if msg.autonomous_mode != self.autonomous_mode:
             self.autonomous_mode = msg.autonomous_mode
-            self.mode_changed.emit(self.autonomous_mode)
+            self._emit('mode_changed', self.autonomous_mode)
 
     def _cb_v_can(self, msg):
         self.steering_angle = msg.steering_angle
-        self.steering_changed.emit(float(msg.steering_angle))
+        self._emit('steering_changed', float(msg.steering_angle))
         avg = (msg.wheel_speed_fl + msg.wheel_speed_fr +
                msg.wheel_speed_rl + msg.wheel_speed_rr) / 4.0
         self.current_speed = avg * 3.6
-        self.speed_changed.emit(float(self.current_speed))
+        self._emit('speed_changed', float(self.current_speed))
         if msg.gear_status != self.gear_status:
             self.gear_status = msg.gear_status
-            self.gear_changed.emit(int(self.gear_status))
+            self._emit('gear_changed', int(self.gear_status))
 
     def _cb_chassis(self, msg):
         # NOTE: legacy reads `vehicle_speed` via getattr (returns 0 if absent),
@@ -202,35 +216,36 @@ class HmiStateController(QObject):
         new_aeb = bool(getattr(msg, 'AEB_flag', 0))
         if new_aeb != bool(self.aeb_flag):
             self.aeb_flag = 1 if new_aeb else 0
-            self.aeb_changed.emit(new_aeb)
+            self._emit('aeb_changed', new_aeb)
 
     def _cb_local(self, msg):
         if msg.Speed_Limit != self.speed_limit:
             self.speed_limit = msg.Speed_Limit
-            self.speed_limit_changed.emit(int(self.speed_limit))
+            self._emit('speed_limit_changed', int(self.speed_limit))
         if msg.LINK_ID != self.link_id:
             self.link_id = msg.LINK_ID
             lane = getattr(msg, 'lane_name', None) or getattr(msg, 'lane_id', None) or ''
             self.lane_label = lane
-            self.link_lane_changed.emit(self.link_id, self.lane_label)
+            self._emit('link_lane_changed', self.link_id, self.lane_label)
         if msg.On_ODD != self.on_odd or msg.Road_State != self.road_state:
             self.on_odd = msg.On_ODD
             self.road_state = msg.Road_State
-            self.odd_changed.emit(int(self.on_odd), int(self.road_state))
+            self._emit('odd_changed', int(self.on_odd), int(self.road_state))
 
         self.look_at_intersection_id = msg.look_at_IntersectionID
         self.look_at_signal_group_id = msg.look_at_signalGroupID
 
-        self.ego_pose_changed.emit(float(msg.host_east),
-                                   float(msg.host_north),
-                                   float(msg.host_yaw))
+        self.host_east = float(msg.host_east)
+        self.host_north = float(msg.host_north)
+        self.host_yaw = float(msg.host_yaw)
+        self._emit('ego_pose_changed', self.host_east, self.host_north, self.host_yaw)
 
     def _cb_traffic(self, msg):
         if self.look_at_intersection_id == 0:
             if self.traffic_light_color != 0 or self.traffic_light_time != 0:
                 self.traffic_light_color = 0
                 self.traffic_light_time = 0
-                self.traffic_changed.emit(0, 0)
+                self._emit('traffic_changed', 0, 0)
             return
         for intersection in msg.data:
             if intersection.IntersectionID != self.look_at_intersection_id:
@@ -250,7 +265,7 @@ class HmiStateController(QObject):
             else:
                 color = 0
             self.traffic_light_color = color
-            self.traffic_changed.emit(int(color), int(self.traffic_light_time))
+            self._emit('traffic_changed', int(color), int(self.traffic_light_time))
             return
 
     def _cb_objects(self, msg):
@@ -268,7 +283,8 @@ class HmiStateController(QObject):
                 'orientation': obj.orientation,
                 'type': obj_type,
             })
-        self.objects_changed.emit(objects)
+        self.objects = objects
+        self._emit('objects_changed', objects)
 
     # ─── periodic update — diagnostic + popup ─────────────────────
     def _evaluate_diag(self, name, received):
@@ -311,10 +327,11 @@ class HmiStateController(QObject):
                 changed = True
             self.diag_status[name] = new
         if changed:
-            self.diag_changed.emit(dict(self.diag_status))
+            self._emit('diag_changed', dict(self.diag_status))
 
         # selected mode publish (1 s pulse semantics maintained in pulse method)
-        m = UInt8(); m.data = self.selected_mode
+        m = UInt8()
+        m.data = self.selected_mode
         self._mode_pub.publish(m)
 
         # popup decision (mirrors legacy update_popup)
@@ -345,22 +362,17 @@ class HmiStateController(QObject):
         else:
             text = ""
             sev = "info"
-        self.popup_changed.emit(text, sev)
+        self._emit('popup_changed', text, sev)
 
     # ─── mode request (public API) ───────────────────────────────
     def request_mode(self, autonomous):
         if autonomous:
             self.selected_mode = 1
-            rospy.loginfo("HMI A-1: mode change → Autonomous (1s pulse)")
-            if self._mode_pulse_timer:
-                self._mode_pulse_timer.stop()
-            self._mode_pulse_timer = QTimer(self)
-            self._mode_pulse_timer.setSingleShot(True)
-            self._mode_pulse_timer.timeout.connect(self._reset_mode_pulse)
-            self._mode_pulse_timer.start(1000)
+            rospy.loginfo("HMI: mode change → Autonomous (1s pulse)")
+            self._schedule_mode_pulse_reset(1000)
         else:
             self.selected_mode = 0
-            rospy.loginfo("HMI A-1: mode change → Manual")
+            rospy.loginfo("HMI: mode change → Manual")
 
     def _reset_mode_pulse(self):
         self.selected_mode = 0
@@ -386,8 +398,9 @@ class HmiStateController(QObject):
             preexec_fn=os.setsid,
         )
         self.bag_recording = True
-        rospy.loginfo("HMI A-1: bag recording started: %s", prefix)
-        self.bag_state_changed.emit(True, ts)
+        self.bag_info = ts
+        rospy.loginfo("HMI: bag recording started: %s", prefix)
+        self._emit('bag_state_changed', True, ts)
 
     def stop_bag(self):
         if self.bag_process:
@@ -395,14 +408,58 @@ class HmiStateController(QObject):
                 os.killpg(os.getpgid(self.bag_process.pid), signal.SIGINT)
                 self.bag_process.wait(timeout=5)
             except Exception as e:  # noqa: BLE001
-                rospy.logwarn("HMI A-1: bag stop error: %s", e)
+                rospy.logwarn("HMI: bag stop error: %s", e)
             self.bag_process = None
         self.bag_recording = False
-        rospy.loginfo("HMI A-1: bag recording stopped")
-        self.bag_state_changed.emit(False, "")
+        self.bag_info = ""
+        rospy.loginfo("HMI: bag recording stopped")
+        self._emit('bag_state_changed', False, "")
 
     def shutdown(self):
         try:
             self.stop_bag()
         except Exception:  # noqa: BLE001
             pass
+
+
+class HmiStateController(BaseHmiStateController, QObject):
+    """Qt adapter — the original 16 pyqtSignals are preserved verbatim."""
+
+    speed_changed       = pyqtSignal(float)            # km/h
+    gear_changed        = pyqtSignal(int)              # 1=P, 2=R, 3=N, 4=D
+    mode_changed        = pyqtSignal(int)              # autonomous_mode 0/1
+    aeb_changed         = pyqtSignal(bool)
+    steering_changed    = pyqtSignal(float)            # deg
+    ego_pose_changed    = pyqtSignal(float, float, float)  # east, north, yaw
+    objects_changed     = pyqtSignal(list)
+    traffic_changed     = pyqtSignal(int, int)         # color (0-3), time_decisec
+    diag_changed        = pyqtSignal(dict)             # {name: status}
+    gps_changed         = pyqtSignal(int, float, float)  # rtk_code, lon_std, lat_std
+    speed_limit_changed = pyqtSignal(int)
+    link_lane_changed   = pyqtSignal(object, object)   # link_id, lane label
+    odd_changed         = pyqtSignal(int, int)         # on_odd, road_state
+    popup_changed       = pyqtSignal(str, str)         # text, severity
+    bag_state_changed   = pyqtSignal(bool, str)        # recording, info
+    topic_event         = pyqtSignal(str)              # key, for Hz tracking
+
+    def __init__(self, parent=None):
+        QObject.__init__(self, parent)
+        self._tick = None
+        self._mode_pulse_timer = None
+        BaseHmiStateController.__init__(self)
+
+    def _emit(self, name, *args):
+        getattr(self, name).emit(*args)
+
+    def _start_tick(self, period_ms, callback):
+        self._tick = QTimer(self)
+        self._tick.timeout.connect(callback)
+        self._tick.start(period_ms)
+
+    def _schedule_mode_pulse_reset(self, ms):
+        if self._mode_pulse_timer:
+            self._mode_pulse_timer.stop()
+        self._mode_pulse_timer = QTimer(self)
+        self._mode_pulse_timer.setSingleShot(True)
+        self._mode_pulse_timer.timeout.connect(self._reset_mode_pulse)
+        self._mode_pulse_timer.start(ms)

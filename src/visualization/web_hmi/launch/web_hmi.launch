@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="bag_dir"      default="$(env HOME)/bag_data"/>
+  <arg name="ws_port"      default="9090"/>
+  <arg name="http_port"    default="8088"/>
+  <arg name="open_browser" default="true"/>
+  <!-- variant: default | f1 -->
+  <arg name="variant"      default="default"/>
+  <arg name="page"         default="$(eval 'index_f1.html' if arg('variant')=='f1' else 'index.html')"/>
+
+  <!-- 1. rosbridge WebSocket server -->
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch">
+    <arg name="port" value="$(arg ws_port)"/>
+  </include>
+
+  <!-- 2. JSON aggregator bridge -->
+  <node name="web_hmi_bridge"
+        pkg="web_hmi"
+        type="web_hmi_bridge.py"
+        output="screen"
+        required="true">
+    <env name="PYTHONPATH"
+         value="$(find pyqt_hmi)/scripts:$(env PYTHONPATH)"/>
+    <param name="bag_dir" value="$(arg bag_dir)"/>
+  </node>
+
+  <!-- 3. Static asset HTTP server -->
+  <node name="web_hmi_server"
+        pkg="web_hmi"
+        type="web_server.py"
+        output="screen"
+        required="true">
+    <param name="port" value="$(arg http_port)"/>
+    <param name="web_dir" value="$(find web_hmi)/web"/>
+  </node>
+
+  <!-- 4. Optional browser launch -->
+  <node if="$(arg open_browser)"
+        name="web_hmi_open_browser"
+        pkg="web_hmi"
+        type="open_browser.py"
+        output="screen">
+    <param name="port" value="$(arg http_port)"/>
+    <param name="page" value="$(arg page)"/>
+  </node>
+</launch>

@@ -1,0 +1,608 @@
+/* ============================================
+   Ioniq5 HMI — Tesla/Rivian inspired
+   Charcoal + Amber design system
+   ============================================ */
+
+:root {
+  /* Charcoal scale */
+  --bg-0: #0E0F11;
+  --bg-1: #15171A;
+  --bg-2: #1C1F23;
+  --bg-3: #24282E;
+  --bg-4: #2D3239;
+  --line: #313740;
+  --line-soft: #232830;
+
+  /* Text */
+  --text-0: #F4F5F7;
+  --text-1: #C8CCD2;
+  --text-2: #8A9099;
+  --text-3: #5A616B;
+
+  /* Amber accent */
+  --amber-0: #FFB547;
+  --amber-1: #F59E2C;
+  --amber-2: #C97A14;
+  --amber-glow: rgba(255, 181, 71, 0.18);
+
+  /* States */
+  --green: #4ADE80;
+  --red:   #F87171;
+  --blue:  #60A5FA;
+
+  /* Type */
+  --font-sans: "Inter", "Pretendard", -apple-system, "Helvetica Neue", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+  --font-display: "Inter", "Pretendard", sans-serif;
+}
+
+/* ---------- canvas / layout ---------- */
+.hmi {
+  width: 1600px;
+  height: 900px;
+  background: var(--bg-0);
+  color: var(--text-0);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11", "tnum";
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 320px 1fr 360px;
+  grid-template-rows: 64px 1fr 96px;
+  grid-template-areas:
+    "topbar topbar topbar"
+    "left   stage  right"
+    "left   bottom right";
+  gap: 0;
+}
+
+/* subtle vignette */
+.hmi::before {
+  content: "";
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(255,181,71,0.04), transparent 60%),
+    radial-gradient(120% 80% at 50% 100%, rgba(0,0,0,0.5), transparent 50%);
+  pointer-events: none;
+  z-index: 1;
+}
+.hmi > * { position: relative; z-index: 2; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  grid-area: topbar;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--bg-1);
+}
+.topbar-left,
+.topbar-center,
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  color: var(--text-1);
+}
+.brand-mark {
+  width: 22px; height: 22px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, var(--amber-0), var(--amber-2));
+  display: grid; place-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 700;
+  color: #1A1206;
+}
+.crumb {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-3);
+  letter-spacing: 0.12em;
+}
+.crumb b { color: var(--text-1); font-weight: 500; }
+.system-tag {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-2);
+  letter-spacing: 0.1em;
+}
+.dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+}
+.dot.amber { background: var(--amber-0); box-shadow: 0 0 8px var(--amber-glow); }
+.dot.red   { background: var(--red);   box-shadow: 0 0 8px rgba(248,113,113,0.4); }
+
+.clock {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-1);
+  letter-spacing: 0.05em;
+}
+
+/* ---------- left panel: speed gauge + drive ---------- */
+.left {
+  grid-area: left;
+  background: var(--bg-1);
+  border-right: 1px solid var(--line-soft);
+  display: flex;
+  flex-direction: column;
+  padding: 28px 24px;
+  gap: 24px;
+}
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: var(--text-3);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.gauge-wrap {
+  position: relative;
+  width: 272px; height: 272px;
+  margin: 0 auto;
+}
+.gauge-svg { display: block; }
+.gauge-center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 4px;
+}
+.gauge-value {
+  font-family: var(--font-display);
+  font-size: 72px;
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--text-0);
+  font-variant-numeric: tabular-nums;
+}
+.gauge-unit {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--text-2);
+}
+.gauge-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--text-3);
+  margin-top: 6px;
+}
+
+/* drive mode pill */
+.drive-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  padding: 6px;
+}
+.drive-cell {
+  text-align: center;
+  padding: 10px 0;
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-3);
+  letter-spacing: 0.08em;
+}
+.drive-cell.active {
+  background: var(--amber-0);
+  color: #1A1206;
+  font-weight: 600;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.stat {
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.stat-k {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--text-3);
+  text-transform: uppercase;
+}
+.stat-v {
+  margin-top: 6px;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--text-0);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.stat-v small {
+  font-size: 12px;
+  color: var(--text-2);
+  font-weight: 400;
+  margin-left: 3px;
+  letter-spacing: 0.05em;
+}
+
+/* ---------- center stage: vehicle view ---------- */
+.stage {
+  grid-area: stage;
+  position: relative;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 60%, rgba(255,181,71,0.06), transparent 70%),
+    var(--bg-0);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* iso grid floor */
+.iso-grid {
+  position: absolute;
+  inset: 0;
+  perspective: 1600px;
+  perspective-origin: 50% 35%;
+  pointer-events: none;
+}
+.iso-grid::before {
+  content: "";
+  position: absolute;
+  left: -20%; right: -20%;
+  top: 50%; height: 90%;
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 80px 80px;
+  transform: rotateX(64deg);
+  transform-origin: 50% 0;
+  mask-image: radial-gradient(ellipse 70% 100% at 50% 0%, #000 30%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 100% at 50% 0%, #000 30%, transparent 80%);
+}
+
+/* concentric range rings */
+.range-rings {
+  position: absolute;
+  left: 50%; top: 55%;
+  transform: translate(-50%, -50%) rotateX(58deg);
+  pointer-events: none;
+}
+.range-ring {
+  position: absolute;
+  border: 1px dashed rgba(200,204,210,0.12);
+  border-radius: 50%;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+}
+.range-ring.solid { border-style: solid; border-color: rgba(255,181,71,0.18); }
+.range-label {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--text-3);
+  background: var(--bg-0);
+  padding: 0 6px;
+}
+
+/* vehicle */
+.vehicle {
+  position: relative;
+  z-index: 5;
+  transform: rotateX(18deg) rotateZ(-8deg);
+  transform-style: preserve-3d;
+  filter: drop-shadow(0 30px 40px rgba(0,0,0,0.6));
+}
+
+/* detection arc + bag rec marker overlay */
+.detect-overlay {
+  position: absolute;
+  left: 50%; top: 55%;
+  transform: translate(-50%, -50%) rotateX(58deg);
+  width: 700px; height: 700px;
+  pointer-events: none;
+}
+
+/* bag rec banner — floating above vehicle */
+.bag-banner {
+  position: absolute;
+  top: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(28, 31, 35, 0.92);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--amber-0);
+  border-radius: 10px;
+  padding: 12px 18px 12px 16px;
+  z-index: 10;
+}
+.bag-banner.recording {
+  border-left-color: var(--red);
+}
+.bag-banner.recording .rec-dot {
+  background: var(--red);
+  box-shadow: 0 0 0 0 rgba(248,113,113,0.6);
+  animation: pulse 1.6s infinite;
+}
+@keyframes pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(248,113,113,0.5); }
+  70%  { box-shadow: 0 0 0 10px rgba(248,113,113,0); }
+  100% { box-shadow: 0 0 0 0 rgba(248,113,113,0); }
+}
+.rec-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--amber-0);
+}
+.bag-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.bag-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--text-2);
+  text-transform: uppercase;
+}
+.bag-name {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-0);
+  font-variant-numeric: tabular-nums;
+}
+.bag-time {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--amber-0);
+  font-variant-numeric: tabular-nums;
+  margin-left: 8px;
+  padding-left: 14px;
+  border-left: 1px solid var(--line);
+}
+
+/* compass */
+.compass {
+  position: absolute;
+  top: 28px; right: 28px;
+  width: 56px; height: 56px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: rgba(28,31,35,0.6);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--amber-0);
+}
+.compass::before {
+  content: "";
+  position: absolute;
+  top: 4px; left: 50%; transform: translateX(-50%);
+  width: 0; height: 0;
+  border: 4px solid transparent;
+  border-bottom-color: var(--amber-0);
+}
+
+/* corner stage labels */
+.stage-corner {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: var(--text-3);
+  text-transform: uppercase;
+}
+.stage-corner.tl { top: 28px; left: 28px; }
+.stage-corner.bl { bottom: 28px; left: 28px; }
+.stage-corner.br { bottom: 28px; right: 28px; text-align: right; }
+
+/* ---------- right panel: system / objectives ---------- */
+.right {
+  grid-area: right;
+  background: var(--bg-1);
+  border-left: 1px solid var(--line-soft);
+  display: flex;
+  flex-direction: column;
+  padding: 28px 24px;
+  gap: 24px;
+  overflow: hidden;
+}
+
+.module {
+  display: flex;
+  flex-direction: column;
+}
+
+.objective-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.objective {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+}
+.objective.active {
+  border-color: var(--amber-2);
+  background: linear-gradient(180deg, rgba(255,181,71,0.06), transparent), var(--bg-2);
+}
+.obj-mark {
+  width: 14px; height: 14px;
+  border: 1.5px solid var(--text-3);
+  border-radius: 50%;
+  position: relative;
+}
+.objective.active .obj-mark {
+  border-color: var(--amber-0);
+}
+.objective.active .obj-mark::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  background: var(--amber-0);
+  border-radius: 50%;
+}
+.objective.done .obj-mark {
+  border-color: var(--green);
+  background: var(--green);
+}
+.objective.done .obj-mark::after {
+  content: "";
+  position: absolute;
+  left: 3px; top: 1px;
+  width: 4px; height: 7px;
+  border-right: 1.5px solid #0E0F11;
+  border-bottom: 1.5px solid #0E0F11;
+  transform: rotate(45deg);
+}
+.obj-text {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-1);
+  letter-spacing: 0.04em;
+}
+.objective.done .obj-text { color: var(--text-3); text-decoration: line-through; }
+.obj-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.objective.active .obj-meta { color: var(--amber-0); }
+
+/* sensor list */
+.sensor {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.sensor:last-child { border-bottom: none; }
+.sensor-name {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-1);
+  letter-spacing: 0.05em;
+}
+.sensor-rate {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.sensor-status {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--text-2);
+}
+
+/* ---------- bottom bar: alerts ---------- */
+.bottom {
+  grid-area: bottom;
+  background: var(--bg-1);
+  border-top: 1px solid var(--line-soft);
+  padding: 0 28px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 28px;
+}
+.alert-tag {
+  display: flex; flex-direction: column;
+  gap: 4px;
+}
+.alert-k {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: var(--text-3);
+  text-transform: uppercase;
+}
+.alert-v {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--text-0);
+  letter-spacing: -0.005em;
+}
+.alert-v .ko {
+  color: var(--amber-0);
+  font-weight: 500;
+}
+
+.action-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-self: end;
+}
+.btn {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 12px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text-1);
+  display: flex; align-items: center; gap: 8px;
+}
+.btn.primary {
+  background: var(--amber-0);
+  color: #1A1206;
+  border-color: var(--amber-0);
+  font-weight: 600;
+}
+.btn.danger {
+  background: transparent;
+  color: var(--red);
+  border-color: rgba(248,113,113,0.3);
+}
+.btn .kbd {
+  font-size: 10px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: rgba(0,0,0,0.2);
+  color: var(--text-3);
+  letter-spacing: 0.08em;
+}
+.btn.primary .kbd { background: rgba(0,0,0,0.15); color: rgba(26,18,6,0.6); }
