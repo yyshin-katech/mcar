@@ -18,6 +18,7 @@ def main():
 
     port = int(rospy.get_param('~port', 8088))
     web_dir = rospy.get_param('~web_dir', None)
+    page = str(rospy.get_param('~page', '')).lstrip('/')
 
     if not web_dir:
         # Default to the sibling web/ directory of this script.
@@ -31,8 +32,10 @@ def main():
     handler = partial(SimpleHTTPRequestHandler, directory=web_dir)
     server = ThreadingHTTPServer(('0.0.0.0', port), handler)
 
+    url = "http://localhost:%d/%s" % (port, page) if page else "http://localhost:%d" % port
     rospy.loginfo("web_hmi_server: serving %s on http://0.0.0.0:%d",
                   web_dir, port)
+    rospy.loginfo("web_hmi_server: open this URL in a browser → %s", url)
 
     try:
         server.serve_forever()
