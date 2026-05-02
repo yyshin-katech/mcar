@@ -194,6 +194,12 @@ function useBag() {
   return useJsonTopic('/hmi/bag', { recording: false, info: '' });
 }
 
+// Latched HD map polylines in EPSG:5179 absolute coords (meters).
+// Payload: { polylines: [ [[east,north], ...], ... ] }
+function useMap() {
+  return useJsonTopic('/hmi/map', { polylines: [] });
+}
+
 // ---- Helpers exposed for HMIScreen ----
 
 // Map ego-frame meters → stage SVG units.
@@ -241,6 +247,6 @@ function buildTrafficObjs(objects) {
 Object.assign(window, {
   RosProvider, useRosConnection,
   useRosState, useDiagnostics, useTopicHz, useTopicStale,
-  useObjects, usePopup, useTraffic, useBag,
+  useObjects, usePopup, useTraffic, useBag, useMap,
   buildTrafficObjs,
 });

@@ -17,6 +17,8 @@
   <!-- variant: f1 | default -->
   <arg name="variant"      default="f1"/>
   <arg name="page"         default="$(eval 'index_f1.html' if arg('variant')=='f1' else 'index.html')"/>
+  <!-- HD map shapefile to overlay on the F1 environment (EPSG:5179). Empty = disabled. -->
+  <arg name="map_shp"      default="$(find gps_system_localizer)/src/A2_LINK_epsg5179.shp"/>
 
   <!-- 1. rosbridge WebSocket server -->
   <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch">
@@ -32,6 +34,7 @@
     <env name="PYTHONPATH"
          value="$(find pyqt_hmi)/scripts:$(env PYTHONPATH)"/>
     <param name="bag_dir" value="$(arg bag_dir)"/>
+    <param name="map_shp" value="$(arg map_shp)"/>
   </node>
 
   <!-- 3. Static asset HTTP server -->

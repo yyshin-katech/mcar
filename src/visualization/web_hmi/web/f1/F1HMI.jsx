@@ -129,7 +129,12 @@ function TrafficLight({ phase = "OFF", remain = 0 }) {
 // ─── Top-down environment scene ─────────────────────────────
 // objs: [{id, kind, color, x, y, w, h, dist, spd}] in SVG coordinate space.
 // oddBanner: string | null — if set, shows amber warning strip near top.
-function Environment({ objs = [], oddBanner = null }) {
+// mapPolylines: [[[east,north], ...], ...] in EPSG:5179 absolute meters.
+// egoEast/egoNorth/egoYaw: ego pose used to transform map into ego frame.
+function Environment({
+  objs = [], oddBanner = null,
+  mapPolylines = [], egoEast = 0, egoNorth = 0, egoYaw = 0,
+}) {
   const W = 880, H = 680;
   const ego = { x: W / 2, y: H * 0.62 };
   const ringRX = [120, 230, 340, 450, 560];
@@ -144,6 +149,46 @@ function Environment({ objs = [], oddBanner = null }) {
     sy: ego.y - (o.forward_m || 0) * pxPerMeter,
   }));
 
+  // Per-polyline AABB cached as long as mapPolylines reference is stable
+  // (latched /hmi/map ⇒ ref only changes on a new map publish).
+  const mapBboxes = React.useMemo(() => (mapPolylines || []).map((pl) => {
+    let minE = Infinity, maxE = -Infinity, minN = Infinity, maxN = -Infinity;
+    for (let i = 0; i < pl.length; i++) {
+      const e = pl[i][0], n = pl[i][1];
+      if (e < minE) minE = e;
+      if (e > maxE) maxE = e;
+      if (n < minN) minN = n;
+      if (n > maxN) maxN = n;
+    }
+    return { minE, maxE, minN, maxN };
+  }), [mapPolylines]);
+
+  // Cull polylines outside ±150 m, transform survivors to ego-frame SVG.
+  const mapPath = React.useMemo(() => {
+    const pls = mapPolylines || [];
+    if (!pls.length) return "";
+    const cYaw = Math.cos(egoYaw), sYaw = Math.sin(egoYaw);
+    const cull = 150; // metres
+    const parts = [];
+    for (let p = 0; p < pls.length; p++) {
+      const bb = mapBboxes[p];
+      if (!bb) continue;
+      if (bb.maxE < egoEast - cull || bb.minE > egoEast + cull ||
+          bb.maxN < egoNorth - cull || bb.minN > egoNorth + cull) continue;
+      const pl = pls[p];
+      for (let i = 0; i < pl.length; i++) {
+        const dx = pl[i][0] - egoEast;
+        const dy = pl[i][1] - egoNorth;
+        const fwd = dx * cYaw + dy * sYaw;       // ego forward (+ahead)
+        const left = -dx * sYaw + dy * cYaw;     // ego lateral (+left)
+        const sx = (ego.x - left * pxPerMeter).toFixed(1);
+        const sy = (ego.y - fwd  * pxPerMeter).toFixed(1);
+        parts.push((i === 0 ? "M" : "L") + sx + " " + sy);
+      }
+    }
+    return parts.join(" ");
+  }, [mapPolylines, mapBboxes, egoEast, egoNorth, egoYaw]);
+
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%" style={{ display: "block" }} preserveAspectRatio="xMidYMid meet">
       {/* grid */}
@@ -153,6 +198,13 @@ function Environment({ objs = [], oddBanner = null }) {
         </pattern>
       </defs>
       <rect width={W} height={H} fill="url(#grid)" />
+
+      {/* HD-map polylines (A2_LINK, EPSG:5179 → ego-frame) */}
+      {mapPath ? (
+        <path d={mapPath} fill="none"
+          stroke={T.cyan} strokeWidth="1.6" opacity="0.9"
+          strokeLinejoin="round" strokeLinecap="round" />
+      ) : null}
 
       {/* concentric distance rings */}
       {ringRX.map((rx, i) => (
@@ -185,26 +237,50 @@ function Environment({ objs = [], oddBanner = null }) {
         </g>
       ) : null}
 
-      {/* surrounding objects */}
-      {placedObjs.map((o, i) => (
-        <g key={o.id || i}>
-          <rect x={o.sx - o.w / 2} y={o.sy - o.h / 2} width={o.w} height={o.h} rx="2"
-            fill={`${o.color}14`} stroke={o.color} strokeWidth="1.3" />
-          <text x={o.sx + o.w / 2 + 6} y={o.sy - o.h / 2 + 8}
-            fontFamily={mono} fontSize="10" fill={o.color} letterSpacing="1">{o.id}  ·  {o.kind}</text>
-          <text x={o.sx + o.w / 2 + 6} y={o.sy - o.h / 2 + 22}
-            fontFamily={mono} fontSize="9" fill={T.text2}>{o.dist}  {o.spd}</text>
-        </g>
-      ))}
+      {/* surrounding objects — body+chevron rotated by orientation,
+          labels stay axis-aligned. orientation is rad in sensor frame
+          (x=forward, y=+left). Screen rotation = -deg(orientation) since
+          SVG y is flipped vs sensor y. */}
+      {placedObjs.map((o, i) => {
+        const rotDeg = -((o.orientation || 0) * 180 / Math.PI);
+        const lblOff = Math.max(o.w, o.h) / 2 + 6; // clear rotated bbox
+        return (
+          <g key={o.id || i}>
+            <g transform={`translate(${o.sx},${o.sy}) rotate(${rotDeg.toFixed(2)})`}>
+              <rect x={-o.w / 2} y={-o.h / 2} width={o.w} height={o.h} rx="2"
+                fill={`${o.color}14`} stroke={o.color} strokeWidth="1.3" />
+              <path d={`M ${-3} ${-o.h / 2 + 2} L 0 ${-o.h / 2 - 4} L ${3} ${-o.h / 2 + 2}`}
+                fill="none" stroke={o.color} strokeWidth="1.2"
+                strokeLinecap="round" strokeLinejoin="round" />
+            </g>
+            <text x={o.sx + lblOff} y={o.sy - lblOff + 10}
+              fontFamily={mono} fontSize="10" fill={o.color} letterSpacing="1">{o.id}  ·  {o.kind}</text>
+            <text x={o.sx + lblOff} y={o.sy - lblOff + 24}
+              fontFamily={mono} fontSize="9" fill={T.text2}>{o.dist}  {o.spd}</text>
+          </g>
+        );
+      })}
 
-      {/* EGO car */}
-      <g>
-        <rect x={ego.x - 12} y={ego.y - 24} width={24} height={48} rx="4"
-          fill={`${T.cyan}1A`} stroke={T.cyan} strokeWidth="1.6"
-          style={{ filter: "drop-shadow(0 0 6px rgba(0,229,255,0.5))" }} />
-        <path d={`M ${ego.x - 5} ${ego.y - 16} L ${ego.x} ${ego.y - 22} L ${ego.x + 5} ${ego.y - 16}`}
-          fill="none" stroke={T.cyan} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </g>
+      {/* EGO: IONIQ 5 — 4.635 m × 1.89 m, anchored at rear-axle center.
+          Wheelbase 3.0 m + front overhang 0.845 m → 3.845 m ahead of anchor.
+          Rear overhang 0.79 m → behind anchor. */}
+      {(() => {
+        const halfW   = 0.945 * pxPerMeter;   // 1.89 / 2
+        const fwdLen  = 3.845 * pxPerMeter;   // wheelbase + front overhang
+        const rearLen = 0.79  * pxPerMeter;   // rear overhang
+        const frontY  = ego.y - fwdLen;
+        const boxH    = fwdLen + rearLen;     // = 4.635 * pxPerMeter
+        return (
+          <g>
+            <rect x={ego.x - halfW} y={frontY} width={halfW * 2} height={boxH} rx="1.5"
+              fill={`${T.cyan}1A`} stroke={T.cyan} strokeWidth="1.4"
+              style={{ filter: "drop-shadow(0 0 5px rgba(0,229,255,0.55))" }} />
+            <path d={`M ${ego.x - 4} ${frontY - 1} L ${ego.x} ${frontY - 7} L ${ego.x + 4} ${frontY - 1}`}
+              fill="none" stroke={T.cyan} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx={ego.x} cy={ego.y} r="1.6" fill={T.cyan} />
+          </g>
+        );
+      })()}
     </svg>
   );
 }
@@ -253,6 +329,7 @@ function F1HMIShell(props) {
     health = [], summary = [T.text3, T.text3, T.text3, T.text3],
     // 06 environment
     objs = [], oddBanner = null,
+    mapPolylines = [], egoEast = 0, egoNorth = 0, egoYaw = 0,
     bagRecording = false, bagInfo = "",
     onBagToggle = () => {},
     // bottom strip
@@ -468,7 +545,14 @@ function F1HMIShell(props) {
         )}
 
         <div style={{ position: "absolute", inset: "36px 0 0 0" }}>
-          <Environment objs={objs} oddBanner={oddBanner} />
+          <Environment
+            objs={objs}
+            oddBanner={oddBanner}
+            mapPolylines={mapPolylines}
+            egoEast={egoEast}
+            egoNorth={egoNorth}
+            egoYaw={egoYaw}
+          />
         </div>
       </div>
 

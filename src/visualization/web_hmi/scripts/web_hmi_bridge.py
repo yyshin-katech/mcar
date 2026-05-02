@@ -30,6 +30,11 @@ from collections import defaultdict, deque
 import rospy
 from std_msgs.msg import Bool, Empty, String
 
+try:
+    import shapefile  # pyshp — optional, only used to publish /hmi/map
+except ImportError:
+    shapefile = None
+
 # Make pyqt_hmi.scripts importable for BaseHmiStateController.
 _PYQT_HMI_SCRIPTS = os.path.join(
     os.path.dirname(os.path.realpath(__file__)),
@@ -79,6 +84,7 @@ class WebHmiBridge(BaseHmiStateController):
             'traffic':     rospy.Publisher('/hmi/traffic',     String, queue_size=4, latch=True),
             'bag':         rospy.Publisher('/hmi/bag',         String, queue_size=4, latch=True),
             'topic_hz':    rospy.Publisher('/hmi/topic_hz',    String, queue_size=2),
+            'map':         rospy.Publisher('/hmi/map',         String, queue_size=1, latch=True),
         }
 
         # Last published payloads — used for deduplication on event topics
@@ -112,6 +118,9 @@ class WebHmiBridge(BaseHmiStateController):
 
         # 1 Hz Hz-tracker publisher
         self._hz_timer = rospy.Timer(rospy.Duration(1.0), self._publish_hz)
+
+        # One-shot map publish (latched)
+        self._publish_map_once()
 
         rospy.loginfo("web_hmi_bridge: ready, publishing on /hmi/*")
 
@@ -224,6 +233,35 @@ class WebHmiBridge(BaseHmiStateController):
     def _publish_hz(self, _evt):
         self._pubs['topic_hz'].publish(String(data=json.dumps(
             self._hz.snapshot(), ensure_ascii=False)))
+
+    def _publish_map_once(self):
+        """Load shapefile polylines (EPSG:5179) and latch on /hmi/map."""
+        map_shp = rospy.get_param('~map_shp', '')
+        if not map_shp:
+            return
+        if shapefile is None:
+            rospy.logwarn("web_hmi_bridge: pyshp not installed; /hmi/map disabled")
+            return
+        if not os.path.isfile(map_shp):
+            rospy.logwarn("web_hmi_bridge: map_shp not found: %s", map_shp)
+            return
+        try:
+            polylines = []
+            sf = shapefile.Reader(map_shp)
+            for shp in sf.shapes():
+                if not shp.points:
+                    continue
+                # 1 cm precision is plenty for visualization; reduces payload.
+                polylines.append([[round(p[0], 2), round(p[1], 2)] for p in shp.points])
+            payload = json.dumps({'polylines': polylines}, ensure_ascii=False,
+                                 separators=(',', ':'))
+            self._pubs['map'].publish(String(data=payload))
+            rospy.loginfo("web_hmi_bridge: /hmi/map latched — %d polylines, %d points (%d KB)",
+                          len(polylines),
+                          sum(len(p) for p in polylines),
+                          len(payload) // 1024)
+        except Exception as e:  # noqa: BLE001
+            rospy.logerr("web_hmi_bridge: failed to load %s: %s", map_shp, e)
 
     def _publish_dedup(self, key, payload):
         s = json.dumps(payload, ensure_ascii=False)

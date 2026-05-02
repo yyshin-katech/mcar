@@ -1,9 +1,9 @@
 /* global React,
           F1HMIShell, F1Tokens,
           useRosConnection, useRosState, useDiagnostics, useTopicHz,
-          useObjects, usePopup, useTraffic, useBag */
+          useObjects, usePopup, useTraffic, useBag, useMap */
 
-// F1 KATECH HMI screen — bridges 6 ROS hooks into F1HMIShell props.
+// F1 KATECH HMI screen — bridges 7 ROS hooks into F1HMIShell props.
 
 const T = window.F1Tokens; // shared color palette
 
@@ -111,6 +111,7 @@ function buildF1Objects(objects) {
       color: k.color,
       forward_m: fwd,
       lateral_m: -lat,  // SVG x = +right, but ROS y = +left → invert.
+      orientation: typeof o.orientation === "number" ? o.orientation : 0,  // rad, sensor frame
       w, h, dist, spd,
     };
   });
@@ -154,6 +155,7 @@ function F1HMIScreen() {
   const popup = usePopup();
   const traffic = useTraffic();
   const bag = useBag();
+  const map = useMap();
 
   const now = useClock(250);
   const pageLoadAtRef = React.useRef(Date.now());
@@ -231,6 +233,10 @@ function F1HMIScreen() {
       rtkLabel={rtk.label} rtkColor={rtk.color}
       health={health} summary={summary}
       objs={objsForStage} oddBanner={oddBanner}
+      mapPolylines={(map && map.polylines) || []}
+      egoEast={(state.ego && state.ego.east) || 0}
+      egoNorth={(state.ego && state.ego.north) || 0}
+      egoYaw={(state.ego && state.ego.yaw) || 0}
       bagRecording={!!(bag && bag.recording)}
       bagInfo={(bag && bag.info) || ""}
       onBagToggle={conn.publishBagToggle}
