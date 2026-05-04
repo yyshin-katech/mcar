@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>Ioniq5 HMI · Three.js · web_hmi</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #04060a; color: #e6edf3;
+               font-family: "Inter", system-ui, sans-serif; overflow: hidden; }
+  #scene { position: fixed; inset: 0; }
+  #panel { position: fixed; top: 0; right: 0; bottom: 0; width: 260px;
+           background: rgba(8,12,18,0.85); border-left: 1px solid rgba(0,229,255,0.12);
+           padding: 12px; overflow-y: auto; font-size: 12px; box-sizing: border-box; }
+  #panel h3 { margin: 12px 0 6px; font-size: 11px; letter-spacing: 0.08em;
+              color: #00e5ff; text-transform: uppercase; }
+  #panel label { display: block; margin: 3px 0; cursor: pointer; }
+  #panel input[type="checkbox"] { margin-right: 6px; vertical-align: middle; }
+  #status { position: fixed; left: 8px; bottom: 8px; font-size: 11px;
+            color: #6c8090; font-family: "JetBrains Mono", monospace; }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <div id="status">init…</div>
+
+  <!-- Vendored libs (no CDN at runtime). -->
+  <script src="vendor/three.min.js"></script>
+  <script src="vendor/react.production.min.js"></script>
+  <script src="vendor/react-dom.production.min.js"></script>
+  <script src="vendor/babel.min.js"></script>
+  <script src="vendor/roslib.min.js"></script>
+
+  <!-- Shared rosbridge provider + hooks (reused from default variant). -->
+  <script type="text/babel" src="hmi/ros_bridge.jsx"></script>
+
+  <!-- Three.js variant scripts. -->
+  <script src="threejs/types.js"></script>
+  <script type="text/babel" src="threejs/ThreeScene.jsx"></script>
+  <script type="text/babel" src="threejs/MapLayers.jsx"></script>
+  <script type="text/babel" src="threejs/TrackBoxes.jsx"></script>
+  <script type="text/babel" src="threejs/TrackPointClouds.jsx"></script>
+  <script type="text/babel" src="threejs/EgoMesh.jsx"></script>
+  <script type="text/babel" src="threejs/CameraController.jsx"></script>
+  <script type="text/babel" src="threejs/ControlPanel.jsx"></script>
+
+  <!-- ThreeJSScreen: state-owning shell that wires panel toggles to scene props. -->
+  <script type="text/babel">
+    function ThreeJSScreen() {
+      const [layerVis,    setLayerVis]    = React.useState(window.DEFAULT_LAYER_VIS);
+      const [showBoxes,   setShowBoxes]   = React.useState(true);
+      const [showHeading, setShowHeading] = React.useState(true);
+      const [showClouds,  setShowClouds]  = React.useState(true);
+      const [pointSize,   setPointSize]   = React.useState(0.08);
+      const [cameraMode,  setCameraMode]  = React.useState('iso');
+
+      const onLayerVis = React.useCallback((name, val) => {
+        setLayerVis((prev) => ({ ...prev, [name]: val }));
+      }, []);
+
+      return (
+        <>
+          <window.ThreeScene>
+            <window.MapLayers layerVisibility={layerVis} />
+            <window.TrackBoxes
+              showBoxes={showBoxes}
+              showHeading={showHeading}
+              showIds={false} />
+            <window.TrackPointClouds
+              showClouds={showClouds}
+              pointSize={pointSize} />
+            <window.EgoMesh />
+            <window.CameraController mode={cameraMode} />
+          </window.ThreeScene>
+          <window.ControlPanel
+            layerVis={layerVis} onLayerVis={onLayerVis}
+            showBoxes={showBoxes} onShowBoxes={setShowBoxes}
+            showHeading={showHeading} onShowHeading={setShowHeading}
+            showClouds={showClouds} onShowClouds={setShowClouds}
+            pointSize={pointSize} onPointSize={setPointSize}
+            cameraMode={cameraMode} onCameraMode={setCameraMode} />
+        </>
+      );
+    }
+
+    const wsUrl = `ws://${window.location.hostname || 'localhost'}:9090`;
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(
+      <window.RosProvider url={wsUrl}>
+        <ThreeJSScreen />
+      </window.RosProvider>
+    );
+
+    document.getElementById('status').textContent =
+      `THREE r${THREE.REVISION} · waiting for /hmi/threejs/map…`;
+  </script>
+</body>
+</html>

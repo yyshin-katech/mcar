@@ -10,6 +10,7 @@ catkin_package()
 
 catkin_install_python(PROGRAMS
   scripts/web_hmi_bridge.py
+  scripts/web_hmi_threejs_bridge.py
   scripts/_demo_publisher.py
   scripts/web_server.py
   scripts/open_browser.py

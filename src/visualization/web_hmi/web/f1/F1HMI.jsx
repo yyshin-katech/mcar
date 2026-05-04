@@ -334,6 +334,9 @@ function F1HMIShell(props) {
     onBagToggle = () => {},
     // bottom strip
     bottom = [],
+    // Optional main-area override (e.g. Three.js scene). When provided,
+    // replaces the SVG Environment but keeps the section header strip.
+    mainContent = null,
   } = props;
 
   return (
@@ -545,14 +548,16 @@ function F1HMIShell(props) {
         )}
 
         <div style={{ position: "absolute", inset: "36px 0 0 0" }}>
-          <Environment
-            objs={objs}
-            oddBanner={oddBanner}
-            mapPolylines={mapPolylines}
-            egoEast={egoEast}
-            egoNorth={egoNorth}
-            egoYaw={egoYaw}
-          />
+          {mainContent ? mainContent : (
+            <Environment
+              objs={objs}
+              oddBanner={oddBanner}
+              mapPolylines={mapPolylines}
+              egoEast={egoEast}
+              egoNorth={egoNorth}
+              egoYaw={egoYaw}
+            />
+          )}
         </div>
       </div>
 
