@@ -40,10 +40,14 @@ except ImportError:
 
 # /percept_topic carries object metadata + cloud_indices, but its lidarframe.
 # scan_pointcloud is empty on this bag (has_pointcloud=False). The actual
-# point cloud lives on /fusion_lidar_points (sensor_msgs/PointCloud2, ~1.5 Hz,
-# height=1 width=230400 in /base_link). cloud_indices index into that flat
-# array. We cache the latest fusion cloud as a (N,3) float32 numpy slice and
-# fan it out across the 10 Hz percept stream.
+# point cloud lives on /percept_origin_rviz (sensor_msgs/PointCloud2, ~1.5 Hz,
+# 1800×128 organized in /base_link, 230400 points total). cloud_indices index
+# into that organized layout (row*width + col). The earlier /fusion_lidar_points
+# subscription appeared correct in size but used a different ordering, which
+# scattered points to random positions; switching to /percept_origin_rviz
+# (perception's own input cloud) brings clusters back to their object centers.
+# We cache the latest scan as a (N,3) float32 numpy slice and fan it out
+# across the 10 Hz percept stream.
 PERCEPT_MAX_POINTS_PER_TRACK = 4096  # safety cap; rosbridge JSON > 8MB tends to stutter
 
 
@@ -95,7 +99,7 @@ class WebHmiThreejsBridge:
         )
         self._tracks_count = 0
         self._with_points_count = 0
-        self._cloud_xyz = None  # (N,3) float32, latest /fusion_lidar_points
+        self._cloud_xyz = None  # (N,3) float32, latest /percept_origin_rviz
         self._cloud_n = 0
         self._publish_map_once()
 
@@ -106,7 +110,7 @@ class WebHmiThreejsBridge:
             )
         else:
             self._sub_cloud = rospy.Subscriber(
-                "/fusion_lidar_points", PointCloud2,
+                "/percept_origin_rviz", PointCloud2,
                 self._on_cloud, queue_size=1, buff_size=2 ** 26,
             )
             self._sub_percept = rospy.Subscriber(
