@@ -35,6 +35,11 @@ try:
 except ImportError:
     shapefile = None
 
+try:
+    from pyproj import Transformer
+except ImportError:
+    Transformer = None
+
 # Make pyqt_hmi.scripts importable for BaseHmiStateController.
 _PYQT_HMI_SCRIPTS = os.path.join(
     os.path.dirname(os.path.realpath(__file__)),
@@ -248,11 +253,24 @@ class WebHmiBridge(BaseHmiStateController):
         try:
             polylines = []
             sf = shapefile.Reader(map_shp)
+            # Optional reprojection: read sibling .prj; if it's not EPSG:5179
+            # (e.g. senario3 = WGS_1984_UTM_Zone_52N → EPSG:32652), reproject.
+            tx = None
+            prj_path = os.path.splitext(map_shp)[0] + ".prj"
+            if Transformer is not None and os.path.isfile(prj_path):
+                with open(prj_path) as f:
+                    wkt = f.read()
+                if "UTM_Zone_52N" in wkt or "UTM zone 52N" in wkt:
+                    tx = Transformer.from_crs("EPSG:32652", "EPSG:5179", always_xy=True)
             for shp in sf.shapes():
                 if not shp.points:
                     continue
                 # 1 cm precision is plenty for visualization; reduces payload.
-                polylines.append([[round(p[0], 2), round(p[1], 2)] for p in shp.points])
+                if tx is None:
+                    polylines.append([[round(p[0], 2), round(p[1], 2)] for p in shp.points])
+                else:
+                    polylines.append([[round(e, 2), round(n, 2)]
+                                      for e, n in (tx.transform(p[0], p[1]) for p in shp.points)])
             payload = json.dumps({'polylines': polylines}, ensure_ascii=False,
                                  separators=(',', ':'))
             self._pubs['map'].publish(String(data=payload))

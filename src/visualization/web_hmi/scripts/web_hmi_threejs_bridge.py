@@ -58,22 +58,10 @@ def percept_type_str(type_int):
 SRC_EPSG = "EPSG:32652"
 DST_EPSG = "EPSG:5179"
 
-# Layer name -> kind. Kinds verified against actual K_CITY_2025 .shp shapeType.
-# B1_SAFETYSIGN, C4_SPEEDBUMP, C5_HEIGHTBARRIER differ from plan defaults.
+# Layer name -> kind. senario3 contains a single .shp (POLYLINEZ, 242 features)
+# verified via pyshp (shapeType=13).
 LAYERS_ALL = {
-    "A1_NODE":                    "point",     # PointZ
-    "A2_LINK":                    "polyline",  # PolylineZ
-    "A3_DRIVEWAYSECTION":         "polygon",   # PolygonZ
-    "A4_SUBSIDIARYSECTION":       "polygon",   # PolygonZ
-    "A5_PARKINGLOT":              "polygon",   # PolygonZ
-    "B1_SAFETYSIGN":              "polygon",   # PolygonZ (sign outline)
-    "B2_SURFACELINEMARK":         "polyline",  # PolylineZ
-    "B3_SURFACEMARK":             "polygon",   # PolygonZ
-    "C1_TRAFFICLIGHT":            "point",     # PointZ
-    "C3_VEHICLEPROTECTIONSAFETY": "polyline",  # PolylineZ
-    "C4_SPEEDBUMP":               "polygon",   # PolygonZ
-    "C5_HEIGHTBARRIER":           "polyline",  # PolylineZ
-    "C6_POSTPOINT":               "point",     # PointZ
+    "TB_senario_map_senario3":    "polyline",  # PolylineZ
 }
 
 
