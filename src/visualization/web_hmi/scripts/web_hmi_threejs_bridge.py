@@ -215,6 +215,12 @@ class WebHmiThreejsBridge:
             return []
         idx_arr = idx_arr[valid]
         pts = cloud_xyz[idx_arr]
+        # Drop NaN/Inf rows: JSON spec rejects NaN tokens and Three.js
+        # BufferGeometry breaks on non-finite vertices.
+        finite = np.isfinite(pts).all(axis=1)
+        if not finite.any():
+            return []
+        pts = pts[finite]
         # rosbridge JSON: round to 3 decimals (mm) to shrink payload.
         pts = np.round(pts, 3)
         return pts.reshape(-1).tolist()
