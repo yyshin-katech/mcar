@@ -11,4 +11,4 @@ siheung_dev 브랜치의 활성 맵 = `src/localization/gps_system_localizer/src
 **How to apply:**
 - siheung_dev에서 web_hmi 좌표 이상 신고가 오면 senario3.prj가 UTM_Zone_52N 인지 + `web_hmi_bridge.py` Transformer 분기가 살아있는지 확인.
 - 새 .shp 추가 시 좌표계가 EPSG:5179가 아니면 reproject 분기에 WKT 키워드(예: "UTM_Zone_52N") 추가.
-- bag 재생 좌표 (host_east≈935713, host_north≈1916422 → 위경도 37.244°N, 126.775°E ≈ 화성 송산면 / 시화호 남단)가 senario3 영역과 매칭됨.
+- **senario3 실제 영역**: WGS84 중심 37.364°N, 126.726°E (시흥시 배곧신도시 / 정왕동 일대), 약 2km×1km. EPSG:5179 east 930440~932548, north 1929304~1930206. siheung_dev에서 사용되는 자율주행 시뮬용 맵.
