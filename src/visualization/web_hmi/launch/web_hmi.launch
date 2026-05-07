@@ -1,0 +1,76 @@
+<?xml version="1.0"?>
+<!--
+  web_hmi launcher.
+
+  Frontend URL (open in any browser on the same host):
+    F1 telemetry (default):  http://localhost:8088/index_f1.html
+    Existing dark UI:        http://localhost:8088/index.html
+    Three.js + HD map:       http://localhost:8088/index_threejs.html
+    F1 dash + Three.js:      http://localhost:8088/index_threejs_f1.html
+
+  Override variant:
+    roslaunch web_hmi web_hmi.launch variant:=default
+    roslaunch web_hmi web_hmi.launch variant:=threejs
+    roslaunch web_hmi web_hmi.launch variant:=threejs_f1
+-->
+<launch>
+  <arg name="bag_dir"      default="$(env HOME)/bag_data"/>
+  <arg name="ws_port"      default="9090"/>
+  <arg name="http_port"    default="8088"/>
+  <arg name="open_browser" default="true"/>
+  <!-- variant: f1 | default | threejs | threejs_f1 -->
+  <arg name="variant"      default="threejs_f1"/>
+  <arg name="page"         default="$(eval {'f1':'index_f1.html','default':'index.html','threejs':'index_threejs.html','threejs_f1':'index_threejs_f1.html'}.get(arg('variant'), 'index.html'))"/>
+  <!-- HD map shapefile to overlay on the F1 environment (EPSG:5179). Empty = disabled. -->
+  <arg name="map_shp"      default="$(find gps_system_localizer)/src/A2_LINK_epsg5179.shp"/>
+  <!-- threejs variant: K_CITY_2025 shapefile dir (UTM52N → EPSG:5179 inside the bridge). -->
+  <arg name="threejs_mapdir" default="$(find gps_system_localizer)/mapfiles/K_CITY_2025"/>
+
+  <!-- 1. rosbridge WebSocket server -->
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch">
+    <arg name="port" value="$(arg ws_port)"/>
+  </include>
+
+  <!-- 2. JSON aggregator bridge — always on (threejs variant reuses /hmi/state). -->
+  <node name="web_hmi_bridge"
+        pkg="web_hmi"
+        type="web_hmi_bridge.py"
+        output="screen"
+        required="true">
+    <env name="PYTHONPATH"
+         value="$(find pyqt_hmi)/scripts:$(env PYTHONPATH)"/>
+    <param name="bag_dir" value="$(arg bag_dir)"/>
+    <param name="map_shp" value="$(arg map_shp)"/>
+  </node>
+
+  <!-- 2b. Three.js bridge — when variant=threejs or threejs_f1. -->
+  <node if="$(eval arg('variant') in ('threejs', 'threejs_f1'))"
+        name="web_hmi_threejs_bridge"
+        pkg="web_hmi"
+        type="web_hmi_threejs_bridge.py"
+        output="screen"
+        required="true">
+    <param name="mapdir" value="$(arg threejs_mapdir)"/>
+  </node>
+
+  <!-- 3. Static asset HTTP server -->
+  <node name="web_hmi_server"
+        pkg="web_hmi"
+        type="web_server.py"
+        output="screen"
+        required="true">
+    <param name="port" value="$(arg http_port)"/>
+    <param name="web_dir" value="$(find web_hmi)/web"/>
+    <param name="page" value="$(arg page)"/>
+  </node>
+
+  <!-- 4. Optional browser launch -->
+  <node if="$(arg open_browser)"
+        name="web_hmi_open_browser"
+        pkg="web_hmi"
+        type="open_browser.py"
+        output="screen">
+    <param name="port" value="$(arg http_port)"/>
+    <param name="page" value="$(arg page)"/>
+  </node>
+</launch>

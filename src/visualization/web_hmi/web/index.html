@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>Ioniq5 HMI · web_hmi</title>
+
+<!-- Web fonts: served from Google Fonts CDN. Replace with vendor/fonts/*.woff2
+     and @font-face blocks if the deploy target is offline. -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Pretendard:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="hmi/styles.css" />
+<style>
+  html, body {
+    margin: 0; padding: 0;
+    background: #08090B;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    font-family: "Inter", sans-serif;
+  }
+  .frame {
+    width: 1600px;
+    height: 900px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+</style>
+</head>
+<body>
+  <div class="frame" data-screen-label="01 HMI · web_hmi"><div id="root"></div></div>
+
+  <!-- Vendored libs (no CDN at runtime). -->
+  <script src="vendor/react.production.min.js"></script>
+  <script src="vendor/react-dom.production.min.js"></script>
+  <script src="vendor/babel.min.js"></script>
+  <script src="vendor/roslib.min.js"></script>
+
+  <script type="text/babel" src="hmi/components.jsx"></script>
+  <script type="text/babel" src="hmi/ros_bridge.jsx"></script>
+  <script type="text/babel" src="hmi/HMIScreen.jsx"></script>
+
+  <script type="text/babel">
+    // rosbridge URL — same host, port 9090 (matches launch arg ws_port).
+    const wsUrl = `ws://${window.location.hostname || 'localhost'}:9090`;
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(
+      <RosProvider url={wsUrl}>
+        <HMIScreen />
+      </RosProvider>
+    );
+  </script>
+</body>
+</html>

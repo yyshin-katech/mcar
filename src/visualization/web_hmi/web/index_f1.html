@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>Ioniq5 HMI · F1 Telemetry · web_hmi</title>
+
+<!-- Web fonts: served from Google Fonts CDN. PR-F3 will vendor these. -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Pretendard:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<style>
+  html, body {
+    margin: 0; padding: 0;
+    background: #04060a;
+    min-height: 100vh;
+    overflow: hidden;
+    font-family: "Inter", "Pretendard", system-ui, sans-serif;
+    color: #e6edf3;
+  }
+  /* FitFrame: 1600×900 stage scaled to viewport. */
+  #fit {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+  }
+  #stage {
+    width: 1600px;
+    height: 900px;
+    transform-origin: center center;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(0,229,255,0.06);
+  }
+</style>
+</head>
+<body>
+  <div id="fit"><div id="stage"><div id="root"></div></div></div>
+
+  <!-- Vendored libs (no CDN at runtime). -->
+  <script src="vendor/react.production.min.js"></script>
+  <script src="vendor/react-dom.production.min.js"></script>
+  <script src="vendor/babel.min.js"></script>
+  <script src="vendor/roslib.min.js"></script>
+
+  <!-- Shared rosbridge provider + hooks (reused from default variant). -->
+  <script type="text/babel" src="hmi/ros_bridge.jsx"></script>
+
+  <!-- F1-specific shell + screen. -->
+  <script type="text/babel" src="f1/F1HMI.jsx"></script>
+  <script type="text/babel" src="f1/F1HMIScreen.jsx"></script>
+
+  <script type="text/babel">
+    // FitFrame: scale 1600×900 → fit viewport while preserving aspect ratio.
+    function applyFit() {
+      const stage = document.getElementById('stage');
+      if (!stage) return;
+      const w = window.innerWidth || 1600;
+      const h = window.innerHeight || 900;
+      const s = Math.min(w / 1600, h / 900);
+      stage.style.transform = `scale(${s})`;
+    }
+    window.addEventListener('resize', applyFit);
+    applyFit();
+
+    // Mount React app.
+    const wsUrl = `ws://${window.location.hostname || 'localhost'}:9090`;
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(
+      <RosProvider url={wsUrl}>
+        <F1HMIScreen />
+      </RosProvider>
+    );
+  </script>
+</body>
+</html>

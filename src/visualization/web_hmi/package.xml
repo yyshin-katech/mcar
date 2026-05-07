@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>web_hmi</name>
+  <version>0.0.1</version>
+  <description>Browser-based Ioniq5 HMI — rosbridge + React (no build) + JSON aggregator bridge node.</description>
+
+  <maintainer email="yyshin@katech.re.kr">Y. Shin</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>rospy</depend>
+  <depend>std_msgs</depend>
+
+  <!-- Imports BaseHmiStateController which subscribes to all of these -->
+  <exec_depend>pyqt_hmi</exec_depend>
+  <exec_depend>mmc_msgs</exec_depend>
+  <exec_depend>katech_custom_msgs</exec_depend>
+  <exec_depend>katech_diagnostic_msgs</exec_depend>
+  <exec_depend>v2x_msgs</exec_depend>
+  <exec_depend>perception_ros_msg</exec_depend>
+
+  <!-- WebSocket server for browser ↔ ROS -->
+  <exec_depend>rosbridge_server</exec_depend>
+</package>

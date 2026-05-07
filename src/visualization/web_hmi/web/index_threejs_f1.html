@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>Ioniq5 HMI · F1 + Three.js · web_hmi</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Pretendard:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<style>
+  html, body {
+    margin: 0; padding: 0;
+    background: #04060a;
+    min-height: 100vh;
+    overflow: hidden;
+    font-family: "Inter", "Pretendard", system-ui, sans-serif;
+    color: #e6edf3;
+  }
+  /* FitFrame: 1600×900 stage scaled to viewport (same as F1). */
+  #fit  { position: fixed; inset: 0; display: grid; place-items: center; }
+  #stage {
+    width: 1600px; height: 900px;
+    transform-origin: center center;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(0,229,255,0.06);
+  }
+  /* Three.js canvas — embedded into F1 main grid area (no fixed positioning). */
+  #scene { position: absolute; inset: 0; display: block; }
+  /* ControlPanel reset — outer wrapper div (in ThreejsF1Screen) handles
+     position/background/scroll. Keep child styling (h3, label, input). */
+  #panel { position: static; width: auto; padding: 0; background: transparent;
+           border: none; overflow: visible; font-size: 12px;
+           box-sizing: border-box; }
+  #panel h3 { margin: 10px 0 6px; font-size: 11px; letter-spacing: 0.08em;
+              color: #00e5ff; text-transform: uppercase; }
+  #panel h3:first-child { margin-top: 0; }
+  #panel label { display: block; margin: 3px 0; cursor: pointer; }
+  #panel input[type="checkbox"] { margin-right: 6px; vertical-align: middle; }
+</style>
+</head>
+<body>
+  <div id="fit"><div id="stage"><div id="root"></div></div></div>
+
+  <!-- Vendored libs (no CDN at runtime). -->
+  <script src="vendor/three.min.js"></script>
+  <script src="vendor/GLTFLoader.js"></script>
+  <script src="vendor/react.production.min.js"></script>
+  <script src="vendor/react-dom.production.min.js"></script>
+  <script src="vendor/babel.min.js"></script>
+  <script src="vendor/roslib.min.js"></script>
+
+  <!-- Shared rosbridge provider + hooks. -->
+  <script type="text/babel" src="hmi/ros_bridge.jsx"></script>
+
+  <!-- F1 shell (left dashboard, top bar, bottom strip). -->
+  <script type="text/babel" src="f1/F1HMI.jsx"></script>
+
+  <!-- Three.js variant components (reused as-is). -->
+  <script src="threejs/types.js"></script>
+  <script type="text/babel" src="threejs/ThreeScene.jsx"></script>
+  <script type="text/babel" src="threejs/MapLayers.jsx"></script>
+  <script type="text/babel" src="threejs/TrackBoxes.jsx"></script>
+  <script type="text/babel" src="threejs/TrackPointClouds.jsx"></script>
+  <script type="text/babel" src="threejs/EgoMesh.jsx"></script>
+  <script type="text/babel" src="threejs/CameraController.jsx"></script>
+  <script type="text/babel" src="threejs/ControlPanel.jsx"></script>
+
+  <!-- Combined screen. -->
+  <script type="text/babel" src="threejs_f1/ThreejsF1Screen.jsx"></script>
+
+  <script type="text/babel">
+    function applyFit() {
+      const stage = document.getElementById('stage');
+      if (!stage) return;
+      const w = window.innerWidth || 1600;
+      const h = window.innerHeight || 900;
+      const s = Math.min(w / 1600, h / 900);
+      stage.style.transform = `scale(${s})`;
+    }
+    window.addEventListener('resize', applyFit);
+    applyFit();
+
+    const wsUrl = `ws://${window.location.hostname || 'localhost'}:9090`;
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(
+      <window.RosProvider url={wsUrl}>
+        <window.ThreejsF1Screen />
+      </window.RosProvider>
+    );
+  </script>
+</body>
+</html>
