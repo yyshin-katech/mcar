@@ -96,3 +96,14 @@ diff /home/ads/.claude/projects/-home-ads-mcar-v13/memory/MEMORY.md /home/ads/mc
 - git 쪽이 최신이면: git → 로컬로 복사
 - 로컬이 최신이면: 유지 (커밋 시 git에 반영)
 - 양쪽 모두 변경되었으면: 내용을 병합
+
+## 하네스: web-hmi-adapt
+
+**목표:** ioniq5_hmi_dev 기준으로 작성된 web_hmi를 현재 브랜치(siheung_dev 등)의 토픽/메시지/launch/맵 구조에 맞춰 어댑트.
+
+**트리거:** "web_hmi 데이터 매칭", "web_hmi 어댑트", "브랜치 매칭", "다시 어댑트" 요청 시 `web-hmi-adapt` 스킬 사용. 단순 질문은 직접 응답.
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-05-07 | 초기 구성 | agents 3 (match-detective/bridge-adapter/adapt-verifier) + skills/web-hmi-adapt | siheung_dev에서 web_hmi 데이터 매칭 요청 |
