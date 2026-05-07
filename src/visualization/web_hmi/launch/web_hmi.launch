@@ -19,7 +19,7 @@
   <arg name="http_port"    default="8088"/>
   <arg name="open_browser" default="true"/>
   <!-- variant: f1 | default | threejs | threejs_f1 -->
-  <arg name="variant"      default="f1"/>
+  <arg name="variant"      default="threejs_f1"/>
   <arg name="page"         default="$(eval {'f1':'index_f1.html','default':'index.html','threejs':'index_threejs.html','threejs_f1':'index_threejs_f1.html'}.get(arg('variant'), 'index.html'))"/>
   <!-- HD map shapefile to overlay on the F1 environment (EPSG:5179). Empty = disabled. -->
   <arg name="map_shp"      default="$(find gps_system_localizer)/src/A2_LINK_epsg5179.shp"/>

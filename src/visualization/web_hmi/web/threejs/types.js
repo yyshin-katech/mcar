@@ -57,10 +57,10 @@ const LAYER_STYLE = {
 
 // Default layer visibility (mirrors plan's ControlPanel defaults).
 const DEFAULT_LAYER_VIS = {
-  A1_NODE: true,  A2_LINK: true,  A3_DRIVEWAYSECTION: true,
+  A1_NODE: false,  A2_LINK: false,  A3_DRIVEWAYSECTION: true,
   A4_SUBSIDIARYSECTION: false,  A5_PARKINGLOT: false,
-  B1_SAFETYSIGN: true,  B2_SURFACELINEMARK: true,
-  B3_SURFACEMARK: false,  C1_TRAFFICLIGHT: true,
+  B1_SAFETYSIGN: false,  B2_SURFACELINEMARK: true,
+  B3_SURFACEMARK: true,  C1_TRAFFICLIGHT: false,
   C3_VEHICLEPROTECTIONSAFETY: false,  C4_SPEEDBUMP: false,
   C5_HEIGHTBARRIER: false,  C6_POSTPOINT: false,
 };
