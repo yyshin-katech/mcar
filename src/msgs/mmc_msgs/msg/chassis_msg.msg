@@ -22,3 +22,5 @@ float64 vcu_LONG_ACCEL
 
 uint8 AEB_flag
 uint8 LC_flag
+
+uint8 Curr_gear

@@ -39,6 +39,7 @@ from perception_ros_msg.msg import object_array_msg
 
 GPS_STD_WARN_M = 0.05  # 5 cm precision threshold (mirrors legacy)
 DIAG_MISS_THRESHOLD = 10  # 10 ticks × 100 ms = 1 s
+DIAG_MISS_THRESHOLD_V2X = 30  # 30 ticks × 100 ms = 3 s (V2X is slower)
 
 
 class BaseHmiStateController:
@@ -209,13 +210,21 @@ class BaseHmiStateController:
             self.gear_status = msg.gear_status
             self._emit('gear_changed', int(self.gear_status))
 
+    # DBC Curr_gear → HMI gear code mapping
+    _GEAR_MAP = {0: 1, 5: 4, 6: 3, 7: 2}  # 0=P→1, 5=D→4, 6=N→3, 7=R→2
+
     def _cb_chassis(self, msg):
         # speed (km/h)
         self.current_speed = float(msg.vcu_VS)
         self._emit('speed_changed', self.current_speed)
         # steering angle
-        self.steering_angle = float(msg.vcu_SAS_Angle)
+        self.steering_angle = -float(msg.vcu_SAS_Angle)
         self._emit('steering_changed', self.steering_angle)
+        # gear (DBC: 0=P,5=D,6=N,7=R → HMI: 1=P,2=R,3=N,4=D)
+        new_gear = self._GEAR_MAP.get(int(getattr(msg, 'Curr_gear', 0)), 0)
+        if new_gear != self.gear_status:
+            self.gear_status = new_gear
+            self._emit('gear_changed', self.gear_status)
         # autonomous mode
         new_mode = int(msg.vcu_ADMDStatus)
         if new_mode != self.autonomous_mode:
@@ -301,11 +310,12 @@ class BaseHmiStateController:
     # ─── periodic update — diagnostic + popup ─────────────────────
     def _evaluate_diag(self, name, received):
         d = self.diag_flags[name]
+        threshold = DIAG_MISS_THRESHOLD_V2X if name == 'v2x' else DIAG_MISS_THRESHOLD
         if received:
             d['miss_cnt'] = 0
         else:
             d['miss_cnt'] += 1
-            if d['miss_cnt'] > DIAG_MISS_THRESHOLD:
+            if d['miss_cnt'] > threshold:
                 return 2
 
         if name == 'gps':
@@ -316,7 +326,8 @@ class BaseHmiStateController:
         elif name == 'lidar':
             if 1 in (self.lidar_center_code, self.lidar_right_code, self.lidar_left_code):
                 return 1
-        elif name == 'v2x' and self.v2x_stat_code == 1:
+        # V2X: StatCode==1 is transient, ignore it (only flag persistent errors)
+        elif name == 'v2x' and self.v2x_stat_code >= 2:
             return 1
         elif name == 'vcu' and self.vcu_stat_code == 1:
             return 1

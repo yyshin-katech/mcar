@@ -741,7 +741,9 @@ void CHASSIS_CAN_READER(){
   msg_list.push_back(make_tuple((char*)"from_Control", vector<char*> {(char*)"LC_flag",\
                                                                     (char*)"AEB_flag"}));
 
-  int msg_num = 5;
+  msg_list.push_back(make_tuple((char*)"MOTOR_RPM", vector<char*> {(char*)"Curr_gear"}));
+
+  int msg_num = 6;
   int temp_substring;
   bool matched_flag = false;
   int msg_idx;
@@ -941,6 +943,21 @@ void CHASSIS_CAN_READER(){
                   msg.AEB_flag = value;
                 break;
 
+              }
+            }
+          break;
+
+          case(5): // MOTOR_RPM
+
+            for(int i=0; i!=get<1>(msg_list[msg_idx]).size(); i++){
+              kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[i], &sh);
+              kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
+
+              switch(i){
+
+                case(0): // Curr_gear
+                  msg.Curr_gear = value;
+                break;
               }
             }
           break;
