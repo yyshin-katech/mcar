@@ -58,10 +58,13 @@ def percept_type_str(type_int):
 SRC_EPSG = "EPSG:32652"
 DST_EPSG = "EPSG:5179"
 
-# Layer name -> kind. senario3 contains a single .shp (POLYLINEZ, 242 features)
-# verified via pyshp (shapeType=13).
+# Layer name -> kind. shp_map root has two .shp:
+#   TB_senario_map.shp        — POLYLINEZ (shapeType=13, 1770 features) — road network
+#   TB_senario_surfaceMARK.shp — POLYGONZ  (shapeType=15,  372 features) — surface marks
+# verified via pyshp.
 LAYERS_ALL = {
-    "TB_senario_map_senario3":    "polyline",  # PolylineZ
+    "TB_senario_map":          "polyline",  # PolylineZ — road network
+    "TB_senario_surfaceMARK":  "polygon",   # PolygonZ  — surface marks
 }
 
 

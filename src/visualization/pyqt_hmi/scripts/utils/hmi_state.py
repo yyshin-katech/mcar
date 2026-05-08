@@ -141,7 +141,7 @@ class BaseHmiStateController:
         rospy.Subscriber("/sensors/v_can", v_can_msg, self._cb_v_can)
         rospy.Subscriber("/localization/to_control_team",
                          to_control_team_from_local_msg, self._cb_local)
-        rospy.Subscriber("/katri_v2x_node/katri_spat",
+        rospy.Subscriber("/siheung_spat",
                          intersection_array_msg, self._cb_traffic)
         rospy.Subscriber("/track_Multi_RS", object_array_msg, self._cb_objects)
 
