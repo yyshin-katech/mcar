@@ -210,9 +210,18 @@ class BaseHmiStateController:
             self._emit('gear_changed', int(self.gear_status))
 
     def _cb_chassis(self, msg):
-        # NOTE: legacy reads `vehicle_speed` via getattr (returns 0 if absent),
-        # which would clobber the v_can path. We only honour AEB here so the
-        # speed gauge stays driven by wheel speeds.
+        # speed (km/h)
+        self.current_speed = float(msg.vcu_VS)
+        self._emit('speed_changed', self.current_speed)
+        # steering angle
+        self.steering_angle = float(msg.vcu_SAS_Angle)
+        self._emit('steering_changed', self.steering_angle)
+        # autonomous mode
+        new_mode = int(msg.vcu_ADMDStatus)
+        if new_mode != self.autonomous_mode:
+            self.autonomous_mode = new_mode
+            self._emit('mode_changed', self.autonomous_mode)
+        # AEB
         new_aeb = bool(getattr(msg, 'AEB_flag', 0))
         if new_aeb != bool(self.aeb_flag):
             self.aeb_flag = 1 if new_aeb else 0
