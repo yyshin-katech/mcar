@@ -369,7 +369,7 @@ function F1HMIShell(props) {
             display: "grid", placeItems: "center", fontFamily: mono, fontWeight: 700, fontSize: 11,
             clipPath: "polygon(0 0, 100% 0, 100% 65%, 65% 100%, 0 100%)" }}>K</div>
           <div style={{ fontFamily: mono, fontSize: 12, letterSpacing: 3, color: T.text1 }}>
-            KATECH · IONIQ 5
+            KATECH · IONIQ EV
           </div>
           <div style={{ fontFamily: mono, fontSize: 9, color: T.text3, marginLeft: 6, letterSpacing: 1 }}>AD/HMI v3.2 · NODE {nodeName}</div>
         </div>

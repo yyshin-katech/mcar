@@ -54,7 +54,7 @@ function TopBar({ autonomous, connected }) {
       <div className="topbar-left">
         <div className="brand">
           <div className="brand-mark">i5</div>
-          <span>IONIQ 5 · HMI</span>
+          <span>IONIQ EV · HMI</span>
         </div>
         <div className="crumb">SESSION <b>// MCAR-LIVE</b></div>
       </div>
