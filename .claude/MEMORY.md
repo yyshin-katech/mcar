@@ -23,7 +23,7 @@
 - 커밋·푸시 시 메모리 파일도 프로젝트 `.claude/`에 동기화하여 함께 커밋
 - 메모리 원본: `/home/ads/.claude/projects/-home-ads-mcar-v13/memory/` 또는 `/home/katech/.claude/projects/-home-katech-mcar-v13/memory/` (환경별)
 - 복사 대상: `<repo>/.claude/`
-- 대상 파일: `MEMORY.md`, `can_package.md`, `project_build.md`, `user_style.md`, `siheung_map_senario3.md`, `web_hmi_adapt_harness.md` (메모리 파일 추가 시 갱신)
+- 대상 파일: `MEMORY.md`, `can_package.md`, `project_build.md`, `user_style.md`, `siheung_map_senario3.md`, `web_hmi_adapt_harness.md`, `web_hmi_adapt_pitfalls.md`, `feedback_no_japanese.md` (메모리 파일 추가 시 갱신)
 
 ## 최근 작업 이력
 - DBC 파일을 `CANdb_IONIQev_PCAN1.dbc` → `CANdb_IONIQ5_AD_CAN_v3.dbc`로 변경 (7개 src 파일)
@@ -86,6 +86,11 @@
 - `can_pub_func.cpp`: MOTOR_RPM 메시지의 Curr_gear 신호 읽기 추가 (case 5)
 - `hmi_state.py`: DBC Curr_gear → HMI 기어 매핑 (0=P→1, 5=D→4, 6=N→3, 7=R→2)
 - `hmi_state.py`: V2X 미수신 threshold 1초→3초, StatCode>=2만 WARN (간헐적 StatCode=1 무시)
+- web_hmi 2차 어댑트(2026-05-08): `hmi_state.py:144` 신호등 토픽 `/katri_v2x_node/katri_spat` → `/siheung_spat` 교체
+- web_hmi 2차 어댑트: launch `map_shp`/`threejs_mapdir`을 `gps_system_localizer/src/shp_map` 루트로 변경 (senario3 sub-dir 폐기)
+- web_hmi 2차 어댑트: `web_hmi_threejs_bridge.py` LAYERS_ALL = {`TB_senario_map`: polyline (1770), `TB_senario_surfaceMARK`: polygon (372)}
+- web_hmi 2차 어댑트: `web/threejs/types.js` LAYER_STYLE/DEFAULT_LAYER_VIS에 두 신규 layer 키 추가 (LAYERS_ALL 동기화 누락 시 화면 빈출)
+- bag 재생 시 `/hmi/*` 토픽 충돌 발견: `rosbag play <bag> /hmi/map:=/dev/null/hmi_map /hmi/threejs/map:=/dev/null/threejs_map`로 remap 필요
 
 ## Diagnostic 구조
 | 토픽 | 메시지 타입 | 소스 노드 | 판단 기준 |
@@ -101,8 +106,9 @@
 ## 추가 메모리 파일
 - [Project Build & Branch Status](project_build.md) — 빌드 경로, 브랜치 구조, 최근 변경
 - [User Communication Style](user_style.md) — 한국어 짧은 명령 선호, 간결 응답
-- [siheung_dev senario3 map](siheung_map_senario3.md) — 시흥 배곧/정왕 POLYLINEZ EPSG:32652, web_hmi 좌표 변환 근거
+- [siheung_dev 활성 맵](siheung_map_senario3.md) — shp_map 루트 두 .shp(POLYLINEZ 1770 + POLYGONZ 372), EPSG:32652→5179 변환
 - [web-hmi-adapt harness](web_hmi_adapt_harness.md) — 브랜치 간 web_hmi 어댑트 파이프라인 (.claude/agents+skills)
 
 ## 피드백 메모리
 - [일본어 사용 금지](feedback_no_japanese.md) — 응답에 일본어(한자) 금지, 한국어만 사용
+- [web_hmi 어댑트 함정](web_hmi_adapt_pitfalls.md) — LAYER_STYLE 동기화 누락 / bag /hmi/* 충돌 (ROS만 패치하면 화면 안 나옴)

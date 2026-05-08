@@ -53,6 +53,9 @@ const LAYER_STYLE = {
   C4_SPEEDBUMP:               { color: '#fb923c', alpha: 0.45, kind: 'polygon' },
   C5_HEIGHTBARRIER:           { color: '#a78bfa', width: 1.0, kind: 'polyline' },
   C6_POSTPOINT:               { color: '#94a3b8', size: 0.3,  kind: 'point' },
+  // siheung_dev shp_map root layers (POLYLINEZ road network + POLYGONZ surface marks).
+  TB_senario_map:             { color: '#00e5ff', width: 1.0,  kind: 'polyline' },
+  TB_senario_surfaceMARK:     { color: '#94a3b8', alpha: 0.28, kind: 'polygon' },
 };
 
 // Default layer visibility (mirrors plan's ControlPanel defaults).
@@ -63,6 +66,7 @@ const DEFAULT_LAYER_VIS = {
   B3_SURFACEMARK: true,  C1_TRAFFICLIGHT: false,
   C3_VEHICLEPROTECTIONSAFETY: false,  C4_SPEEDBUMP: false,
   C5_HEIGHTBARRIER: false,  C6_POSTPOINT: false,
+  TB_senario_map: true,  TB_senario_surfaceMARK: true,
 };
 
 window.OBJ_PALETTE = OBJ_PALETTE;
