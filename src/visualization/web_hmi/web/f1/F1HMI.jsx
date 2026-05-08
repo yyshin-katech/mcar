@@ -245,17 +245,19 @@ function Environment({
         const rotDeg = -((o.orientation || 0) * 180 / Math.PI);
         const lblOff = Math.max(o.w, o.h) / 2 + 6; // clear rotated bbox
         return (
-          <g key={o.id || i}>
-            <g transform={`translate(${o.sx},${o.sy}) rotate(${rotDeg.toFixed(2)})`}>
+          <g key={o.id || i} transform={`translate(${o.sx},${o.sy})`}
+            style={{ transition: "transform 200ms linear" }}>
+            <g transform={`rotate(${rotDeg.toFixed(2)})`}
+              style={{ transition: "transform 200ms linear" }}>
               <rect x={-o.w / 2} y={-o.h / 2} width={o.w} height={o.h} rx="2"
                 fill={`${o.color}14`} stroke={o.color} strokeWidth="1.3" />
               <path d={`M ${-3} ${-o.h / 2 + 2} L 0 ${-o.h / 2 - 4} L ${3} ${-o.h / 2 + 2}`}
                 fill="none" stroke={o.color} strokeWidth="1.2"
                 strokeLinecap="round" strokeLinejoin="round" />
             </g>
-            <text x={o.sx + lblOff} y={o.sy - lblOff + 10}
+            <text x={lblOff} y={-lblOff + 10}
               fontFamily={mono} fontSize="10" fill={o.color} letterSpacing="1">{o.id}  ·  {o.kind}</text>
-            <text x={o.sx + lblOff} y={o.sy - lblOff + 24}
+            <text x={lblOff} y={-lblOff + 24}
               fontFamily={mono} fontSize="9" fill={T.text2}>{o.dist}  {o.spd}</text>
           </g>
         );

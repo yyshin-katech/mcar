@@ -179,30 +179,7 @@ function useTopicHz() {
 }
 
 function useObjects() {
-  const OBJ_DEFAULT = { count: 0, data: [] };
-  const { connected, ros, markActivity } = useRosConnection();
-  const [value, setValue] = React.useState(OBJ_DEFAULT);
-  const latestRef = React.useRef(OBJ_DEFAULT);
-
-  React.useEffect(() => {
-    if (!ros || !connected) return undefined;
-    const topic = new ROSLIB.Topic({
-      ros, name: '/hmi/objects', messageType: 'std_msgs/String',
-    });
-    const onMsg = (msg) => {
-      if (markActivity) markActivity();
-      try { latestRef.current = JSON.parse(msg.data); } catch (e) { /* ignore */ }
-    };
-    topic.subscribe(onMsg);
-    // Flush to React state at 5 Hz (200ms) to reduce re-renders
-    const tid = setInterval(() => setValue(latestRef.current), 200);
-    return () => {
-      clearInterval(tid);
-      try { topic.unsubscribe(onMsg); } catch (e) { /* ignore */ }
-    };
-  }, [ros, connected, markActivity]);
-
-  return value;
+  return useJsonTopic('/hmi/objects', { count: 0, data: [] });
 }
 
 function usePopup() {
