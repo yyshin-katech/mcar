@@ -45,7 +45,7 @@ function statusFromCodeF1(code) {
 
 const HEALTH_ROWS_F1 = [
   { label: "GPS-RTK", key: "gps",   detail: (s, hz) => s.rtkText || `${hz} Hz` },
-  { label: "K-ADCU",  key: "adcu",  detail: (_,  hz) => `${hz} Hz` },
+  { label: "VCU",     key: "vcu",   detail: (_,  hz) => `${hz} Hz` },
   { label: "LIDAR",   key: "lidar", detail: (_,  hz) => `${hz} Hz` },
   { label: "RADAR",   key: "radar", detail: (_,  hz) => `${hz} Hz` },
   { label: "CAMERA",  key: "cam",   detail: (_,  hz) => `${hz} Hz` },
@@ -122,10 +122,10 @@ function ThreejsF1Screen() {
   const utcText = formatUtcF1(dNow);
   const kstText = formatKstF1(dNow);
   const tickText = ((now - pageLoadAtRef.current) / 1000).toFixed(3) + "s";
-  const adcuOk = (hz.adcu || 0) > 0.5;
-  const rosOk = conn.connected && adcuOk;
+  const anyTopicOk = Object.values(hz).some(v => v > 0.5);
+  const rosOk = conn.connected && anyTopicOk;
   const rosLabel = !conn.connected ? "ROS · OFFLINE"
-    : adcuOk ? "ROS · /ad_can OK"
+    : anyTopicOk ? "ROS · ONLINE"
     : "ROS · WAITING";
   const netText = (conn.lastMessageAgeMs === Infinity || !conn.connected)
     ? "—" : `${Math.round(conn.lastMessageAgeMs)}ms`;

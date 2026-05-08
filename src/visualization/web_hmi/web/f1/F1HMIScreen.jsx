@@ -178,10 +178,10 @@ function F1HMIScreen() {
   const utcText = formatUtc(dNow);
   const kstText = formatKst(dNow);
   const tickText = formatTick(now - pageLoadAtRef.current);
-  const adcuOk = (hz.adcu || 0) > 0.5;
-  const rosOk = conn.connected && adcuOk;
+  const anyTopicOk = Object.values(hz).some(v => v > 0.5);
+  const rosOk = conn.connected && anyTopicOk;
   const rosLabel = !conn.connected ? "ROS · OFFLINE"
-    : adcuOk ? "ROS · /ad_can OK"
+    : anyTopicOk ? "ROS · ONLINE"
     : "ROS · WAITING";
   const netText = (conn.lastMessageAgeMs === Infinity || !conn.connected)
     ? "—"
