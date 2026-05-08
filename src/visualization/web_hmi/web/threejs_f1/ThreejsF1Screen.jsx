@@ -178,7 +178,7 @@ function ThreejsF1Screen() {
         <window.CameraController mode={cameraMode} />
       </window.ThreeScene>
       <div style={{
-        position: "absolute", top: 8, right: 8, width: 240, maxHeight: "92%",
+        position: "absolute", top: 140, right: 8, width: 240, maxHeight: "calc(92% - 140px)",
         zIndex: 10, overflowY: "auto",
         background: "rgba(8,12,18,0.85)",
         border: "1px solid rgba(0,229,255,0.18)",

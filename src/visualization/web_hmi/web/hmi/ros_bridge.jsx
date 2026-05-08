@@ -245,7 +245,7 @@ function buildTrafficObjs(objects) {
 }
 
 Object.assign(window, {
-  RosProvider, useRosConnection,
+  RosProvider, useRosConnection, useJsonTopic,
   useRosState, useDiagnostics, useTopicHz, useTopicStale,
   useObjects, usePopup, useTraffic, useBag, useMap,
   buildTrafficObjs,

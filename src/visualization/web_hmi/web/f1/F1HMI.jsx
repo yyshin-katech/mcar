@@ -85,17 +85,17 @@ function SpeedHalf({ value = 0, max = 120, limit = 0 }) {
 
 // ─── Steering wheel mini ────────────────────────────────────
 function SteerDial({ angle = 0, gear = "—" }) {
-  const W = 110, H = 130, cx = W / 2, cy = 70, r = 38;
+  const W = 80, H = 88, cx = W / 2, cy = 40, r = 28;
   return (
     <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-      <circle cx={cx} cy={cy} r={r} stroke={T.line} strokeWidth="1.5" fill="none" />
-      <circle cx={cx} cy={cy} r={r - 6} stroke={T.line} strokeWidth="0.8" fill="none" />
+      <circle cx={cx} cy={cy} r={r} stroke={T.line} strokeWidth="1.2" fill="none" />
+      <circle cx={cx} cy={cy} r={r - 5} stroke={T.line} strokeWidth="0.7" fill="none" />
       <g transform={`rotate(${angle} ${cx} ${cy})`}>
-        <line x1={cx} y1={cy - r + 4} x2={cx} y2={cy - r - 6} stroke={T.cyan} strokeWidth="2" />
-        <circle cx={cx} cy={cy} r="3" fill={T.cyan} />
-        <line x1={cx - r + 4} y1={cy} x2={cx + r - 4} y2={cy} stroke={T.cyan} strokeWidth="1.2" opacity="0.5" />
+        <line x1={cx} y1={cy - r + 3} x2={cx} y2={cy - r - 5} stroke={T.cyan} strokeWidth="1.6" />
+        <circle cx={cx} cy={cy} r="2.4" fill={T.cyan} />
+        <line x1={cx - r + 3} y1={cy} x2={cx + r - 3} y2={cy} stroke={T.cyan} strokeWidth="1" opacity="0.5" />
       </g>
-      <text x={cx} y={120} textAnchor="middle" fontFamily={mono} fontSize="9" fill={T.text3} letterSpacing="2">GEAR <tspan fill={T.text0}>{gear}</tspan></text>
+      <text x={cx} y={82} textAnchor="middle" fontFamily={mono} fontSize="8" fill={T.text3} letterSpacing="2">GEAR <tspan fill={T.text0}>{gear}</tspan></text>
     </svg>
   );
 }
@@ -105,22 +105,22 @@ function TrafficLight({ phase = "OFF", remain = 0 }) {
   const lit = { RED: "red", AMBER: "amber", GREEN: "green" }[phase];
   const phaseColor = { RED: T.red, AMBER: T.amber, GREEN: T.green, OFF: T.text3 }[phase] || T.text3;
   return (
-    <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-      <div style={{ width: 56, height: 130, background: T.bg0, border: `1px solid ${T.line}`, borderRadius: 6, padding: 6, display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
+    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+      <div style={{ width: 38, height: 90, background: T.bg0, border: `1px solid ${T.line}`, borderRadius: 5, padding: 4, display: "flex", flexDirection: "column", gap: 3, alignItems: "center" }}>
         {["red", "amber", "green"].map((c) => (
           <div key={c} style={{
-            width: 36, height: 36, borderRadius: "50%",
+            width: 24, height: 24, borderRadius: "50%",
             background: lit === c ? T[c] : T.bg2,
             border: `1px solid ${lit === c ? T[c] : T.line}`,
-            boxShadow: lit === c ? `0 0 14px ${T[c]}, 0 0 4px ${T[c]} inset` : "none",
+            boxShadow: lit === c ? `0 0 10px ${T[c]}, 0 0 3px ${T[c]} inset` : "none",
           }} />
         ))}
       </div>
-      <div style={{ fontFamily: mono, fontSize: 10, color: T.text3, lineHeight: 1.6 }}>
-        <div style={{ letterSpacing: 2 }}>PHASE</div>
-        <div style={{ fontSize: 18, color: phaseColor, marginTop: 2 }}>{phase}</div>
-        <div style={{ marginTop: 8, letterSpacing: 2 }}>CHANGE IN</div>
-        <div style={{ fontSize: 28, color: T.text0, fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{remain}<span style={{ fontSize: 10, color: T.text3 }}> SEC</span></div>
+      <div style={{ fontFamily: mono, fontSize: 9, color: T.text3, lineHeight: 1.5 }}>
+        <div style={{ letterSpacing: 1 }}>PHASE</div>
+        <div style={{ fontSize: 13, color: phaseColor, marginTop: 1 }}>{phase}</div>
+        <div style={{ marginTop: 5, letterSpacing: 1 }}>CHANGE IN</div>
+        <div style={{ fontSize: 18, color: T.text0, fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{remain}<span style={{ fontSize: 9, color: T.text3 }}> SEC</span></div>
       </div>
     </div>
   );
@@ -404,13 +404,17 @@ function F1HMIShell(props) {
         <Section num="01" title="VELOCITY · STEER" right="LIVE" />
         <div style={{ padding: "12px 14px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div><SpeedHalf value={speed} max={120} limit={speedLimit} /></div>
-          <div style={{ position: "relative" }}>
-            <div style={{ position: "absolute", top: 6, right: 4, fontFamily: mono, fontSize: 10, color: T.text3, letterSpacing: 1, textAlign: "right" }}>STEER</div>
-            <div style={{ position: "absolute", top: 22, right: 4, fontFamily: mono, fontSize: 22, color: T.text0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>{
-              typeof steeringAngle === 'number' ? `${steeringAngle >= 0 ? '+' : '−'}${Math.abs(steeringAngle).toFixed(1)}°` : '—'
-            }</div>
-            <div style={{ position: "absolute", top: 50, right: 4, fontFamily: mono, fontSize: 9, color: T.text3, letterSpacing: 1, textAlign: "right" }}>{steeringAngle < 0 ? "← LEFT" : "RIGHT →"}</div>
-            <SteerDial angle={typeof steeringAngle === 'number' ? steeringAngle : 0} gear={gearLetter} />
+          <div style={{ display: "flex", flexDirection: "column", height: 130 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <span style={{ fontFamily: mono, fontSize: 9, color: T.text3, letterSpacing: 1 }}>STEER</span>
+              <span style={{ fontFamily: mono, fontSize: 14, color: T.text0, fontVariantNumeric: "tabular-nums" }}>{
+                typeof steeringAngle === 'number' ? `${steeringAngle >= 0 ? '+' : '−'}${Math.abs(steeringAngle).toFixed(1)}°` : '—'
+              }</span>
+            </div>
+            <div style={{ textAlign: "right", fontFamily: mono, fontSize: 8, color: T.text3, letterSpacing: 1, marginTop: 2 }}>{steeringAngle < 0 ? "← LEFT" : "RIGHT →"}</div>
+            <div style={{ marginTop: "auto", display: "flex", justifyContent: "center" }}>
+              <SteerDial angle={typeof steeringAngle === 'number' ? steeringAngle : 0} gear={gearLetter} />
+            </div>
           </div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1, background: T.line, borderTop: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}` }}>
@@ -423,36 +427,37 @@ function F1HMIShell(props) {
         </div>
 
         {/* 02 DRIVE MODE  + 03 V2X */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr" }}>
           <div style={{ borderRight: `1px solid ${T.line}` }}>
             <Section num="02" title="DRIVE MODE" />
             <div style={{ padding: "12px 14px" }}>
               <div style={{ fontFamily: mono, fontSize: 9, color: T.text3, letterSpacing: 2 }}>DRIVE MODE</div>
               <div style={{ display: "flex", marginTop: 8, border: `1px solid ${T.line}` }}>
                 <div style={{
-                  flex: 1, padding: "6px 0", textAlign: "center",
-                  fontFamily: mono, fontSize: 11, letterSpacing: 1,
+                  flex: 1, padding: "10px 0", textAlign: "center",
+                  fontFamily: mono, fontSize: 13, letterSpacing: 1,
                   color: !engaged ? T.bg0 : T.text2,
                   background: !engaged ? T.cyan : "transparent",
                   fontWeight: !engaged ? 600 : 400,
                 }}>MANUAL</div>
                 <div style={{
-                  flex: 1, padding: "6px 0", textAlign: "center",
-                  fontFamily: mono, fontSize: 11, letterSpacing: 1,
+                  flex: 1, padding: "10px 0", textAlign: "center",
+                  fontFamily: mono, fontSize: 13, letterSpacing: 1,
                   color: engaged ? T.bg0 : T.text2,
                   background: engaged ? T.cyan : "transparent",
                   fontWeight: engaged ? 600 : 400,
                 }}>AUTONOMOUS</div>
               </div>
-              <div style={{ marginTop: 12, fontFamily: mono, fontSize: 10, color: T.text3, letterSpacing: 1 }}>
-                <span style={{ color: engaged ? T.green : T.amber }}>● {engaged ? 'ENGAGED' : 'STANDBY'}</span> &nbsp; v_max {vMaxText} &nbsp; ODD
-                <div style={{ color: T.text2, marginTop: 4 }}>{oddText}</div>
+              <div style={{ marginTop: 12, fontFamily: mono, fontSize: 10, letterSpacing: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+                <div style={{ color: engaged ? T.green : T.amber }}>● {engaged ? 'ENGAGED' : 'STANDBY'}</div>
+                <div style={{ color: T.cyan }}>● v_max {vMaxText}</div>
+                <div style={{ color: oddText === "nominal" ? T.green : T.amber }}>● ODD {oddText}</div>
               </div>
             </div>
           </div>
-          <div>
-            <Section num="03" title="V2X SIGNAL" />
-            <div style={{ padding: "12px 14px" }}>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <Section num="03" title="V2X" />
+            <div style={{ padding: "12px 14px", flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
               <TrafficLight phase={trafficPhase} remain={trafficRemain} />
             </div>
           </div>

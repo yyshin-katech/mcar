@@ -169,3 +169,14 @@ diff /home/ads/.claude/projects/-home-ads-mcar-v13/memory/MEMORY.md /home/ads/mc
 - git 쪽이 최신이면: git → 로컬로 복사
 - 로컬이 최신이면: 유지 (커밋 시 git에 반영)
 - 양쪽 모두 변경되었으면: 내용을 병합
+
+## 하네스: web-hmi-review
+
+**목표:** `src/visualization/web_hmi`의 launch + bridge + frontend + variant 4영역 정합성을 다각도 검토.
+
+**트리거:** "web_hmi 검토", "HMI 점검", "HMI 코드 리뷰", "다시 검토", "재실행" 요청 시 `web-hmi-review` 스킬 사용. 단순 질문은 직접 응답.
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-05-07 | 초기 구성 | agents 4 (launch/bridge/frontend/variant-auditor) + skills/web-hmi-review | 하네스 검토 요청 |
