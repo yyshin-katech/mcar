@@ -21,9 +21,9 @@
 
 ## 커밋/푸시 규칙
 - 커밋·푸시 시 메모리 파일도 프로젝트 `.claude/`에 동기화하여 함께 커밋
-- 메모리 원본: `/home/ads/.claude/projects/-home-ads-mcar-v13/memory/`
-- 복사 대상: `/home/ads/mcar_v13/.claude/`
-- 대상 파일: `MEMORY.md`, `can_package.md` (메모리 파일 추가 시 갱신)
+- 메모리 원본: `/home/ads/.claude/projects/-home-ads-mcar-v13/memory/` 또는 `/home/katech/.claude/projects/-home-katech-mcar-v13/memory/` (환경별)
+- 복사 대상: `<repo>/.claude/`
+- 대상 파일: `MEMORY.md`, `can_package.md`, `project_build.md`, `user_style.md`, `siheung_map_senario3.md`, `web_hmi_adapt_harness.md` (메모리 파일 추가 시 갱신)
 
 ## 최근 작업 이력
 - DBC 파일을 `CANdb_IONIQev_PCAN1.dbc` → `CANdb_IONIQ5_AD_CAN_v3.dbc`로 변경 (7개 src 파일)
@@ -97,6 +97,12 @@
 - GPSRTK_StatCode: carrSoln 값 (0=No RTK, 1=Float, 2=Fixed)
 - stat_display GPS 색상: carrSoln>=2(Fixed) 초록, <2(Float/No RTK) 주황, 통신끊김 빨강
 - GPS fixType: 0=NO_FIX, 2=2D, 3=3D, 4=GNSS+DR (GPS_INS_SolutionStat에 사용)
+
+## 추가 메모리 파일
+- [Project Build & Branch Status](project_build.md) — 빌드 경로, 브랜치 구조, 최근 변경
+- [User Communication Style](user_style.md) — 한국어 짧은 명령 선호, 간결 응답
+- [siheung_dev senario3 map](siheung_map_senario3.md) — 시흥 배곧/정왕 POLYLINEZ EPSG:32652, web_hmi 좌표 변환 근거
+- [web-hmi-adapt harness](web_hmi_adapt_harness.md) — 브랜치 간 web_hmi 어댑트 파이프라인 (.claude/agents+skills)
 
 ## 피드백 메모리
 - [일본어 사용 금지](feedback_no_japanese.md) — 응답에 일본어(한자) 금지, 한국어만 사용
