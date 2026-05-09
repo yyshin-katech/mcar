@@ -165,6 +165,13 @@ function useRosState() {
   return useJsonTopic('/hmi/state', STATE_DEFAULT);
 }
 
+// 50 Hz raw ego pose (bypasses /hmi/state's 10 Hz throttle). Used by the
+// Three.js camera/ego/track components for rviz-grade follow smoothness.
+const EGO_POSE_DEFAULT = { east: 0, north: 0, yaw: 0 };
+function useEgoPose() {
+  return useJsonTopic('/hmi/ego_pose', EGO_POSE_DEFAULT);
+}
+
 const DIAG_DEFAULT = {
   status: { gps: 0, adcu: 0, lidar: 0, radar: 0,
             v2x: 0, hmi: 0, vcu: 0, cam: 0, ipc: 0 },
@@ -246,7 +253,7 @@ function buildTrafficObjs(objects) {
 
 Object.assign(window, {
   RosProvider, useRosConnection, useJsonTopic,
-  useRosState, useDiagnostics, useTopicHz, useTopicStale,
+  useRosState, useEgoPose, useDiagnostics, useTopicHz, useTopicStale,
   useObjects, usePopup, useTraffic, useBag, useMap,
   buildTrafficObjs,
 });

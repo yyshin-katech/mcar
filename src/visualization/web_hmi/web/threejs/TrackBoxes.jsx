@@ -1,4 +1,4 @@
-/* global React, THREE, window, useThree, useJsonTopic, useRosState,
+/* global React, THREE, window, useThree, useJsonTopic, useEgoPose,
           OBJ_PALETTE, OBJ_DIMS */
 
 // Build a per-type bbox mesh (wireframe). Returns a THREE.Object3D.
@@ -48,16 +48,16 @@ function TrackBoxes({ showBoxes, showHeading, showIds }) {
   const three = useThree();
   const tracks = useJsonTopic('/hmi/threejs/tracks', null);
   const map = useJsonTopic('/hmi/threejs/map', null);
-  const ego = useRosState();
+  const ego = useEgoPose();
   const slotsRef = React.useRef(new Map()); // id → { group, type }
 
   // Reposition the trackGroup whenever ego pose or origin changes.
   React.useEffect(() => {
     if (!three) return;
     const origin = (map && map.origin) || [0, 0];
-    const eEast  = (ego && ego.ego && ego.ego.east)  || 0;
-    const eNorth = (ego && ego.ego && ego.ego.north) || 0;
-    const eYaw   = (ego && ego.ego && ego.ego.yaw)   || 0;
+    const eEast  = (ego && ego.east)  || 0;
+    const eNorth = (ego && ego.north) || 0;
+    const eYaw   = (ego && ego.yaw)   || 0;
     three.trackGroup.position.set(eEast - origin[0], 0, eNorth - origin[1]);
     three.trackGroup.rotation.y = -eYaw;
   });

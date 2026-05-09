@@ -16,6 +16,7 @@ A second ``rospy.Timer`` (10 Hz) publishes the buffered state to:
   /hmi/traffic       std_msgs/String   (JSON, on change only)
   /hmi/bag           std_msgs/String   (JSON, on change only)
   /hmi/topic_hz      std_msgs/String   (JSON, 1 Hz)
+  /hmi/ego_pose      std_msgs/String   (JSON, ~50 Hz raw, rviz-grade follow)
 
 Inbound:
   /hmi/cmd/mode_request   std_msgs/Bool    → controller.request_mode(b.data)
@@ -90,6 +91,9 @@ class WebHmiBridge(BaseHmiStateController):
             'bag':         rospy.Publisher('/hmi/bag',         String, queue_size=4, latch=True),
             'topic_hz':    rospy.Publisher('/hmi/topic_hz',    String, queue_size=2),
             'map':         rospy.Publisher('/hmi/map',         String, queue_size=1, latch=True),
+            # 50 Hz raw ego pose stream (separate from /hmi/state's 10 Hz
+            # snapshot) so the Three.js camera follow can run at rviz cadence.
+            'ego_pose':    rospy.Publisher('/hmi/ego_pose',    String, queue_size=4),
         }
 
         # Last published payloads — used for deduplication on event topics
@@ -167,6 +171,17 @@ class WebHmiBridge(BaseHmiStateController):
         if name == 'bag_state_changed':
             payload = {'recording': bool(args[0]), 'info': args[1]}
             self._publish_dedup('bag', payload)
+            return
+
+        if name == 'ego_pose_changed':
+            # Fired every /localization/to_control_team callback (~50 Hz),
+            # bypassing the 10 Hz snapshot timer so the web client can match
+            # rviz-grade camera follow smoothness.
+            self._pubs['ego_pose'].publish(String(data=json.dumps({
+                'east':  round(float(args[0]), 3),
+                'north': round(float(args[1]), 3),
+                'yaw':   round(float(args[2]), 4),
+            }, ensure_ascii=False)))
             return
 
         # Other signals are folded into the periodic /hmi/state snapshot —

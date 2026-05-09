@@ -1,9 +1,10 @@
-/* global React, THREE, window, useThree, useJsonTopic, useRosState */
+/* global React, THREE, window, useThree, useJsonTopic, useEgoPose */
 
 // IONIQ 5 ego mesh — loads a glTF model and normalizes it to spec
 // (4635×1890×1605 mm). Sits on Y=0, follows ego world position from
-// /hmi/state, rotated by yaw. While the glTF is loading (or if it fails),
-// a wireframe box of the same dimensions is shown as fallback.
+// /hmi/ego_pose (~50 Hz raw, rviz-grade smoothness), rotated by yaw.
+// While the glTF is loading (or if it fails), a wireframe box of the
+// same dimensions is shown as fallback.
 //
 // Model: "Hyundai Ioniq 5 - Lowpoly" by andikapratamaw (CC-BY-4.0).
 // See vendor/hyundai_ioniq_5_-_lowpoly/license.txt for attribution.
@@ -83,7 +84,7 @@ function wrapModel(gltfScene) {
 function EgoMesh() {
   const three = useThree();
   const map = useJsonTopic('/hmi/threejs/map', null);
-  const ego = useRosState();
+  const ego = useEgoPose();
   const groupRef = React.useRef(null);
 
   React.useEffect(() => {
@@ -140,9 +141,9 @@ function EgoMesh() {
     const g = groupRef.current;
     if (!g) return;
     const origin = (map && map.origin) || [0, 0];
-    const eEast  = (ego && ego.ego && ego.ego.east)  || 0;
-    const eNorth = (ego && ego.ego && ego.ego.north) || 0;
-    const eYaw   = (ego && ego.ego && ego.ego.yaw)   || 0;
+    const eEast  = (ego && ego.east)  || 0;
+    const eNorth = (ego && ego.north) || 0;
+    const eYaw   = (ego && ego.yaw)   || 0;
     g.position.set(eEast - origin[0], 0, eNorth - origin[1]);
     g.rotation.y = -eYaw;
   });
