@@ -58,13 +58,20 @@ def percept_type_str(type_int):
 SRC_EPSG = "EPSG:32652"
 DST_EPSG = "EPSG:5179"
 
-# Layer name -> kind. shp_map root has two .shp:
-#   TB_senario_map.shp        — POLYLINEZ (shapeType=13, 1770 features) — road network
-#   TB_senario_surfaceMARK.shp — POLYGONZ  (shapeType=15,  372 features) — surface marks
-# verified via pyshp.
+# Layer name -> kind. HDMap_Oido_New (MOLIT HD맵 11 표준 레이어, EPSG:32652).
+# shape kinds verified via pyshp on /shp_map/HDMap_Oido_New/.
 LAYERS_ALL = {
-    "TB_senario_map":          "polyline",  # PolylineZ — road network
-    "TB_senario_surfaceMARK":  "polygon",   # PolygonZ  — surface marks
+    "A1_NODE":                    "point",     # POINTZ     —    2463 nodes
+    "A2_LINK":                    "polyline",  # POLYLINEZ  —    2544 lanelinks
+    "A3_DRIVEWAYSECTION":         "polygon",   # POLYGONZ   —       8 driveway sections
+    "B1_SAFETYSIGN":              "point",     # POINTZ     —     811 signs
+    "B2_SURFACELINEMARK":         "polyline",  # POLYLINEZ  —    4101 lane marks
+    "B3_SURFACEMARK":             "polygon",   # POLYGONZ   —    1374 surface marks
+    "C1_TRAFFICLIGHT":            "point",     # POINTZ     —     625 traffic lights
+    "C3_VEHICLEPROTECTIONSAFETY": "polyline",  # POLYLINEZ  —    1153 guardrails
+    "C4_SPEEDBUMP":               "polygon",   # POLYGONZ   —      30 speed bumps
+    "C5_HEIGHTBARRIER":           "polyline",  # POLYLINEZ  —      16 height barriers
+    "C6_POSTPOINT":               "point",     # POINTZ     —     702 post points
 }
 
 
