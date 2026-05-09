@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>qt_hmi</name>
+  <version>0.0.1</version>
+  <description>
+    Qt5/C++ native HMI for IONIQ 5 (web_hmi 동등 기능).
+    Subscribes /hmi/* JSON topics published by web_hmi bridge.
+  </description>
+  <maintainer email="yyshin@katech.re.kr">Y. Shin</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>roscpp</depend>
+  <depend>std_msgs</depend>
+  <!-- 50 Hz ego pose source (rviz-grade smoothness): subscribed directly. -->
+  <depend>mmc_msgs</depend>
+
+  <!-- Runtime data source: web_hmi bridge publishes /hmi/* JSON topics. -->
+  <exec_depend>web_hmi</exec_depend>
+</package>

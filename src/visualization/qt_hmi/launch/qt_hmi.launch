@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<!--
+  qt_hmi launcher.
+
+  qt_hmi 는 web_hmi bridge 가 발행하는 /hmi/* JSON 토픽만 구독한다.
+  따라서 보통 web_hmi.launch (variant=threejs_f1) 와 함께 실행하거나,
+  bridge=true 로 두면 이 launch 가 web_hmi.launch 를 함께 띄운다.
+
+  Usage:
+    # web_hmi 가 이미 떠 있다면:
+    roslaunch qt_hmi qt_hmi.launch bridge:=false
+
+    # qt_hmi 단독으로 모든 의존을 띄우고 싶을 때 (브라우저는 띄우지 않음):
+    roslaunch qt_hmi qt_hmi.launch bridge:=true
+-->
+<launch>
+  <!-- web_hmi.launch 를 함께 시작할지 여부.
+       기본값 true — qt_hmi 단독 실행이면 자동으로 bridge 띄워줌. -->
+  <arg name="bridge"        default="true"/>
+  <arg name="open_browser"  default="false"/>
+  <arg name="variant"       default="threejs_f1"/>
+
+  <include if="$(arg bridge)"
+           file="$(find web_hmi)/launch/web_hmi.launch">
+    <arg name="variant"      value="$(arg variant)"/>
+    <arg name="open_browser" value="$(arg open_browser)"/>
+  </include>
+
+  <node name="qt_hmi_node"
+        pkg="qt_hmi" type="qt_hmi_node"
+        output="screen" required="true"/>
+</launch>

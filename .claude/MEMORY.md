@@ -23,7 +23,7 @@
 - 커밋·푸시 시 메모리 파일도 프로젝트 `.claude/`에 동기화하여 함께 커밋
 - 메모리 원본: `/home/ads/.claude/projects/-home-ads-mcar-v13/memory/` 또는 `/home/katech/.claude/projects/-home-katech-mcar-v13/memory/` (환경별)
 - 복사 대상: `<repo>/.claude/`
-- 대상 파일: `MEMORY.md`, `can_package.md`, `project_build.md`, `user_style.md`, `siheung_map_senario3.md`, `web_hmi_adapt_harness.md`, `web_hmi_adapt_pitfalls.md`, `feedback_no_japanese.md` (메모리 파일 추가 시 갱신)
+- 대상 파일: `MEMORY.md`, `can_package.md`, `project_build.md`, `user_style.md`, `siheung_map_senario3.md`, `web_hmi_adapt_harness.md`, `web_hmi_adapt_pitfalls.md`, `feedback_no_japanese.md`, `project_qt_hmi.md` (메모리 파일 추가 시 갱신)
 
 ## 최근 작업 이력
 - DBC 파일을 `CANdb_IONIQev_PCAN1.dbc` → `CANdb_IONIQ5_AD_CAN_v3.dbc`로 변경 (7개 src 파일)
@@ -92,6 +92,15 @@
 - web_hmi 2차 어댑트: `web/threejs/types.js` LAYER_STYLE/DEFAULT_LAYER_VIS에 두 신규 layer 키 추가 (LAYERS_ALL 동기화 누락 시 화면 빈출)
 - bag 재생 시 `/hmi/*` 토픽 충돌 발견: `rosbag play <bag> /hmi/map:=/dev/null/hmi_map /hmi/threejs/map:=/dev/null/threejs_map`로 remap 필요
 
+### siheung_dev 브랜치 작업 (2026-05-09 ~ 2026-05-10)
+- web_hmi 3차 어댑트: launch `map_shp`/`threejs_mapdir`을 `HDMap_Oido_New` 폴더로 변경 (시화 시범운행 MOLIT 11 표준 레이어 EPSG:32652)
+- `web_hmi_threejs_bridge.py` LAYERS_ALL → 11 MOLIT 레이어 (A1_NODE/A2_LINK/A3_DRIVEWAYSECTION/B1_SAFETYSIGN/B2_SURFACELINEMARK/B3_SURFACEMARK/C1_TRAFFICLIGHT/C3~C6)
+- `web/threejs/types.js` DEFAULT_LAYER_VIS: A2_LINK 기본 visible로 변경
+- **qt_hmi 신규 패키지** (`src/visualization/qt_hmi/`): Qt5/C++ 네이티브 HMI, web_hmi 동등 기능. M1~M4 PASS (스켈레톤 + RosBridge → F1Dashboard 7 위젯 → MapScene QOpenGLWidget(Core 3.3) + 15 layer + ego/track → ControlPanel QDockWidget 13 체크박스 + V2X TrafficLightWidget). 1.40 MB ELF.
+- qt_hmi: 카메라 follow rviz-grade smoothness — `web_hmi_bridge`의 `/hmi/state` 10 Hz throttle 우회. RosBridge가 `/localization/to_control_team`(50 Hz, `mmc_msgs::to_control_team_from_local_msg`) 직접 구독 → `egoPoseChanged(east,north,yaw)` 시그널 → `MapScene::onEgoPoseChanged`. EMA α=0.5 (시정수 ~32 ms). 60 fps QTimer 갱신. yaw atan2(sin/cos) unwrap. `onStateChanged`는 ego 필드 보존 (10 Hz가 50 Hz 덮어쓰지 않음).
+- qt-hmi-build 하네스 (`.claude/skills/qt-hmi-build/` + `.claude/agents/{design-architect,impl-coder,impl-verifier}.md`): 마일스톤 단위 3-phase 호출 (1 호출 1 M).
+- bag 검증 패턴: `/hmi/state` 녹화 bag 재생 시 live `web_hmi_bridge`까지 띄우면 dual-publisher 진동. **roscore + bag + qt_hmi_node**만 띄우는 것이 정답.
+
 ## Diagnostic 구조
 | 토픽 | 메시지 타입 | 소스 노드 | 판단 기준 |
 |------|-------------|-----------|-----------|
@@ -108,6 +117,7 @@
 - [User Communication Style](user_style.md) — 한국어 짧은 명령 선호, 간결 응답
 - [siheung_dev 활성 맵](siheung_map_senario3.md) — shp_map 루트 두 .shp(POLYLINEZ 1770 + POLYGONZ 372), EPSG:32652→5179 변환
 - [web-hmi-adapt harness](web_hmi_adapt_harness.md) — 브랜치 간 web_hmi 어댑트 파이프라인 (.claude/agents+skills)
+- [qt_hmi native HMI](project_qt_hmi.md) — Qt5/C++ HMI M1~M4 PASS, ego pose 50Hz 직접 구독 (rviz-grade smoothness)
 
 ## 피드백 메모리
 - [일본어 사용 금지](feedback_no_japanese.md) — 응답에 일본어(한자) 금지, 한국어만 사용
