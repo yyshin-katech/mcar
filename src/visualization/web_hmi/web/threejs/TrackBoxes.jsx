@@ -1,4 +1,4 @@
-/* global React, THREE, window, useThree, useJsonTopic, useEgoPose,
+/* global React, THREE, window, useThree, useJsonTopic,
           OBJ_PALETTE, OBJ_DIMS */
 
 // Build a per-type bbox mesh (wireframe). Returns a THREE.Object3D.
@@ -48,19 +48,24 @@ function TrackBoxes({ showBoxes, showHeading, showIds }) {
   const three = useThree();
   const tracks = useJsonTopic('/hmi/threejs/tracks', null);
   const map = useJsonTopic('/hmi/threejs/map', null);
-  const ego = useEgoPose();
   const slotsRef = React.useRef(new Map()); // id → { group, type }
 
-  // Reposition the trackGroup whenever ego pose or origin changes.
+  // Tracks are emitted in ego-frame at perception rate (~10 Hz). The bridge
+  // pairs each emission with the ego pose used to compute those local
+  // coords (`ego_at_emit`). Transforming the trackGroup with that snapshot
+  // — instead of the live 50 Hz /hmi/ego_pose — keeps tracks fixed in the
+  // world between perception ticks. (Using live ego makes them slide ~1 m
+  // every tick as ego drifts in the gap.)
   React.useEffect(() => {
     if (!three) return;
     const origin = (map && map.origin) || [0, 0];
-    const eEast  = (ego && ego.east)  || 0;
-    const eNorth = (ego && ego.north) || 0;
-    const eYaw   = (ego && ego.yaw)   || 0;
+    const e = (tracks && tracks.ego_at_emit) || null;
+    const eEast  = (e && e.east)  || 0;
+    const eNorth = (e && e.north) || 0;
+    const eYaw   = (e && e.yaw)   || 0;
     three.trackGroup.position.set(eEast - origin[0], 0, eNorth - origin[1]);
     three.trackGroup.rotation.y = -eYaw;
-  });
+  }, [three, tracks, map]);
 
   // Add/update/remove tracks keyed by id.
   React.useEffect(() => {

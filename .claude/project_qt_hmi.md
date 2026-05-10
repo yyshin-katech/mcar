@@ -1,6 +1,6 @@
 ---
-name: qt_hmi native HMI development
-description: web_hmi와 동등 기능을 가진 Qt5/C++ 네이티브 HMI. M1~M4 PASS (siheung_dev). 카메라 follow는 /localization/to_control_team 50 Hz 직접 구독 + EMA α=0.5로 rviz 동급 부드러움.
+name: qt_hmi + web_hmi camera follow rviz-grade smoothness
+description: Qt5 qt_hmi (M1~M4 PASS) + web_hmi 모두 /localization/to_control_team 50 Hz 직접 구독 + EMA α=0.5 패턴. 추가로 ego-frame 트랙은 emit-time ego 스냅샷(`ego_at_emit`)과 페어링해야 슬라이드 안 함.
 type: project
 originSessionId: 2732ef96-e301-44d6-abdd-0935ca63a907
 ---
@@ -32,3 +32,13 @@ originSessionId: 2732ef96-e301-44d6-abdd-0935ca63a907
 - **M4** — ControlPanel QDockWidget(280~360px, 4 그룹 V2X/Display/Camera/Layers, 13 체크박스) + V2X TrafficLightWidget (220×130, R/Y/G + 카운트다운 + INT/SG 푸터). `controlPanel_->emitInitialState()`로 startup 일관성. 1.40 MB ELF, MOC 7건.
 
 **JSON 파서 함정:** `/hmi/threejs/map`의 layer kind는 페이로드 측 `layer.kind`(point/polyline/polygon) 우선. `LAYER_STYLE`(types.js)의 `kind`는 무시 (web_hmi MapLayers.jsx와 동일 정책). qt_hmi의 `LayerStyle.h`도 동일.
+
+**web_hmi 50 Hz 동등화 (2026-05-10, commit 47d72af):**
+- `web_hmi_bridge.py`: `BaseHmiStateController._cb_local`이 이미 50 Hz로 emit하던 `'ego_pose_changed'` 이벤트를 `/hmi/ego_pose` (std_msgs/String JSON) 신규 토픽으로 라우팅. `/hmi/state` 10 Hz 스냅샷은 그대로.
+- 프론트: `useEgoPose()` 훅 추가 → `CameraController` / `EgoMesh`가 `useRosState` 대신 사용. `useEffect`가 토픽 갱신마다 재실행되므로 50 Hz 추종.
+
+**Ego-frame 트랙 슬라이드 함정 (2026-05-10, commit 후속):**
+- 증상: 카메라가 50 Hz로 부드럽게 따라가는데 객체(트랙)들이 매 perception tick(~10 Hz)마다 ~1 m씩 튐.
+- 원인: `web_hmi_threejs_bridge._on_percept`는 `coreinfo.center.x/y` (ego-frame) 좌표를 그대로 emit. `TrackBoxes`가 `trackGroup`을 라이브 50 Hz ego로 변환하면, 트랙이 emit된 시점(P_emit)과 현재 ego(P_now) 차이만큼 월드 위치가 어긋남. 다음 tick에 새 트랙이 P_new 기준으로 들어오면 그만큼 스냅 → 가시적 jitter.
+- 해결: 브리지가 `_on_local`에서 `/localization/to_control_team` 직접 구독 → `_last_ego` 캐시 → `_on_percept` 페이로드에 `ego_at_emit:{east,north,yaw}` 동봉. `TrackBoxes`는 `useEgoPose()` 제거, `tracks.ego_at_emit`로 trackGroup 변환 (트랙과 변환이 동시간 페어링).
+- 일반 패턴: ego-frame으로 발행되는 모든 *느린* 데이터(perception, free space, 등)는 emit-time ego 스냅샷과 페어링되어야 함. 라이브 50 Hz ego는 self motion(카메라/EgoMesh)에만 사용.

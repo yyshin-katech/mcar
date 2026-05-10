@@ -38,6 +38,11 @@ try:
 except ImportError:
     RsPerceptionMsg = None
 
+try:
+    from mmc_msgs.msg import to_control_team_from_local_msg
+except ImportError:
+    to_control_team_from_local_msg = None
+
 # /percept_topic carries object metadata + cloud_indices, but its lidarframe.
 # scan_pointcloud is empty on this bag (has_pointcloud=False). The actual
 # point cloud lives on /fusion_lidar_points (sensor_msgs/PointCloud2, ~1.5 Hz,
@@ -95,7 +100,21 @@ class WebHmiThreejsBridge:
         self._with_points_count = 0
         self._cloud_xyz = None  # (N,3) float32, latest /fusion_lidar_points
         self._cloud_n = 0
+        # Last ego pose at percept emit time. Tracks are produced in ego
+        # frame, so the frontend must transform them with the *same* ego
+        # pose used at emission — not the live 50 Hz /hmi/ego_pose. Otherwise
+        # tracks slide ~1 m every perception tick (10 Hz) as ego drifts in
+        # between. We snapshot the latest /localization/to_control_team here
+        # and include it in each /hmi/threejs/tracks payload.
+        self._last_ego = None  # (east, north, yaw) or None until first cb
         self._publish_map_once()
+
+        if to_control_team_from_local_msg is not None:
+            self._sub_local = rospy.Subscriber(
+                "/localization/to_control_team",
+                to_control_team_from_local_msg,
+                self._on_local, queue_size=4,
+            )
 
         if RsPerceptionMsg is None:
             rospy.logerr(
@@ -112,6 +131,11 @@ class WebHmiThreejsBridge:
                 self._on_percept, queue_size=1, buff_size=2 ** 24,
             )
             rospy.Timer(rospy.Duration(5.0), self._log_publish_rate)
+
+    def _on_local(self, msg):
+        self._last_ego = (
+            float(msg.host_east), float(msg.host_north), float(msg.host_yaw),
+        )
 
     def _on_cloud(self, msg):
         """Decode PointCloud2 → cached (N,3) float32 array.
@@ -187,10 +211,14 @@ class WebHmiThreejsBridge:
         self._tracks_count += len(tracks)
         self._with_points_count += with_points
 
-        payload = json.dumps(
-            {"stamp": stamp, "tracks": tracks},
-            ensure_ascii=False, separators=(",", ":"),
-        )
+        # Pair every emit with the ego pose used to produce these ego-frame
+        # coords, so the frontend transforms tracks with a snapshot that
+        # matches them (vs. the live 50 Hz pose, which drifts ~1 m/tick).
+        body = {"stamp": stamp, "tracks": tracks}
+        if self._last_ego is not None:
+            e, n, y = self._last_ego
+            body["ego_at_emit"] = {"east": e, "north": n, "yaw": y}
+        payload = json.dumps(body, ensure_ascii=False, separators=(",", ":"))
         self._pub_tracks.publish(String(data=payload))
 
     @staticmethod
