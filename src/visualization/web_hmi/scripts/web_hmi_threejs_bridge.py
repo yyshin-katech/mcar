@@ -51,6 +51,12 @@ except ImportError:
 # fan it out across the 10 Hz percept stream.
 PERCEPT_MAX_POINTS_PER_TRACK = 4096  # safety cap; rosbridge JSON > 8MB tends to stutter
 
+# Confidence floor: perception emits a long tail of single-frame ghost tracks
+# (~34% of unique IDs in the live bag) with confidence ≤0.80, vs stable
+# tracks at ~0.999. Filtering here prevents the frontend from briefly
+# rendering and disposing those ghosts (visible flicker).
+PERCEPT_MIN_CONFIDENCE = 0.9
+
 
 # coreinfo.type → lowercase string. percept_topic_matcher.cpp:163 documents
 # `1=보행자`. Everything else falls through to "car" so the magenta box still
@@ -178,6 +184,9 @@ class WebHmiThreejsBridge:
             except AttributeError:
                 continue
             try:
+                conf = float(ci.exist_confidence.data)
+                if conf < PERCEPT_MIN_CONFIDENCE:
+                    continue
                 type_int = int(ci.type.data)
                 t = {
                     "id":     tid,
@@ -193,7 +202,7 @@ class WebHmiThreejsBridge:
                         float(ci.direction.y.data),
                         float(ci.direction.x.data),
                     ),
-                    "confidence": float(ci.exist_confidence.data),
+                    "confidence": conf,
                 }
             except AttributeError:
                 continue
