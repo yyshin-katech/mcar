@@ -131,6 +131,11 @@ class WebHmiBridge(BaseHmiStateController):
         # One-shot map publish (latched)
         self._publish_map_once()
 
+        # Latch an explicit IDLE on /hmi/bag so subscribers don't fall back
+        # to the JSX prop default and don't get a stale REC from a co-played
+        # bag's latched message before the first real toggle.
+        self._emit('bag_state_changed', self.bag_recording, self.bag_info)
+
         rospy.loginfo("web_hmi_bridge: ready, publishing on /hmi/*")
 
     # ─── BaseHmiStateController hook implementations ──────────────
