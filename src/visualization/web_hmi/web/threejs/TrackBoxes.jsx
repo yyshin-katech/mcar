@@ -71,12 +71,24 @@ function TrackBoxes({ showBoxes, showHeading, showIds }) {
   React.useEffect(() => {
     if (!three || !tracks || !tracks.tracks) return undefined;
     const seen = new Set();
+    // Two anti-flicker filters tuned against the live perception stream:
+    //  - confirm threshold: a new ID becomes visible only after its 2nd
+    //    sighting. Single-frame ghost detections (frequent, ~30% of new
+    //    IDs in the bag) are silently dropped.
+    //  - miss grace: keep the last pose for up to ~1 s of absence. The
+    //    tracker drops 43% of IDs for 1–6 frames at random; grace covers
+    //    those and lets a true disappearance clear within a second.
+    const TRACK_CONFIRM = 2;
+    const TRACK_MISS_GRACE = 10;
     tracks.tracks.forEach((trk) => {
       seen.add(trk.id);
       let slot = slotsRef.current.get(trk.id);
-      if (!slot || slot.type !== trk.type
-          || slot.size_x !== trk.size_x || slot.size_y !== trk.size_y) {
-        // Geometry depends on type/size — rebuild if any changed.
+      if (!slot || slot.type !== trk.type) {
+        // Rebuild only on type change. Perception emits size_x/size_y at
+        // full float precision, fluctuating ~0.1 m every tick (~10 Hz);
+        // rebuilding the geometry on each fluctuation makes the box
+        // visibly flicker. The first-emission size is good enough — small
+        // ongoing variation is not worth the dispose/recreate cost.
         if (slot) {
           three.trackGroup.remove(slot.group);
           disposeMesh(slot.group);
@@ -87,13 +99,18 @@ function TrackBoxes({ showBoxes, showHeading, showIds }) {
         const arrow = buildHeadingArrow(trk.type, trk.size_x);
         arrow.name = 'arrow';
         group.add(arrow);
+        // Hidden until confirmed by a second sighting (set below).
+        group.visible = false;
         three.trackGroup.add(group);
-        slot = { group, type: trk.type, size_x: trk.size_x, size_y: trk.size_y };
+        slot = { group, type: trk.type, hits: 0 };
         slotsRef.current.set(trk.id, slot);
       }
+      slot.hits = (slot.hits || 0) + 1;
+      slot.missed = 0;
       slot.group.position.set(trk.x, 0, trk.y);
       slot.group.rotation.y = -trk.orientation;
-      slot.group.visible = !!showBoxes || !!showHeading;
+      const confirmed = slot.hits >= TRACK_CONFIRM;
+      slot.group.visible = confirmed && (!!showBoxes || !!showHeading);
       const arrow = slot.group.getObjectByName('arrow');
       if (arrow) arrow.visible = !!showHeading;
       // boxes themselves toggled via children visibility
@@ -102,9 +119,10 @@ function TrackBoxes({ showBoxes, showHeading, showIds }) {
         c.visible = !!showBoxes;
       });
     });
-    // Drop tracks no longer present.
     for (const [id, slot] of slotsRef.current) {
-      if (!seen.has(id)) {
+      if (seen.has(id)) continue;
+      slot.missed = (slot.missed || 0) + 1;
+      if (slot.missed > TRACK_MISS_GRACE) {
         three.trackGroup.remove(slot.group);
         disposeMesh(slot.group);
         slotsRef.current.delete(id);
