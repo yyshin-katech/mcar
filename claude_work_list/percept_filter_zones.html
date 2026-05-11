@@ -36,7 +36,7 @@
          ego(0,0)         -> (357.14, 125)
          x = 80 (front)   -> 928.57
          x = -40 (rear)   -> 71.43
-         x = 5  (side cut) -> 392.86
+         x = 10 (side cut) -> 428.57
          y = +5  -> svgY = 62.5
          y = -5  -> svgY = 187.5
   -->
@@ -60,7 +60,7 @@
 
     <!-- ───── CUT 영역 ─────
          (1) 박스 좌측 끝(svgX < 71.43)  : x < -40 m
-         (2) 측면 좌측 끝(svgX < 392.86) inside |y|>5 band only — 즉 위/아래 띠만
+         (2) 측면 좌측 끝(svgX < 428.57) inside |y|>5 band only — 즉 위/아래 띠만
          (3) 박스/측면 우측 끝(svgX > 928.57) : x > 80 m
          (4) |y|>5 위/아래 띠 중 측면 시작 전 구간 — 처리는 측면 영역 그릴 때 자동 처리. -->
     <!-- 위 띠 전체 cut 배경 -->
@@ -73,16 +73,16 @@
     <rect x="928.57" y="62.5" width="71.43" height="125" fill="url(#cut)" opacity="0.7"/>
 
     <!-- ───── 인식 영역 (거리 그라데이션) ─────
-         A) 박스: |y|<=5, x in [-40, 80] -->
+         A) 박스: |y|<=5, x in [-40, 80] (후방 40m 전체 포함) -->
     <rect x="71.43"  y="62.5" width="857.14" height="125" fill="url(#distGrad)"/>
-    <!-- B) 전방 측면 위: y>5, x in [5, 80] -->
-    <rect x="392.86" y="0"    width="535.71" height="62.5" fill="url(#distGrad)"/>
-    <!-- B) 전방 측면 아래: y<-5, x in [5, 80] -->
-    <rect x="392.86" y="187.5" width="535.71" height="62.5" fill="url(#distGrad)"/>
-    <!-- C) 후방 측면 위: y>5, x in [-40, 0] -->
-    <rect x="71.43"  y="0"    width="285.71" height="62.5" fill="url(#distGrad)"/>
-    <!-- C) 후방 측면 아래: y<-5, x in [-40, 0] -->
-    <rect x="71.43"  y="187.5" width="285.71" height="62.5" fill="url(#distGrad)"/>
+    <!-- B) 전방 측면 위: y>5, x in [10, 80] -->
+    <rect x="428.57" y="0"    width="500" height="62.5" fill="url(#distGrad)"/>
+    <!-- B) 전방 측면 아래: y<-5, x in [10, 80] -->
+    <rect x="428.57" y="187.5" width="500" height="62.5" fill="url(#distGrad)"/>
+    <!-- C) 후방 측면 위: y>5, x in [-40, -10] (후방 10m 사각지대 제외) -->
+    <rect x="71.43"  y="0"    width="214.29" height="62.5" fill="url(#distGrad)"/>
+    <!-- C) 후방 측면 아래: y<-5, x in [-40, -10] -->
+    <rect x="71.43"  y="187.5" width="214.29" height="62.5" fill="url(#distGrad)"/>
 
     <!-- 영역 라벨 -->
     <text x="500" y="120" fill="#fff" font-size="13" font-family="Inter, sans-serif"
@@ -90,19 +90,19 @@
       박스 (x ∈ [-40, 80]m, |y| ≤ 5m)
     </text>
     <text x="660" y="42"  fill="#ffd4c4" font-size="12" font-family="Inter, sans-serif"
-          text-anchor="middle" font-weight="600">전방 측면 (x ∈ [5, 80]m, y &gt; +5m)</text>
+          text-anchor="middle" font-weight="600">전방 측면 (x ∈ [10, 80]m, y &gt; +5m)</text>
     <text x="660" y="218" fill="#ffd4c4" font-size="12" font-family="Inter, sans-serif"
-          text-anchor="middle" font-weight="600">전방 측면 (x ∈ [5, 80]m, y &lt; -5m)</text>
-    <text x="214" y="42"  fill="#ffd4c4" font-size="12" font-family="Inter, sans-serif"
-          text-anchor="middle" font-weight="600">후방 측면 (x ∈ [-40, 0]m, y &gt; +5m)</text>
-    <text x="214" y="218" fill="#ffd4c4" font-size="12" font-family="Inter, sans-serif"
-          text-anchor="middle" font-weight="600">후방 측면 (x ∈ [-40, 0]m, y &lt; -5m)</text>
+          text-anchor="middle" font-weight="600">전방 측면 (x ∈ [10, 80]m, y &lt; -5m)</text>
+    <text x="178" y="42"  fill="#ffd4c4" font-size="12" font-family="Inter, sans-serif"
+          text-anchor="middle" font-weight="600">후방 측면 (x ∈ [-40, -10]m, y &gt; +5m)</text>
+    <text x="178" y="218" fill="#ffd4c4" font-size="12" font-family="Inter, sans-serif"
+          text-anchor="middle" font-weight="600">후방 측면 (x ∈ [-40, -10]m, y &lt; -5m)</text>
 
     <!-- CUT 영역 라벨 -->
     <text x="36"  y="40"  fill="#7a818a" font-size="11" font-family="Inter, sans-serif" text-anchor="middle">CUT</text>
     <text x="36"  y="222" fill="#7a818a" font-size="11" font-family="Inter, sans-serif" text-anchor="middle">CUT</text>
-    <text x="375" y="38"  fill="#7a818a" font-size="10" font-family="Inter, sans-serif" text-anchor="middle">x∈(0,5)</text>
-    <text x="375" y="224" fill="#7a818a" font-size="10" font-family="Inter, sans-serif" text-anchor="middle">x∈(0,5)</text>
+    <text x="375" y="38"  fill="#7a818a" font-size="10" font-family="Inter, sans-serif" text-anchor="middle">x∈(0,10)</text>
+    <text x="375" y="224" fill="#7a818a" font-size="10" font-family="Inter, sans-serif" text-anchor="middle">x∈(0,10)</text>
     <text x="964" y="40"  fill="#7a818a" font-size="11" font-family="Inter, sans-serif" text-anchor="middle">x&gt;80</text>
     <text x="36"  y="130" fill="#7a818a" font-size="11" font-family="Inter, sans-serif" text-anchor="middle">x&lt;-40</text>
 
@@ -111,7 +111,8 @@
     <line x1="357.14" y1="0"     x2="357.14" y2="250"   stroke="#3a4048" stroke-width="1"/>
     <line x1="928.57" y1="0"     x2="928.57" y2="250"   stroke="#3a4048" stroke-width="1" stroke-dasharray="3 3"/>
     <line x1="71.43"  y1="0"     x2="71.43"  y2="250"   stroke="#3a4048" stroke-width="1" stroke-dasharray="3 3"/>
-    <line x1="392.86" y1="0"     x2="392.86" y2="250"   stroke="#3a4048" stroke-width="1" stroke-dasharray="3 3"/>
+    <line x1="428.57" y1="0"     x2="428.57" y2="250"   stroke="#3a4048" stroke-width="1" stroke-dasharray="3 3"/>
+    <line x1="285.71" y1="0"     x2="285.71" y2="250"   stroke="#3a4048" stroke-width="1" stroke-dasharray="3 3"/>
     <line x1="0"      y1="62.5"  x2="1000"   y2="62.5"  stroke="#3a4048" stroke-width="1" stroke-dasharray="3 3"/>
     <line x1="0"      y1="187.5" x2="1000"   y2="187.5" stroke="#3a4048" stroke-width="1" stroke-dasharray="3 3"/>
 
@@ -119,7 +120,8 @@
     <g font-size="10" fill="#9aa3ad" font-family="Inter, sans-serif">
       <text x="71.43"  y="252" text-anchor="middle">-40m</text>
       <text x="357.14" y="252" text-anchor="middle">0</text>
-      <text x="392.86" y="252" text-anchor="middle">5m</text>
+      <text x="285.71" y="252" text-anchor="middle">-10m</text>
+      <text x="428.57" y="252" text-anchor="middle">10m</text>
       <text x="500"    y="252" text-anchor="middle">20m</text>
       <text x="714.28" y="252" text-anchor="middle">50m</text>
       <text x="928.57" y="252" text-anchor="middle">80m</text>
@@ -152,9 +154,10 @@
 
     <hr style="border:none; border-top:1px solid #1f262e; margin:10px 0;">
     <div style="font-weight:600; font-size:13px; color:#cfd8e3; margin-bottom:6px;">인식 영역 정의 (OR)</div>
-    <div>A) <code>|y| ≤ 5m</code> &amp; <code>x ∈ [-40, 80]m</code>  (박스, 후방 40m 포함)</div>
-    <div>B) <code>|y| &gt; 5m</code> &amp; <code>x ∈ [5, 80]m</code>   (전방 측면)</div>
-    <div>C) <code>|y| &gt; 5m</code> &amp; <code>x ∈ [-40, 0]m</code> (후방 측면)</div>
+    <div>A) <code>|y| ≤ 5m</code> &amp; <code>x ∈ [-40, 80]m</code>   (박스, 후방 40m 전체 포함)</div>
+    <div>B) <code>|y| &gt; 5m</code> &amp; <code>x ∈ [10, 80]m</code>    (전방 측면)</div>
+    <div>C) <code>|y| &gt; 5m</code> &amp; <code>x ∈ [-40, -10]m</code> (후방 측면, 자차 주위 10m 측면은 cut)</div>
+    <div style="margin-top:4px; color:#9aa3ad; font-size:11px;">사각지대: 측면 <code>|y|&gt;5</code> &amp; <code>x∈(-10, 10)</code> 만 cut. 박스(<code>|y|≤5</code>)는 자차 주위 그대로 포함.</div>
 
     <hr style="border:none; border-top:1px solid #1f262e; margin:10px 0;">
     <div style="font-weight:600; font-size:13px; color:#cfd8e3; margin-bottom:6px;">전처리 컷</div>
@@ -172,7 +175,7 @@
     <li>위 정렬 결과의 앞에서 <code>max_objects_to_publish = 14</code> 개만 <code>/track_Multi_RS</code> 로 발행</li>
   </ol>
   <div class="footnote">
-    상수: <code>FRONT_RANGE_M=80.0</code>, <code>REAR_RANGE_M=40.0</code>, <code>LATERAL_RANGE_M=5.0</code>, <code>FRONT_NEAR_X_M=5.0</code>, <code>max_objects_to_publish=14</code>, <code>min_confidence_threshold=0.90</code>. <code>attention_type</code> 기반 우선순위 폐기 — 거리/|y| 만으로 정렬. <code>sqrt</code>는 정렬 비교 람다 안에서 양자화 용도로만 사용.
+    상수: <code>FRONT_RANGE_M=80.0</code>, <code>REAR_RANGE_M=40.0</code>, <code>LATERAL_RANGE_M=5.0</code>, <code>FRONT_NEAR_X_M=10.0</code>, <code>REAR_NEAR_X_M=10.0</code>, <code>max_objects_to_publish=14</code>, <code>min_confidence_threshold=0.90</code>. <code>attention_type</code> 기반 우선순위 폐기 — 거리/|y| 만으로 정렬. <code>sqrt</code>는 정렬 비교 람다 안에서 양자화 용도로만 사용.
   </div>
 </div>
 

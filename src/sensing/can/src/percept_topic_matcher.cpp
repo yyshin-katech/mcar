@@ -34,7 +34,8 @@ const double min_confidence_threshold = 0.90;        // 최소 confidence 임계
 const double FRONT_RANGE_M = 80.0;                   // 전방 인식 x 상한 (m)
 const double REAR_RANGE_M = 40.0;                    // 후방 인식 x 하한 (m), x in [-REAR_RANGE_M, 0]
 const double LATERAL_RANGE_M = 5.0;                  // 좁은 박스 좌우 한계 (m); |y| 이하는 x in [-REAR_RANGE_M, FRONT_RANGE_M]
-const double FRONT_NEAR_X_M = 5.0;                   // 측면(|y|>LATERAL) 인식 시작 x (m); x in [FRONT_NEAR_X_M, FRONT_RANGE_M]
+const double FRONT_NEAR_X_M = 10.0;                  // 측면(|y|>LATERAL) 인식 시작 x (m); x in [FRONT_NEAR_X_M, FRONT_RANGE_M]
+const double REAR_NEAR_X_M  = 10.0;                  // 박스(|y|<=LATERAL) 후방 사각지대 x (m); x in (-REAR_NEAR_X_M, 0) 은 cut
 const double pedestrian_keep_duration = 2.0;        // 보행자 데이터 유지 시간 (초)
 
 // 빈 CAN ID 할당(1~254). 이미 있으면 그대로 반환하고 부재 카운트 0으로 초기화
@@ -151,15 +152,15 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
         // 좌표/속도 등 추출
         double curr_x = coreinfo.center.x.data;
         double curr_y = coreinfo.center.y.data;
-        // 영역 컷:
-        //   A) |y| <= LATERAL_RANGE_M && -REAR_RANGE_M <= x <= FRONT_RANGE_M  (좁은 박스, 후방 40m 포함)
-        //   B) |y| >  LATERAL_RANGE_M && FRONT_NEAR_X_M <= x <= FRONT_RANGE_M (전방 측면)
-        //   C) |y| >  LATERAL_RANGE_M && -REAR_RANGE_M  <= x <= 0            (후방 측면)
+        // 영역 컷 (측면(|y|>5)만 자차 주위 ±10m 사각지대 cut, 박스(|y|<=5)는 후방 40m 전체 포함)
+        //   A) |y| <= LATERAL_RANGE_M && -REAR_RANGE_M  <= x <= FRONT_RANGE_M    (박스)
+        //   B) |y| >  LATERAL_RANGE_M && FRONT_NEAR_X_M <= x <= FRONT_RANGE_M    (전방 측면)
+        //   C) |y| >  LATERAL_RANGE_M && -REAR_RANGE_M  <= x <= -REAR_NEAR_X_M   (후방 측면)
         {
             double abs_y = std::abs(curr_y);
             bool in_box       = (abs_y <= LATERAL_RANGE_M) && (curr_x >= -REAR_RANGE_M)  && (curr_x <= FRONT_RANGE_M);
             bool in_side_fwd  = (abs_y >  LATERAL_RANGE_M) && (curr_x >= FRONT_NEAR_X_M) && (curr_x <= FRONT_RANGE_M);
-            bool in_side_rear = (abs_y >  LATERAL_RANGE_M) && (curr_x >= -REAR_RANGE_M)  && (curr_x <= 0.0);
+            bool in_side_rear = (abs_y >  LATERAL_RANGE_M) && (curr_x >= -REAR_RANGE_M)  && (curr_x <= -REAR_NEAR_X_M);
             if (!in_box && !in_side_fwd && !in_side_rear) continue;
         }
         double vx = coreinfo.velocity.x.data;
@@ -241,12 +242,12 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
                 int attention_type = obj_state.attention_type;  // ★ 이전 값 사용
                 double cached_x = obj_state.prev_x;
                 double cached_y = obj_state.prev_y;
-                // 캐시된 보행자도 새 영역 정책 적용 (박스 OR 전방측면 OR 후방측면)
+                // 캐시된 보행자도 동일 정책 적용 (박스는 후방 40m 전체 포함, 측면만 자차 주위 ±10m cut)
                 {
                     double abs_y = std::abs(cached_y);
                     bool in_box       = (abs_y <= LATERAL_RANGE_M) && (cached_x >= -REAR_RANGE_M)  && (cached_x <= FRONT_RANGE_M);
                     bool in_side_fwd  = (abs_y >  LATERAL_RANGE_M) && (cached_x >= FRONT_NEAR_X_M) && (cached_x <= FRONT_RANGE_M);
-                    bool in_side_rear = (abs_y >  LATERAL_RANGE_M) && (cached_x >= -REAR_RANGE_M)  && (cached_x <= 0.0);
+                    bool in_side_rear = (abs_y >  LATERAL_RANGE_M) && (cached_x >= -REAR_RANGE_M)  && (cached_x <= -REAR_NEAR_X_M);
                     if (!in_box && !in_side_fwd && !in_side_rear) continue;
                 }
 
