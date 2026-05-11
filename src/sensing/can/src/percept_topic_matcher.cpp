@@ -31,8 +31,10 @@ std::map<unsigned int, int> absence_count;          // 원본 tracker_id -> 부�
 const int max_absence_threshold = 20;               // 20프레임 미등장 시 회수
 const int max_objects_to_publish = 14;              // 최대 전송 객체 수
 const double min_confidence_threshold = 0.90;        // 최소 confidence 임계값
-const double FRONT_RANGE_M = 100.0;                  // 전방 1순위 반경 (m)
-const double LATERAL_RANGE_M = 5.0;                  // 좌우 횡방향 최대 거리 (m), 초과 시 컷
+const double FRONT_RANGE_M = 80.0;                   // 전방 인식 x 상한 (m)
+const double REAR_RANGE_M = 40.0;                    // 후방 인식 x 하한 (m), x in [-REAR_RANGE_M, 0]
+const double LATERAL_RANGE_M = 5.0;                  // 좁은 박스 좌우 한계 (m); |y| 이하는 x in [-REAR_RANGE_M, FRONT_RANGE_M]
+const double FRONT_NEAR_X_M = 5.0;                   // 측면(|y|>LATERAL) 인식 시작 x (m); x in [FRONT_NEAR_X_M, FRONT_RANGE_M]
 const double pedestrian_keep_duration = 2.0;        // 보행자 데이터 유지 시간 (초)
 
 // 빈 CAN ID 할당(1~254). 이미 있으면 그대로 반환하고 부재 카운트 0으로 초기화
@@ -149,8 +151,15 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
         // 좌표/속도 등 추출
         double curr_x = coreinfo.center.x.data;
         double curr_y = coreinfo.center.y.data;
-        // 좌우 횡방향 LATERAL_RANGE_M(=5m) 초과 객체 컷
-        if (std::abs(curr_y) > LATERAL_RANGE_M) continue;
+        // 영역 컷:
+        //   A) |y| <= LATERAL_RANGE_M && -REAR_RANGE_M <= x <= FRONT_RANGE_M  (좁은 박스, 후방 40m 포함)
+        //   B) |y| >  LATERAL_RANGE_M && FRONT_NEAR_X_M <= x <= FRONT_RANGE_M (먼 측면, 전방만)
+        {
+            double abs_y = std::abs(curr_y);
+            bool in_box  = (abs_y <= LATERAL_RANGE_M) && (curr_x >= -REAR_RANGE_M) && (curr_x <= FRONT_RANGE_M);
+            bool in_side = (abs_y >  LATERAL_RANGE_M) && (curr_x >= FRONT_NEAR_X_M) && (curr_x <= FRONT_RANGE_M);
+            if (!in_box && !in_side) continue;
+        }
         double vx = coreinfo.velocity.x.data;
         double vy = coreinfo.velocity.y.data;
         double ax = coreinfo.acceleration.x.data;
@@ -230,8 +239,13 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
                 int attention_type = obj_state.attention_type;  // ★ 이전 값 사용
                 double cached_x = obj_state.prev_x;
                 double cached_y = obj_state.prev_y;
-                // 캐시된 보행자도 LATERAL_RANGE_M 초과면 컷
-                if (std::abs(cached_y) > LATERAL_RANGE_M) continue;
+                // 캐시된 보행자도 새 영역 정책 적용 (좁은 박스(후방 40m 포함) OR 먼 측면)
+                {
+                    double abs_y = std::abs(cached_y);
+                    bool in_box  = (abs_y <= LATERAL_RANGE_M) && (cached_x >= -REAR_RANGE_M) && (cached_x <= FRONT_RANGE_M);
+                    bool in_side = (abs_y >  LATERAL_RANGE_M) && (cached_x >= FRONT_NEAR_X_M) && (cached_x <= FRONT_RANGE_M);
+                    if (!in_box && !in_side) continue;
+                }
 
                 PriorityObj p_obj = {priority_id, tracker_id, attention_type,
                                     ads_obj.confidence,
@@ -248,42 +262,21 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
         }
     }
 
-    // 4) FRONT(전방 100m 반경) / SIDE 그룹 분할
-    const double FRONT_R2 = FRONT_RANGE_M * FRONT_RANGE_M;
-    std::vector<PriorityObj> front;
-    std::vector<PriorityObj> side;
-    front.reserve(collected.size());
-    side.reserve(collected.size());
-    for (const auto& p : collected) {
-        if (p.x >= 0.0 && p.dist2 <= FRONT_R2) {
-            front.push_back(p);
-        } else {
-            side.push_back(p);
-        }
-    }
-    std::sort(front.begin(), front.end(),
+    // 4) 단일 통합 정렬:
+    //    1차: 거리 (sqrt(x²+y²)) 를 1m 단위로 양자화한 값 ASC — "거리가 비슷한" 정의
+    //    2차: |y| ASC                                          — 같은 거리 bucket에서 차로 가까운 것
+    std::sort(collected.begin(), collected.end(),
               [](const PriorityObj& a, const PriorityObj& b){
-                  if (a.attention_type != b.attention_type)
-                      return a.attention_type > b.attention_type;
-                  return a.dist2 < b.dist2;
-              });
-    std::sort(side.begin(), side.end(),
-              [](const PriorityObj& a, const PriorityObj& b){
-                  if (a.attention_type != b.attention_type)
-                      return a.attention_type > b.attention_type;
-                  double aly = std::abs(a.y), bly = std::abs(b.y);
-                  if (aly != bly) return aly < bly;
-                  return a.dist2 < b.dist2;
+                  int ba = static_cast<int>(std::sqrt(a.dist2));
+                  int bb = static_cast<int>(std::sqrt(b.dist2));
+                  if (ba != bb) return ba < bb;
+                  return std::abs(a.y) < std::abs(b.y);
               });
 
-    // 5) FRONT → SIDE 순서로 최대 14개까지 선택
+    // 5) 가까운 순으로 최대 14개까지 선택
     std::vector<PriorityObj> objects_to_publish;
     objects_to_publish.reserve(max_objects_to_publish);
-    for (const auto& p_obj : front) {
-        if ((int)objects_to_publish.size() >= max_objects_to_publish) break;
-        objects_to_publish.push_back(p_obj);
-    }
-    for (const auto& p_obj : side) {
+    for (const auto& p_obj : collected) {
         if ((int)objects_to_publish.size() >= max_objects_to_publish) break;
         objects_to_publish.push_back(p_obj);
     }
@@ -297,26 +290,14 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
     // 7) 터미널 출력 (실제 publish된 객체들만 출력)
     std::ostringstream output;
     output << "---\ndata (confidence > " << min_confidence_threshold
-           << ", Front (<=100m) prioritized, sorted by priority_id, limited to " << max_objects_to_publish << "):\n";
+           << ", region: box |y|<=" << LATERAL_RANGE_M << " x in [-" << REAR_RANGE_M << "," << FRONT_RANGE_M
+           << "] OR side |y|>" << LATERAL_RANGE_M << " x in [" << FRONT_NEAR_X_M << "," << FRONT_RANGE_M
+           << "], sorted by 1m-bucket dist ASC then |y| ASC, limited to " << max_objects_to_publish << "):\n";
     output << "Total received objects: " << total_tracks
            << ", Filtered out (confidence <= " << min_confidence_threshold << "): " << total_filtered_out
            << ", Passed filter: " << all_objects.size() << "\n";
-    output << "After filtering - Front (<=100m): " << front.size()
-           << ", Side: " << side.size()
+    output << "After region filter: " << collected.size()
            << ", Published: " << objects_to_publish.size() << "\n";
-
-    // Front/Side별 게시된 객체 수 계산
-    int published_front = 0;
-    int published_side = 0;
-    for (const auto& p_obj : objects_to_publish) {
-        if (p_obj.x >= 0.0 && p_obj.dist2 <= FRONT_R2) {
-            published_front++;
-        } else {
-            published_side++;
-        }
-    }
-    output << "Published breakdown - Front (<=100m): " << published_front
-           << ", Side: " << published_side << "\n";
     
     // confidence 통계 (published objects)
     if (!objects_to_publish.empty()) {

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>perception 필터 영역 — percept_topic_matcher.cpp</title>
+<style>
+  body { background:#0b0d10; color:#e6edf3; font-family: Inter, "Pretendard", system-ui, sans-serif; margin:0; padding:24px; }
+  h1 { font-size:18px; margin:0 0 4px; letter-spacing:0.5px; }
+  p.sub { font-size:12px; color:#9aa3ad; margin:0 0 16px; }
+  .panel { background:#13171c; border:1px solid #1f262e; border-radius:8px; padding:16px; margin-bottom:14px; }
+  .grid { display:grid; grid-template-columns: 1fr 290px; gap:14px; }
+  svg { display:block; width:100%; height:auto; }
+  .legend { font-size:12px; line-height:1.7; }
+  .swatch { display:inline-block; width:14px; height:14px; vertical-align:-2px; margin-right:6px; border-radius:2px; border:1px solid rgba(255,255,255,0.15); }
+  .order { font-size:13px; line-height:1.8; }
+  .order ol { margin:6px 0 0 0; padding-left:22px; }
+  .order code, .legend code, p.sub code, .footnote code {
+    background:#1c2228; padding:1px 5px; border-radius:3px; color:#9ad0ff; font-size:12px;
+  }
+  .footnote { color:#7d8893; font-size:11px; margin-top:10px; }
+</style>
+</head>
+<body>
+
+<h1>perception 필터 — 영역별 인식 / 우선순위</h1>
+<p class="sub">파일: <code>src/sensing/can/src/percept_topic_matcher.cpp</code> · 좌표계: ego-frame (REP-103, <code>x</code>=전방, <code>y</code>=좌측). 차량 진행방향이 오른쪽.</p>
+
+<div class="panel">
+<div class="grid">
+  <!-- ===== SVG =====
+       viewBox 1000 x 250.
+       world coords mapping:
+         svgX = (xw + 50) * (1000/140)   ≈ (xw + 50) * 7.142857     ; world x ∈ [-50, 90]
+         svgY = 125 - yw * 12.5                                      ; world y ∈ [-10, 10]
+       key svg coords:
+         ego(0,0)         -> (357.14, 125)
+         x = 80 (front)   -> 928.57
+         x = -40 (rear)   -> 71.43
+         x = 5  (side cut) -> 392.86
+         y = +5  -> svgY = 62.5
+         y = -5  -> svgY = 187.5
+  -->
+  <svg viewBox="0 0 1000 250" preserveAspectRatio="none" role="img" aria-label="perception 필터 영역 다이어그램">
+    <defs>
+      <!-- CUT 영역 사선 패턴 -->
+      <pattern id="cut" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <line x1="0" y1="0" x2="0" y2="8" stroke="#3a4048" stroke-width="3"/>
+      </pattern>
+      <!-- 거리 그라데이션: 자차 중심 진한 빨강 → 멀어질수록 옅은 빨강. -->
+      <radialGradient id="distGrad" gradientUnits="userSpaceOnUse"
+                      cx="357.14" cy="125" r="600" fx="357.14" fy="125">
+        <stop offset="0%"   stop-color="#ff2a1f" stop-opacity="1"/>
+        <stop offset="40%"  stop-color="#c0392b" stop-opacity="1"/>
+        <stop offset="100%" stop-color="#5a1f15" stop-opacity="1"/>
+      </radialGradient>
+    </defs>
+
+    <!-- background -->
+    <rect x="0" y="0" width="1000" height="250" fill="#0b0d10"/>
+
+    <!-- ───── CUT 영역 ─────
+         (1) 박스 좌측 끝(svgX < 71.43)  : x < -40 m
+         (2) 측면 좌측 끝(svgX < 392.86) inside |y|>5 band only — 즉 위/아래 띠만
+         (3) 박스/측면 우측 끝(svgX > 928.57) : x > 80 m
+         (4) |y|>5 위/아래 띠 중 측면 시작 전 구간 — 처리는 측면 영역 그릴 때 자동 처리. -->
+    <!-- 위 띠 전체 cut 배경 -->
+    <rect x="0"     y="0" width="1000" height="62.5" fill="url(#cut)" opacity="0.7"/>
+    <!-- 아래 띠 전체 cut 배경 -->
+    <rect x="0"     y="187.5" width="1000" height="62.5" fill="url(#cut)" opacity="0.7"/>
+    <!-- 박스 영역 좌측 cut (x < -40) — svgX 0..71.43, svgY 62.5..187.5 (중앙 띠) -->
+    <rect x="0"     y="62.5"  width="71.43" height="125" fill="url(#cut)" opacity="0.7"/>
+    <!-- 박스 영역 우측 cut (x > 80) — svgX 928.57..1000 중앙 띠 -->
+    <rect x="928.57" y="62.5" width="71.43" height="125" fill="url(#cut)" opacity="0.7"/>
+
+    <!-- ───── 인식 영역 (거리 그라데이션) ─────
+         A) 박스: |y|<=5, x in [-40, 80] -->
+    <rect x="71.43"  y="62.5" width="857.14" height="125" fill="url(#distGrad)"/>
+    <!-- B) 측면 위: y>5, x in [5, 80] -->
+    <rect x="392.86" y="0"    width="535.71" height="62.5" fill="url(#distGrad)"/>
+    <!-- B) 측면 아래: y<-5, x in [5, 80] -->
+    <rect x="392.86" y="187.5" width="535.71" height="62.5" fill="url(#distGrad)"/>
+
+    <!-- 영역 라벨 -->
+    <text x="500" y="120" fill="#fff" font-size="13" font-family="Inter, sans-serif"
+          text-anchor="middle" font-weight="700" letter-spacing="0.5">
+      박스 (x ∈ [-40, 80]m, |y| ≤ 5m)
+    </text>
+    <text x="660" y="42"  fill="#ffd4c4" font-size="12" font-family="Inter, sans-serif"
+          text-anchor="middle" font-weight="600">측면 (x ∈ [5, 80]m, y &gt; +5m)</text>
+    <text x="660" y="218" fill="#ffd4c4" font-size="12" font-family="Inter, sans-serif"
+          text-anchor="middle" font-weight="600">측면 (x ∈ [5, 80]m, y &lt; -5m)</text>
+
+    <!-- CUT 영역 라벨 -->
+    <text x="36"  y="40"  fill="#7a818a" font-size="11" font-family="Inter, sans-serif" text-anchor="middle">CUT</text>
+    <text x="36"  y="222" fill="#7a818a" font-size="11" font-family="Inter, sans-serif" text-anchor="middle">CUT</text>
+    <text x="200" y="38"  fill="#7a818a" font-size="11" font-family="Inter, sans-serif" text-anchor="middle">|y|&gt;5 &amp; x&lt;5 → CUT</text>
+    <text x="200" y="224" fill="#7a818a" font-size="11" font-family="Inter, sans-serif" text-anchor="middle">|y|&gt;5 &amp; x&lt;5 → CUT</text>
+    <text x="964" y="40"  fill="#7a818a" font-size="11" font-family="Inter, sans-serif" text-anchor="middle">x&gt;80</text>
+    <text x="36"  y="130" fill="#7a818a" font-size="11" font-family="Inter, sans-serif" text-anchor="middle">x&lt;-40</text>
+
+    <!-- 가이드 라인: y=0 (자차 중심 횡축), x=0 (자차 종축), x=80, x=-40, x=5, y=±5 -->
+    <line x1="0"      y1="125"   x2="1000"   y2="125"   stroke="#2a323b" stroke-width="1" stroke-dasharray="4 4"/>
+    <line x1="357.14" y1="0"     x2="357.14" y2="250"   stroke="#3a4048" stroke-width="1"/>
+    <line x1="928.57" y1="0"     x2="928.57" y2="250"   stroke="#3a4048" stroke-width="1" stroke-dasharray="3 3"/>
+    <line x1="71.43"  y1="0"     x2="71.43"  y2="250"   stroke="#3a4048" stroke-width="1" stroke-dasharray="3 3"/>
+    <line x1="392.86" y1="0"     x2="392.86" y2="250"   stroke="#3a4048" stroke-width="1" stroke-dasharray="3 3"/>
+    <line x1="0"      y1="62.5"  x2="1000"   y2="62.5"  stroke="#3a4048" stroke-width="1" stroke-dasharray="3 3"/>
+    <line x1="0"      y1="187.5" x2="1000"   y2="187.5" stroke="#3a4048" stroke-width="1" stroke-dasharray="3 3"/>
+
+    <!-- x축 라벨 (자차 기준 m) -->
+    <g font-size="10" fill="#9aa3ad" font-family="Inter, sans-serif">
+      <text x="71.43"  y="252" text-anchor="middle">-40m</text>
+      <text x="357.14" y="252" text-anchor="middle">0</text>
+      <text x="392.86" y="252" text-anchor="middle">5m</text>
+      <text x="500"    y="252" text-anchor="middle">20m</text>
+      <text x="714.28" y="252" text-anchor="middle">50m</text>
+      <text x="928.57" y="252" text-anchor="middle">80m</text>
+    </g>
+
+    <!-- y축 라벨 -->
+    <g font-size="10" fill="#9aa3ad" font-family="Inter, sans-serif">
+      <text x="6" y="66"  text-anchor="start">+5m (좌)</text>
+      <text x="6" y="191" text-anchor="start">-5m (우)</text>
+    </g>
+
+    <!-- 자차 (4.6m × 1.9m). 가로 4.6m -> 32.86px, 세로 1.9m -> 23.75px (y scale 12.5). -->
+    <g transform="translate(357.14 125)">
+      <rect x="-16.43" y="-11.88" width="32.86" height="23.75" fill="#00e5ff" opacity="0.95" rx="2"/>
+      <polygon points="16.43,-5 27,0 16.43,5" fill="#00e5ff"/>
+      <text x="0" y="-18" fill="#00e5ff" font-size="11" text-anchor="middle" font-family="Inter, sans-serif">EGO</text>
+    </g>
+
+    <!-- 방향 안내 -->
+    <g font-size="11" fill="#7a818a" font-family="Inter, sans-serif">
+      <text x="940" y="22">전방 → x+</text>
+    </g>
+  </svg>
+
+  <!-- ===== Legend ===== -->
+  <div class="legend">
+    <div style="margin-bottom:8px; font-weight:600; font-size:13px; color:#cfd8e3;">색상 의미</div>
+    <div><span class="swatch" style="background:radial-gradient(circle at 0% 50%, #ff2a1f, #5a1f15)"></span>자차 근접 → 멀리 (진할수록 우선순위 ↑)</div>
+    <div><span class="swatch" style="background:repeating-linear-gradient(45deg,#3a4048,#3a4048 3px,#0b0d10 3px,#0b0d10 8px)"></span>CUT — 발행 안 함</div>
+
+    <hr style="border:none; border-top:1px solid #1f262e; margin:10px 0;">
+    <div style="font-weight:600; font-size:13px; color:#cfd8e3; margin-bottom:6px;">인식 영역 정의 (OR)</div>
+    <div>A) <code>|y| ≤ 5m</code> &amp; <code>x ∈ [-40, 80]m</code>  (박스, 후방 40m 포함)</div>
+    <div>B) <code>|y| &gt; 5m</code> &amp; <code>x ∈ [5, 80]m</code>   (전방 측면)</div>
+
+    <hr style="border:none; border-top:1px solid #1f262e; margin:10px 0;">
+    <div style="font-weight:600; font-size:13px; color:#cfd8e3; margin-bottom:6px;">전처리 컷</div>
+    <div>① <code>confidence ≤ 0.90</code> drop</div>
+    <div>② 위 A·B 영역 밖 drop</div>
+  </div>
+</div>
+</div>
+
+<div class="panel order">
+  <div style="font-weight:600; font-size:13px; color:#cfd8e3;">최종 14개 발행 정렬</div>
+  <ol>
+    <li><b>1차 키</b>: 거리 <code>√(x²+y²)</code> 를 1m 단위로 양자화한 값 ASC (가까운 순)</li>
+    <li><b>2차 키 (tie-break)</b>: <code>|y|</code> ASC (같은 1m 구간 내에서 차로 가까운 쪽)</li>
+    <li>위 정렬 결과의 앞에서 <code>max_objects_to_publish = 14</code> 개만 <code>/track_Multi_RS</code> 로 발행</li>
+  </ol>
+  <div class="footnote">
+    상수: <code>FRONT_RANGE_M=80.0</code>, <code>REAR_RANGE_M=40.0</code>, <code>LATERAL_RANGE_M=5.0</code>, <code>FRONT_NEAR_X_M=5.0</code>, <code>max_objects_to_publish=14</code>, <code>min_confidence_threshold=0.90</code>. <code>attention_type</code> 기반 우선순위 폐기 — 거리/|y| 만으로 정렬. <code>sqrt</code>는 정렬 비교 람다 안에서 양자화 용도로만 사용.
+  </div>
+</div>
+
+</body>
+</html>
