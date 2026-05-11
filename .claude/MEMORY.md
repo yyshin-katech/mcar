@@ -114,6 +114,8 @@
 - `percept_topic_matcher.cpp` 후속 컷: `LATERAL_RANGE_M=5.0` 신규 상수로 `|y| > 5m` 객체는 confidence 컷 직후 / 보행자 캐시 사용 직전 둘 다에서 컷. FRONT 영역이 실질적으로 전방 100m × 좌우 ±5m 박스로 좁아짐.
 - `percept_topic_matcher.cpp` 정책 전면 개편: FRONT/SIDE 분할·attention 우선 정렬 폐기. 인식 영역 OR 3개: A) `|y|≤5 && x∈[-40, 80]` (박스, 자차 옆까지 그대로 포함) / B) `|y|>5 && x∈[10, 80]` (전방 측면) / C) `|y|>5 && x∈[-40, -10]` (후방 측면). 사각지대: 측면(`|y|>5`)에서 자차 주위 `x∈(-10, 10)` 만. 상수: `FRONT_RANGE_M=80`, `REAR_RANGE_M=40`, `LATERAL_RANGE_M=5`, `FRONT_NEAR_X_M=10`, `REAR_NEAR_X_M=10` (측면 cut 전용 — 박스에는 미적용). 단일 정렬: `(int)sqrt(x²+y²)` ASC → `|y|` ASC. 14개 cap 유지. 시각화: `claude_work_list/percept_filter_zones.html` (radial gradient).
 - `rviz_filter.cpp` ROI 시각화: `percept_callback` 끝에 마커 5개 (`ns="roi"`, ego_frame, lifetime 1s). A=cyan 닫힌 사각형(박스), B 전방측면=orange / C 후방측면=yellow는 "ㄷ"자(안쪽 `|y|=±5` 라인 + 양 끝 2m 외향 tick) — 외곽 |y|=∞ 표현. ROI 상수는 percept_topic_matcher.cpp와 동일 값으로 인라인. 두 파일 동시 갱신 필수.
+- 우측 측면 cut: `percept_topic_matcher.cpp` + `rviz_filter.cpp` 둘 다 자차 우측(`y < -5`) 객체 전체 제거. 측면 조건 `abs_y > LATERAL` → `curr_y > LATERAL` (좌측만). 박스 A(`|y|≤5`)는 영향 없음 — 우측 5m 이내는 그대로 포함. rviz_filter 우측 측면 마커(id 2, 4) 제거.
+- `hmi_state.py` 신호등 phase 매핑 보강: stat_display.cpp와 정렬해 case 5(permissive movement allowed)→1=초록, case 7(permissive clearance)→2=주황 추가. 기존엔 case 6/8/3만 인식해 phase 5/7 들어올 때 color=0으로 빠져 web_hmi 신호등 색상 미표시.
 
 ## Diagnostic 구조
 | 토픽 | 메시지 타입 | 소스 노드 | 판단 기준 |

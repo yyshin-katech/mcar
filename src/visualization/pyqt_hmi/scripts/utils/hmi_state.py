@@ -275,13 +275,13 @@ class BaseHmiStateController:
             self.traffic_light_time = movement.TimeChangeDetails
             phase = movement.MovementPhaseStatus
             # SAE J2735 MovementPhaseState → display color code.
-            # Convention shared with stat_display.cpp and pyqt widgets:
+            # Mapping aligned with stat_display.cpp (case 3/5/6/7/8).
             #   color 1 = GREEN, 2 = AMBER, 3 = RED.
-            if phase == 6:      # protected_Movement_Allowed
+            if phase == 5 or phase == 6:     # permissive/protected movement allowed
                 color = 1
-            elif phase == 8:    # protected_clearance
+            elif phase == 7 or phase == 8:   # permissive/protected clearance
                 color = 2
-            elif phase == 3:    # stop_And_Remain
+            elif phase == 3:                 # stop_And_Remain
                 color = 3
             else:
                 color = 0

@@ -240,12 +240,10 @@ void RVIZ_FILTER::percept_callback(const perception_ros_msg::object_array_msg::C
         add_point(m, x1, y_tick);          // 끝 외향 tick 끝
         marker_array.markers.push_back(m);
     };
-    // B: 전방 측면 좌/우 (orange) — 안쪽 |y|=±5, x ∈ [5, 80]
-    add_open_side(1, ROI_NEAR_X, ROI_FRONT_X,  ROI_LAT, 1.0f, 0.55f, 0.0f);
-    add_open_side(2, ROI_NEAR_X, ROI_FRONT_X, -ROI_LAT, 1.0f, 0.55f, 0.0f);
-    // C: 후방 측면 좌/우 (yellow) — 안쪽 |y|=±5, x ∈ [-40, -10] (후방 10m 사각지대 제외)
-    add_open_side(3, ROI_REAR_X, ROI_REAR_NEAR_X,  ROI_LAT, 1.0f, 1.0f, 0.0f);
-    add_open_side(4, ROI_REAR_X, ROI_REAR_NEAR_X, -ROI_LAT, 1.0f, 1.0f, 0.0f);
+    // B: 전방 좌측 측면 (orange) — y > +5, x ∈ [10, 80]. 우측은 cut.
+    add_open_side(1, ROI_NEAR_X, ROI_FRONT_X, ROI_LAT, 1.0f, 0.55f, 0.0f);
+    // C: 후방 좌측 측면 (yellow) — y > +5, x ∈ [-40, -10]. 우측은 cut.
+    add_open_side(3, ROI_REAR_X, ROI_REAR_NEAR_X, ROI_LAT, 1.0f, 1.0f, 0.0f);
 
     marker_pub.publish(marker_array);
 }

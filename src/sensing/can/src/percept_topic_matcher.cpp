@@ -152,15 +152,15 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
         // 좌표/속도 등 추출
         double curr_x = coreinfo.center.x.data;
         double curr_y = coreinfo.center.y.data;
-        // 영역 컷 (측면(|y|>5)만 자차 주위 ±10m 사각지대 cut, 박스(|y|<=5)는 후방 40m 전체 포함)
+        // 영역 컷 (자차 우측(y<-5) 모두 cut. 박스는 |y|<=5라 우측 5m 이내까지는 포함)
         //   A) |y| <= LATERAL_RANGE_M && -REAR_RANGE_M  <= x <= FRONT_RANGE_M    (박스)
-        //   B) |y| >  LATERAL_RANGE_M && FRONT_NEAR_X_M <= x <= FRONT_RANGE_M    (전방 측면)
-        //   C) |y| >  LATERAL_RANGE_M && -REAR_RANGE_M  <= x <= -REAR_NEAR_X_M   (후방 측면)
+        //   B)  y >  LATERAL_RANGE_M && FRONT_NEAR_X_M <= x <= FRONT_RANGE_M    (좌측 전방 측면)
+        //   C)  y >  LATERAL_RANGE_M && -REAR_RANGE_M  <= x <= -REAR_NEAR_X_M   (좌측 후방 측면)
         {
             double abs_y = std::abs(curr_y);
             bool in_box       = (abs_y <= LATERAL_RANGE_M) && (curr_x >= -REAR_RANGE_M)  && (curr_x <= FRONT_RANGE_M);
-            bool in_side_fwd  = (abs_y >  LATERAL_RANGE_M) && (curr_x >= FRONT_NEAR_X_M) && (curr_x <= FRONT_RANGE_M);
-            bool in_side_rear = (abs_y >  LATERAL_RANGE_M) && (curr_x >= -REAR_RANGE_M)  && (curr_x <= -REAR_NEAR_X_M);
+            bool in_side_fwd  = (curr_y >  LATERAL_RANGE_M) && (curr_x >= FRONT_NEAR_X_M) && (curr_x <= FRONT_RANGE_M);
+            bool in_side_rear = (curr_y >  LATERAL_RANGE_M) && (curr_x >= -REAR_RANGE_M)  && (curr_x <= -REAR_NEAR_X_M);
             if (!in_box && !in_side_fwd && !in_side_rear) continue;
         }
         double vx = coreinfo.velocity.x.data;
@@ -242,12 +242,12 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
                 int attention_type = obj_state.attention_type;  // ★ 이전 값 사용
                 double cached_x = obj_state.prev_x;
                 double cached_y = obj_state.prev_y;
-                // 캐시된 보행자도 동일 정책 적용 (박스는 후방 40m 전체 포함, 측면만 자차 주위 ±10m cut)
+                // 캐시된 보행자도 동일 정책 적용 (자차 우측 y<-5 모두 cut, 측면은 좌측만)
                 {
                     double abs_y = std::abs(cached_y);
                     bool in_box       = (abs_y <= LATERAL_RANGE_M) && (cached_x >= -REAR_RANGE_M)  && (cached_x <= FRONT_RANGE_M);
-                    bool in_side_fwd  = (abs_y >  LATERAL_RANGE_M) && (cached_x >= FRONT_NEAR_X_M) && (cached_x <= FRONT_RANGE_M);
-                    bool in_side_rear = (abs_y >  LATERAL_RANGE_M) && (cached_x >= -REAR_RANGE_M)  && (cached_x <= -REAR_NEAR_X_M);
+                    bool in_side_fwd  = (cached_y >  LATERAL_RANGE_M) && (cached_x >= FRONT_NEAR_X_M) && (cached_x <= FRONT_RANGE_M);
+                    bool in_side_rear = (cached_y >  LATERAL_RANGE_M) && (cached_x >= -REAR_RANGE_M)  && (cached_x <= -REAR_NEAR_X_M);
                     if (!in_box && !in_side_fwd && !in_side_rear) continue;
                 }
 

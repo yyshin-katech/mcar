@@ -75,14 +75,10 @@
     <!-- ───── 인식 영역 (거리 그라데이션) ─────
          A) 박스: |y|<=5, x in [-40, 80] (후방 40m 전체 포함) -->
     <rect x="71.43"  y="62.5" width="857.14" height="125" fill="url(#distGrad)"/>
-    <!-- B) 전방 측면 위: y>5, x in [10, 80] -->
+    <!-- B) 좌측 전방 측면: y>5, x in [10, 80] (우측 측면은 모두 cut) -->
     <rect x="428.57" y="0"    width="500" height="62.5" fill="url(#distGrad)"/>
-    <!-- B) 전방 측면 아래: y<-5, x in [10, 80] -->
-    <rect x="428.57" y="187.5" width="500" height="62.5" fill="url(#distGrad)"/>
-    <!-- C) 후방 측면 위: y>5, x in [-40, -10] (후방 10m 사각지대 제외) -->
+    <!-- C) 좌측 후방 측면: y>5, x in [-40, -10] (후방 10m 사각지대 제외) -->
     <rect x="71.43"  y="0"    width="214.29" height="62.5" fill="url(#distGrad)"/>
-    <!-- C) 후방 측면 아래: y<-5, x in [-40, -10] -->
-    <rect x="71.43"  y="187.5" width="214.29" height="62.5" fill="url(#distGrad)"/>
 
     <!-- 영역 라벨 -->
     <text x="500" y="120" fill="#fff" font-size="13" font-family="Inter, sans-serif"
@@ -90,13 +86,11 @@
       박스 (x ∈ [-40, 80]m, |y| ≤ 5m)
     </text>
     <text x="660" y="42"  fill="#ffd4c4" font-size="12" font-family="Inter, sans-serif"
-          text-anchor="middle" font-weight="600">전방 측면 (x ∈ [10, 80]m, y &gt; +5m)</text>
-    <text x="660" y="218" fill="#ffd4c4" font-size="12" font-family="Inter, sans-serif"
-          text-anchor="middle" font-weight="600">전방 측면 (x ∈ [10, 80]m, y &lt; -5m)</text>
+          text-anchor="middle" font-weight="600">좌측 전방 측면 (x ∈ [10, 80]m, y &gt; +5m)</text>
     <text x="178" y="42"  fill="#ffd4c4" font-size="12" font-family="Inter, sans-serif"
-          text-anchor="middle" font-weight="600">후방 측면 (x ∈ [-40, -10]m, y &gt; +5m)</text>
-    <text x="178" y="218" fill="#ffd4c4" font-size="12" font-family="Inter, sans-serif"
-          text-anchor="middle" font-weight="600">후방 측면 (x ∈ [-40, -10]m, y &lt; -5m)</text>
+          text-anchor="middle" font-weight="600">좌측 후방 측면 (x ∈ [-40, -10]m, y &gt; +5m)</text>
+    <text x="500" y="220" fill="#7a818a" font-size="13" font-family="Inter, sans-serif"
+          text-anchor="middle" font-weight="700">우측(y &lt; -5m) 전체 CUT</text>
 
     <!-- CUT 영역 라벨 -->
     <text x="36"  y="40"  fill="#7a818a" font-size="11" font-family="Inter, sans-serif" text-anchor="middle">CUT</text>
@@ -154,10 +148,10 @@
 
     <hr style="border:none; border-top:1px solid #1f262e; margin:10px 0;">
     <div style="font-weight:600; font-size:13px; color:#cfd8e3; margin-bottom:6px;">인식 영역 정의 (OR)</div>
-    <div>A) <code>|y| ≤ 5m</code> &amp; <code>x ∈ [-40, 80]m</code>   (박스, 후방 40m 전체 포함)</div>
-    <div>B) <code>|y| &gt; 5m</code> &amp; <code>x ∈ [10, 80]m</code>    (전방 측면)</div>
-    <div>C) <code>|y| &gt; 5m</code> &amp; <code>x ∈ [-40, -10]m</code> (후방 측면, 자차 주위 10m 측면은 cut)</div>
-    <div style="margin-top:4px; color:#9aa3ad; font-size:11px;">사각지대: 측면 <code>|y|&gt;5</code> &amp; <code>x∈(-10, 10)</code> 만 cut. 박스(<code>|y|≤5</code>)는 자차 주위 그대로 포함.</div>
+    <div>A) <code>|y| ≤ 5m</code> &amp; <code>x ∈ [-40, 80]m</code>   (박스, 후방 40m + 우측 5m 이내 포함)</div>
+    <div>B) <code>y &gt; +5m</code> &amp; <code>x ∈ [10, 80]m</code>      (좌측 전방 측면)</div>
+    <div>C) <code>y &gt; +5m</code> &amp; <code>x ∈ [-40, -10]m</code>   (좌측 후방 측면)</div>
+    <div style="margin-top:4px; color:#9aa3ad; font-size:11px;">CUT: 우측 <code>y &lt; -5m</code> 전체 / 좌측 사각지대 <code>y&gt;5 &amp; x∈(-10, 10)</code> / x &lt; -40 / x &gt; 80.</div>
 
     <hr style="border:none; border-top:1px solid #1f262e; margin:10px 0;">
     <div style="font-weight:600; font-size:13px; color:#cfd8e3; margin-bottom:6px;">전처리 컷</div>
