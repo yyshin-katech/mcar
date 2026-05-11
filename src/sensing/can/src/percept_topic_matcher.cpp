@@ -31,6 +31,7 @@ std::map<unsigned int, int> absence_count;          // 원본 tracker_id -> 부�
 const int max_absence_threshold = 20;               // 20프레임 미등장 시 회수
 const int max_objects_to_publish = 14;              // 최대 전송 객체 수
 const double min_confidence_threshold = 0.90;        // 최소 confidence 임계값
+const double FRONT_RANGE_M = 100.0;                  // 전방 1순위 반경 (m)
 const double pedestrian_keep_duration = 2.0;        // 보행자 데이터 유지 시간 (초)
 
 // 빈 CAN ID 할당(1~254). 이미 있으면 그대로 반환하고 부재 카운트 0으로 초기화
@@ -110,12 +111,14 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
         unsigned int tracker_id;  // 원본 tracker_id 추가
         int attention_type;
         double confidence;
+        double x;
+        double y;
+        double dist2;
         perception_ros_msg::object_msg obj;
     };
-    
+
     std::vector<PriorityObj> all_objects;
-    std::vector<PriorityObj> attention1_objects;  // attention_type이 1인 객체들 (confidence > 0.5)
-    std::vector<PriorityObj> attention0_objects;  // attention_type이 0인 객체들 (confidence > 0.5)
+    std::vector<PriorityObj> collected;
 
     // 현재 프레임에서 수신된 전체 객체 수
     const size_t total_tracks = data->lidarframe.objects.objects.size();
@@ -194,15 +197,10 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
             priority_id      // ★ priority_id 저장
         };
         // PriorityObj 구조체 생성
-        PriorityObj p_obj = {priority_id, tracker_id, attention_type, confidence, ads_obj};
+        PriorityObj p_obj = {priority_id, tracker_id, attention_type, confidence,
+                             curr_x, curr_y, curr_x * curr_x + curr_y * curr_y, ads_obj};
         all_objects.push_back(p_obj);
-
-        // attention_type별로 분류 (confidence > 0.5인 객체만 이미 필터링됨)
-        if (attention_type == 1) {
-            attention1_objects.push_back(p_obj);
-        } else if (attention_type == 0) {
-            attention0_objects.push_back(p_obj);
-        }
+        collected.push_back(p_obj);
     }
 
     // 3) 이번 프레임에서 관측된 객체는 부재 카운트 0으로 리셋
@@ -223,57 +221,65 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
             if (time_diff <= pedestrian_keep_duration) {
                 // 이전 데이터를 그대로 사용
                 perception_ros_msg::object_msg& ads_obj = obj_state.obj;
-                
+
                 // ★ 저장된 값들을 그대로 사용
                 unsigned int priority_id = obj_state.priority_id;
                 int attention_type = obj_state.attention_type;  // ★ 이전 값 사용
-                
-                PriorityObj p_obj = {priority_id, tracker_id, attention_type, 
-                                    ads_obj.confidence, ads_obj};
-                
+                double cached_x = obj_state.prev_x;
+                double cached_y = obj_state.prev_y;
+
+                PriorityObj p_obj = {priority_id, tracker_id, attention_type,
+                                    ads_obj.confidence,
+                                    cached_x, cached_y,
+                                    cached_x * cached_x + cached_y * cached_y,
+                                    ads_obj};
+
                 all_objects.push_back(p_obj);
-                
-                // ★ attention_type에 따라 올바른 벡터에 추가
-                if (attention_type == 1) {
-                    attention1_objects.push_back(p_obj);
-                } else {
-                    attention0_objects.push_back(p_obj);
-                }
-                
-                ROS_INFO("Keeping pedestrian ID %u (missing for %.2f sec, attention_type=%d)", 
+                collected.push_back(p_obj);
+
+                ROS_INFO("Keeping pedestrian ID %u (missing for %.2f sec, attention_type=%d)",
                         tracker_id, time_diff, attention_type);
             }
         }
     }
 
-    // 4) attention_type이 1인 객체들을 priority_id 오름차순으로 정렬
-    std::sort(attention1_objects.begin(), attention1_objects.end(),
-              [](const PriorityObj& a, const PriorityObj& b) {
-                  return a.priority_id < b.priority_id;
-              });
-
-    // attention_type이 0인 객체들도 priority_id 오름차순으로 정렬
-    std::sort(attention0_objects.begin(), attention0_objects.end(),
-              [](const PriorityObj& a, const PriorityObj& b) {
-                  return a.priority_id < b.priority_id;
-              });
-
-    // 5) 최대 14개까지 선택
-    std::vector<PriorityObj> objects_to_publish;
-    
-    // 먼저 attention_type이 1인 객체들을 추가 (confidence > 0.5)
-    for (const auto& p_obj : attention1_objects) {
-        if (objects_to_publish.size() >= max_objects_to_publish) {
-            break;
+    // 4) FRONT(전방 100m 반경) / SIDE 그룹 분할
+    const double FRONT_R2 = FRONT_RANGE_M * FRONT_RANGE_M;
+    std::vector<PriorityObj> front;
+    std::vector<PriorityObj> side;
+    front.reserve(collected.size());
+    side.reserve(collected.size());
+    for (const auto& p : collected) {
+        if (p.x >= 0.0 && p.dist2 <= FRONT_R2) {
+            front.push_back(p);
+        } else {
+            side.push_back(p);
         }
+    }
+    std::sort(front.begin(), front.end(),
+              [](const PriorityObj& a, const PriorityObj& b){
+                  if (a.attention_type != b.attention_type)
+                      return a.attention_type > b.attention_type;
+                  return a.dist2 < b.dist2;
+              });
+    std::sort(side.begin(), side.end(),
+              [](const PriorityObj& a, const PriorityObj& b){
+                  if (a.attention_type != b.attention_type)
+                      return a.attention_type > b.attention_type;
+                  double aly = std::abs(a.y), bly = std::abs(b.y);
+                  if (aly != bly) return aly < bly;
+                  return a.dist2 < b.dist2;
+              });
+
+    // 5) FRONT → SIDE 순서로 최대 14개까지 선택
+    std::vector<PriorityObj> objects_to_publish;
+    objects_to_publish.reserve(max_objects_to_publish);
+    for (const auto& p_obj : front) {
+        if ((int)objects_to_publish.size() >= max_objects_to_publish) break;
         objects_to_publish.push_back(p_obj);
     }
-    
-    // 14개가 안 채워지면 attention_type이 0인 객체들로 채우기 (confidence > 0.5)
-    for (const auto& p_obj : attention0_objects) {
-        if (objects_to_publish.size() >= max_objects_to_publish) {
-            break;
-        }
+    for (const auto& p_obj : side) {
+        if ((int)objects_to_publish.size() >= max_objects_to_publish) break;
         objects_to_publish.push_back(p_obj);
     }
 
@@ -285,27 +291,27 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
 
     // 7) 터미널 출력 (실제 publish된 객체들만 출력)
     std::ostringstream output;
-    output << "---\ndata (confidence > " << min_confidence_threshold 
-           << ", attention_type=1 prioritized, sorted by priority_id, limited to " << max_objects_to_publish << "):\n";
+    output << "---\ndata (confidence > " << min_confidence_threshold
+           << ", Front (<=100m) prioritized, sorted by priority_id, limited to " << max_objects_to_publish << "):\n";
     output << "Total received objects: " << total_tracks
            << ", Filtered out (confidence <= " << min_confidence_threshold << "): " << total_filtered_out
            << ", Passed filter: " << all_objects.size() << "\n";
-    output << "After filtering - Attention=1: " << attention1_objects.size()
-           << ", Attention=0: " << attention0_objects.size() 
+    output << "After filtering - Front (<=100m): " << front.size()
+           << ", Side: " << side.size()
            << ", Published: " << objects_to_publish.size() << "\n";
-    
-    // attention_type별 게시된 객체 수 계산
-    int published_attention1 = 0;
-    int published_attention0 = 0;
+
+    // Front/Side별 게시된 객체 수 계산
+    int published_front = 0;
+    int published_side = 0;
     for (const auto& p_obj : objects_to_publish) {
-        if (p_obj.attention_type == 1) {
-            published_attention1++;
-        } else if (p_obj.attention_type == 0) {
-            published_attention0++;
+        if (p_obj.x >= 0.0 && p_obj.dist2 <= FRONT_R2) {
+            published_front++;
+        } else {
+            published_side++;
         }
     }
-    output << "Published breakdown - Attention=1: " << published_attention1 
-           << ", Attention=0: " << published_attention0 << "\n";
+    output << "Published breakdown - Front (<=100m): " << published_front
+           << ", Side: " << published_side << "\n";
     
     // confidence 통계 (published objects)
     if (!objects_to_publish.empty()) {

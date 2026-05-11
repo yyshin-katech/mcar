@@ -107,3 +107,14 @@ diff /home/ads/.claude/projects/-home-ads-mcar-v13/memory/MEMORY.md /home/ads/mc
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
 | 2026-05-07 | 초기 구성 | agents 3 (match-detective/bridge-adapter/adapt-verifier) + skills/web-hmi-adapt | siheung_dev에서 web_hmi 데이터 매칭 요청 |
+
+## 하네스: percept-filter-tune
+
+**목표:** `src/sensing/can/src/percept_topic_matcher.cpp` 의 perception 오브젝트 필터 정책(우선순위·개수 cap) 튜닝.
+
+**트리거:** "perception 필터", "오브젝트 필터", "percept_topic_matcher 수정", "object_filter.md 작업" 요청 시 `percept-filter-tune` 스킬 사용. 단순 코드 질문은 직접 응답.
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-05-11 | 초기 구성 | agents 3 (percept-filter-analyst/coder/verifier) + skills/percept-filter-tune | `claude_work_list/object_filter.md` 사양 (전방 100m 우선 → 좌/우 차순 → 14개 cap) 적용 요청 |
