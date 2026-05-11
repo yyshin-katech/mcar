@@ -79,7 +79,10 @@ function TrackBoxes({ showBoxes, showHeading, showIds }) {
     //    tracker drops 43% of IDs for 1–6 frames at random; grace covers
     //    those and lets a true disappearance clear within a second.
     const TRACK_CONFIRM = 2;
-    const TRACK_MISS_GRACE = 10;
+    // Lowered from 10 to 4: the bridge now caps tracks at the N nearest, so
+    // anything trimmed (further away) used to linger ~5 s on screen at the
+    // throttled rate. Shorter grace prunes those promptly.
+    const TRACK_MISS_GRACE = 4;
     tracks.tracks.forEach((trk) => {
       seen.add(trk.id);
       let slot = slotsRef.current.get(trk.id);

@@ -249,7 +249,18 @@ class WebHmiBridge(BaseHmiStateController):
             self._objects_last_pub_t = time.monotonic()
             self._objects_dirty = False
 
+    # Keep only the N nearest objects (ego-frame Euclidean distance) so the
+    # HMI TRACKS counter and the 2D radar overlay don't crowd with far-away
+    # ghosts. Matches the cap applied in web_hmi_threejs_bridge for the 3D
+    # scene.
+    OBJECTS_MAX = 6
+
     def _publish_objects(self, objects):
+        if len(objects) > self.OBJECTS_MAX:
+            objects = sorted(
+                objects,
+                key=lambda o: (o.get('x', 0.0) ** 2 + o.get('y', 0.0) ** 2),
+            )[:self.OBJECTS_MAX]
         self._pubs['objects'].publish(String(data=json.dumps({
             'count': len(objects),
             'data': objects,

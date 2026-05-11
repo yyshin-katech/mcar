@@ -103,6 +103,13 @@
 - web_hmi 50 Hz 동등화 (commit 47d72af): `web_hmi_bridge.py`가 `BaseHmiStateController._cb_local`의 `'ego_pose_changed'` 이벤트(이미 50 Hz)를 `/hmi/ego_pose` 신규 토픽으로 라우팅. 프론트 `useEgoPose()` 훅 추가, `CameraController`/`EgoMesh`가 `useRosState` 대신 사용 (`useEffect` 50 Hz 재실행).
 - web_hmi ego-frame 트랙 슬라이드 함정 (후속 수정): `web_hmi_threejs_bridge._on_percept`가 ego-frame 좌표(`ci.center.x/y`)로 emit하는데 `TrackBoxes`가 라이브 50 Hz ego로 trackGroup 변환하면 perception tick(~10 Hz) 사이 ego 변동만큼 트랙이 월드에서 ~1 m 슬라이드. **해결**: 브리지가 `/localization/to_control_team` 직접 구독 → `_last_ego` 캐시 → `_on_percept` 페이로드에 `ego_at_emit:{east,north,yaw}` 동봉. `TrackBoxes`는 `useEgoPose()` 제거, `tracks.ego_at_emit`로 trackGroup 변환. **일반 패턴**: ego-frame으로 발행되는 모든 *느린* 데이터(perception/free space 등)는 emit-time ego 스냅샷과 페어링. 라이브 50 Hz ego는 self-motion(카메라/EgoMesh)에만.
 
+### siheung_dev 브랜치 작업 (2026-05-11)
+- `diagnostic_only.launch`: pyqt_hmi의 `lateral_offset_relay.py`/`gps_std_relay.py` 두 노드 주석 처리 (rviz overlay text 전용; web_hmi 단독 HMI 구성).
+- **rosbridge JSON stutter 함정**: `/hmi/threejs/tracks` 페이로드에 트랙당 `PERCEPT_MAX_POINTS_PER_TRACK=4096` 점군이 포함되어 메시지당 ~2.5MB. percept 5.9 Hz 입력이 rosbridge에서 ~0.9 Hz로 throttle되어 박스가 1초마다 점프 (자차는 50 Hz 부드러움). **해결**: cap 4096→256, 신규 `TRACKS_MAX_RENDERED=6`으로 ego-frame 거리(x²+y²) 정렬 후 가까운 N개만 페이로드/점군 슬라이싱. 페이로드 ~75 KB로 축소. **일반 패턴**: rosbridge std_msgs/String JSON은 1MB 안팎부터 stutter. `rostopic hz`(publish 측) + `rostopic bw`(payload 크기) 동시 측정으로 진단.
+- `web_hmi_bridge._publish_objects` (`/hmi/objects`): ego-frame 거리순 정렬 후 `OBJECTS_MAX=6`개만 발행 (HMI 하단 "TRACKS" 카운트/2D 오버레이가 3D 박스 6개와 일관). hmi_state.objects 자체는 안 자름 (pyqt_hmi 영향 회피).
+- `_slice_points` 콜백 최적화: `cloud_indices[:cap]` 슬라이스 후 변환. 기존엔 전체 길이 list comp이라 std_msgs/Int32 `.data` attribute access가 콜백 시간 지배 → percept queue_size=1 드롭 유발.
+- `TrackBoxes.jsx` `TRACK_MISS_GRACE` 10 → 4: trim된 먼 트랙이 grace만큼 화면 잔존해 6 cap 넘게 보이는 부작용 축소 (입력 hz가 낮을수록 grace 실제 시간이 늘어남).
+
 ## Diagnostic 구조
 | 토픽 | 메시지 타입 | 소스 노드 | 판단 기준 |
 |------|-------------|-----------|-----------|

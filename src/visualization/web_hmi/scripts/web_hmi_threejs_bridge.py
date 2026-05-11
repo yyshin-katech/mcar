@@ -49,7 +49,15 @@ except ImportError:
 # height=1 width=230400 in /base_link). cloud_indices index into that flat
 # array. We cache the latest fusion cloud as a (N,3) float32 numpy slice and
 # fan it out across the 10 Hz percept stream.
-PERCEPT_MAX_POINTS_PER_TRACK = 4096  # safety cap; rosbridge JSON > 8MB tends to stutter
+# Per-track cap. Lowered from 4096 to 256 because a single /hmi/threejs/tracks
+# emission at the original cap was ~2.5 MB and rosbridge throttled the stream
+# to ~1 Hz, making track boxes appear to jump in 1-second steps.
+PERCEPT_MAX_POINTS_PER_TRACK = 256
+
+# Render at most this many tracks (closest in ego-frame distance). Perception
+# emits the full tail of distant targets, but the HMI scene is busy enough
+# that 6 nearest is more than enough — also keeps the JSON payload small.
+TRACKS_MAX_RENDERED = 6
 
 # Confidence floor: perception emits a long tail of single-frame ghost tracks
 # (~34% of unique IDs in the live bag) with confidence ≤0.80, vs stable
@@ -175,8 +183,7 @@ class WebHmiThreejsBridge:
 
         cloud = self._cloud_xyz
         n_cloud = self._cloud_n
-        tracks = []
-        with_points = 0
+        candidates = []
         for obj in lf.objects.objects:
             try:
                 ci = obj.coreinfo
@@ -206,7 +213,17 @@ class WebHmiThreejsBridge:
                 }
             except AttributeError:
                 continue
+            candidates.append((t, obj))
 
+        # Keep only the N nearest tracks (ego-frame Euclidean distance). The
+        # cloud_indices slice below is the expensive step, so trim before it.
+        candidates.sort(key=lambda p: p[0]["x"] * p[0]["x"] + p[0]["y"] * p[0]["y"])
+        if len(candidates) > TRACKS_MAX_RENDERED:
+            candidates = candidates[:TRACKS_MAX_RENDERED]
+
+        tracks = []
+        with_points = 0
+        for t, obj in candidates:
             if cloud is not None and obj.hassupplmentinfo.data:
                 indices = obj.supplementinfo.cloud_indices
                 if indices:
@@ -237,13 +254,20 @@ class WebHmiThreejsBridge:
         Returns flat [x0,y0,z0, x1,y1,z1, ...] (Python list of floats,
         rounded to mm). Drops out-of-range indices. Caps at `cap` points.
         """
-        # Pull idx values into a small numpy array for vectorised lookup.
-        raw = [int(idx.data) if hasattr(idx, "data") else int(idx)
-               for idx in indices]
-        if not raw:
+        n_idx = len(indices)
+        if n_idx == 0:
             return []
-        if len(raw) > cap:
-            raw = raw[:cap]
+        # Cap BEFORE iterating: cloud_indices can be tens of thousands long
+        # per track, and std_msgs/Int32 .data attribute access is the
+        # dominant per-callback cost. Capping first keeps the loop bounded
+        # regardless of input size.
+        n_take = n_idx if n_idx <= cap else cap
+        sliced = indices[:n_take]
+        first = sliced[0]
+        if hasattr(first, "data"):
+            raw = [int(s.data) for s in sliced]
+        else:
+            raw = [int(s) for s in sliced]
         idx_arr = np.asarray(raw, dtype=np.int64)
         valid = (idx_arr >= 0) & (idx_arr < n_cloud)
         if not valid.any():
