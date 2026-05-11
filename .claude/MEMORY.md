@@ -111,6 +111,7 @@
 - `TrackBoxes.jsx` `TRACK_MISS_GRACE` 10 → 4: trim된 먼 트랙이 grace만큼 화면 잔존해 6 cap 넘게 보이는 부작용 축소 (입력 hz가 낮을수록 grace 실제 시간이 늘어남).
 - **percept-filter-tune 하네스 신규** (`claude_work_list/object_filter.md` 사양): agents 3 (percept-filter-analyst/coder/verifier) + skills/percept-filter-tune. 파이프라인 패턴 (분석→구현→검증). 작업 워크스페이스: `_filter_workspace/`.
 - `percept_topic_matcher.cpp` 필터 정책 변경: 기존 `attention_type==1 우선 + priority_id ASC + 14 break` → 공간 기반 (전방 100m 반경 FRONT 우선 / 그 외 SIDE 보충) + `attention_type` 내부 가중치. 신규 상수 `FRONT_RANGE_M=100.0`, `PriorityObj`에 `x/y/dist2` 필드 추가, 단일 `collected` 벡터, 정렬 람다 2종 (FRONT: attention DESC → dist2 ASC / SIDE: attention DESC → |y| ASC → dist2 ASC), `max_objects_to_publish=14` cap, sqrt 0건(제곱 비교만). 로그 `Attention=1/0` → `Front (<=100m)/Side`. 다운스트림 `track_CAN_writer_*` 슬롯 어사인 순서 바뀜에 주의.
+- `percept_topic_matcher.cpp` 후속 컷: `LATERAL_RANGE_M=5.0` 신규 상수로 `|y| > 5m` 객체는 confidence 컷 직후 / 보행자 캐시 사용 직전 둘 다에서 컷. FRONT 영역이 실질적으로 전방 100m × 좌우 ±5m 박스로 좁아짐.
 
 ## Diagnostic 구조
 | 토픽 | 메시지 타입 | 소스 노드 | 판단 기준 |

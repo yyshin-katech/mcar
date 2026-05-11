@@ -32,6 +32,7 @@ const int max_absence_threshold = 20;               // 20프레임 미등장 시
 const int max_objects_to_publish = 14;              // 최대 전송 객체 수
 const double min_confidence_threshold = 0.90;        // 최소 confidence 임계값
 const double FRONT_RANGE_M = 100.0;                  // 전방 1순위 반경 (m)
+const double LATERAL_RANGE_M = 5.0;                  // 좌우 횡방향 최대 거리 (m), 초과 시 컷
 const double pedestrian_keep_duration = 2.0;        // 보행자 데이터 유지 시간 (초)
 
 // 빈 CAN ID 할당(1~254). 이미 있으면 그대로 반환하고 부재 카운트 0으로 초기화
@@ -148,6 +149,8 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
         // 좌표/속도 등 추출
         double curr_x = coreinfo.center.x.data;
         double curr_y = coreinfo.center.y.data;
+        // 좌우 횡방향 LATERAL_RANGE_M(=5m) 초과 객체 컷
+        if (std::abs(curr_y) > LATERAL_RANGE_M) continue;
         double vx = coreinfo.velocity.x.data;
         double vy = coreinfo.velocity.y.data;
         double ax = coreinfo.acceleration.x.data;
@@ -227,6 +230,8 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
                 int attention_type = obj_state.attention_type;  // ★ 이전 값 사용
                 double cached_x = obj_state.prev_x;
                 double cached_y = obj_state.prev_y;
+                // 캐시된 보행자도 LATERAL_RANGE_M 초과면 컷
+                if (std::abs(cached_y) > LATERAL_RANGE_M) continue;
 
                 PriorityObj p_obj = {priority_id, tracker_id, attention_type,
                                     ads_obj.confidence,
