@@ -153,12 +153,14 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
         double curr_y = coreinfo.center.y.data;
         // 영역 컷:
         //   A) |y| <= LATERAL_RANGE_M && -REAR_RANGE_M <= x <= FRONT_RANGE_M  (좁은 박스, 후방 40m 포함)
-        //   B) |y| >  LATERAL_RANGE_M && FRONT_NEAR_X_M <= x <= FRONT_RANGE_M (먼 측면, 전방만)
+        //   B) |y| >  LATERAL_RANGE_M && FRONT_NEAR_X_M <= x <= FRONT_RANGE_M (전방 측면)
+        //   C) |y| >  LATERAL_RANGE_M && -REAR_RANGE_M  <= x <= 0            (후방 측면)
         {
             double abs_y = std::abs(curr_y);
-            bool in_box  = (abs_y <= LATERAL_RANGE_M) && (curr_x >= -REAR_RANGE_M) && (curr_x <= FRONT_RANGE_M);
-            bool in_side = (abs_y >  LATERAL_RANGE_M) && (curr_x >= FRONT_NEAR_X_M) && (curr_x <= FRONT_RANGE_M);
-            if (!in_box && !in_side) continue;
+            bool in_box       = (abs_y <= LATERAL_RANGE_M) && (curr_x >= -REAR_RANGE_M)  && (curr_x <= FRONT_RANGE_M);
+            bool in_side_fwd  = (abs_y >  LATERAL_RANGE_M) && (curr_x >= FRONT_NEAR_X_M) && (curr_x <= FRONT_RANGE_M);
+            bool in_side_rear = (abs_y >  LATERAL_RANGE_M) && (curr_x >= -REAR_RANGE_M)  && (curr_x <= 0.0);
+            if (!in_box && !in_side_fwd && !in_side_rear) continue;
         }
         double vx = coreinfo.velocity.x.data;
         double vy = coreinfo.velocity.y.data;
@@ -239,12 +241,13 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
                 int attention_type = obj_state.attention_type;  // ★ 이전 값 사용
                 double cached_x = obj_state.prev_x;
                 double cached_y = obj_state.prev_y;
-                // 캐시된 보행자도 새 영역 정책 적용 (좁은 박스(후방 40m 포함) OR 먼 측면)
+                // 캐시된 보행자도 새 영역 정책 적용 (박스 OR 전방측면 OR 후방측면)
                 {
                     double abs_y = std::abs(cached_y);
-                    bool in_box  = (abs_y <= LATERAL_RANGE_M) && (cached_x >= -REAR_RANGE_M) && (cached_x <= FRONT_RANGE_M);
-                    bool in_side = (abs_y >  LATERAL_RANGE_M) && (cached_x >= FRONT_NEAR_X_M) && (cached_x <= FRONT_RANGE_M);
-                    if (!in_box && !in_side) continue;
+                    bool in_box       = (abs_y <= LATERAL_RANGE_M) && (cached_x >= -REAR_RANGE_M)  && (cached_x <= FRONT_RANGE_M);
+                    bool in_side_fwd  = (abs_y >  LATERAL_RANGE_M) && (cached_x >= FRONT_NEAR_X_M) && (cached_x <= FRONT_RANGE_M);
+                    bool in_side_rear = (abs_y >  LATERAL_RANGE_M) && (cached_x >= -REAR_RANGE_M)  && (cached_x <= 0.0);
+                    if (!in_box && !in_side_fwd && !in_side_rear) continue;
                 }
 
                 PriorityObj p_obj = {priority_id, tracker_id, attention_type,
