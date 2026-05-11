@@ -33,7 +33,7 @@
 - `vcu_diagnostic`: `/sensors/v_can` 구독, GearInfo `life_count`로 VCU 상태 체크
 - `chassis_CAN_reader`: BrainState `life_count`로 ADCU diagnostic 추가 (`/diagnostic/adcu` 퍼블리시)
 - launch: `chassis_CAN_reader`, `IONIQ_CAN_reader` 활성화
-- `cpt7_gps_diagnostic`: Novatel → ublox NavPVT(`/ublox/navpvt`) 구독으로 변경
+- `cpt7_gps_diagnostic`: Novatel → ublox NavPVT(`/ublox/navpvt`) 구독으로 변경 (단, 메인 GPS는 여전히 Novatel — `/sensors/gps/novatel`, `/sensors/gps/bestpos`, `/sensors/gps/inspva` 사용. ublox는 일부 노드/진단·web_hmi 보조 용도)
 - `cpt7_gps_diagnostic`: GPSRTK_StatCode를 fixType → carrSoln(`(flags>>6)&0x03`)으로 변경 (0=No RTK, 1=Float, 2=Fixed)
 - `stat_display`: GPS 색상 판단을 carrSoln 기반으로 변경 (Fixed=2 초록, Float/No RTK 주황)
 - `stat_display`: LIDAR `lidar_status=2` 강제 덮어쓰기 버그 수정, CAM/RADAR 항상 정상 처리
