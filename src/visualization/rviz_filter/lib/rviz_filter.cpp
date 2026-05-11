@@ -189,6 +189,47 @@ void RVIZ_FILTER::percept_callback(const perception_ros_msg::object_array_msg::C
     marker_array.markers.push_back(text_marker);
     }
 
+    // ───── ROI 영역 외곽선 (percept_topic_matcher 정책과 동일) ─────
+    // A) box        : |y| <= 5,  x in [-40, 80]
+    // B) front-side : |y| >  5,  x in [   5, 80]
+    // C) rear-side  : |y| >  5,  x in [ -40,  0]
+    // 같은 상수가 percept_topic_matcher.cpp 에서도 정의되어 있으니 동시에 갱신할 것.
+    const double ROI_FRONT_X = 80.0;
+    const double ROI_REAR_X  = -40.0;
+    const double ROI_LAT     = 5.0;
+    const double ROI_NEAR_X  = 5.0;
+    const double ROI_SIDE_Y_OUTER = 10.0;  // 측면 외곽선 시각화 한계
+    auto add_roi_rect = [&](int id, double x0, double x1, double y0, double y1,
+                            float r, float g, float b) {
+        visualization_msgs::Marker m;
+        m.header.frame_id = "ego_frame";
+        m.header.stamp = now;
+        m.ns = "roi";
+        m.id = id;
+        m.type = visualization_msgs::Marker::LINE_STRIP;
+        m.action = visualization_msgs::Marker::ADD;
+        m.scale.x = 0.15;
+        m.color.r = r; m.color.g = g; m.color.b = b; m.color.a = 0.75;
+        m.pose.orientation.w = 1.0;
+        geometry_msgs::Point p;
+        p.z = 0.0;
+        p.x = x0; p.y = y0; m.points.push_back(p);
+        p.x = x1; p.y = y0; m.points.push_back(p);
+        p.x = x1; p.y = y1; m.points.push_back(p);
+        p.x = x0; p.y = y1; m.points.push_back(p);
+        p.x = x0; p.y = y0; m.points.push_back(p);
+        m.lifetime = ros::Duration(1.0);
+        marker_array.markers.push_back(m);
+    };
+    // A: 박스 (cyan)
+    add_roi_rect(0, ROI_REAR_X, ROI_FRONT_X, -ROI_LAT, ROI_LAT, 0.0f, 1.0f, 1.0f);
+    // B: 전방 측면 좌/우 (orange)
+    add_roi_rect(1, ROI_NEAR_X, ROI_FRONT_X,  ROI_LAT,  ROI_SIDE_Y_OUTER, 1.0f, 0.55f, 0.0f);
+    add_roi_rect(2, ROI_NEAR_X, ROI_FRONT_X, -ROI_SIDE_Y_OUTER, -ROI_LAT, 1.0f, 0.55f, 0.0f);
+    // C: 후방 측면 좌/우 (yellow)
+    add_roi_rect(3, ROI_REAR_X, 0.0,  ROI_LAT,  ROI_SIDE_Y_OUTER, 1.0f, 1.0f, 0.0f);
+    add_roi_rect(4, ROI_REAR_X, 0.0, -ROI_SIDE_Y_OUTER, -ROI_LAT, 1.0f, 1.0f, 0.0f);
+
     marker_pub.publish(marker_array);
 }
 
