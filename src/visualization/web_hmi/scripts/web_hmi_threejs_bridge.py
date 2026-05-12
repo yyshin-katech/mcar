@@ -54,11 +54,6 @@ except ImportError:
 # to ~1 Hz, making track boxes appear to jump in 1-second steps.
 PERCEPT_MAX_POINTS_PER_TRACK = 256
 
-# Render at most this many tracks (closest in ego-frame distance). Perception
-# emits the full tail of distant targets, but the HMI scene is busy enough
-# that 6 nearest is more than enough — also keeps the JSON payload small.
-TRACKS_MAX_RENDERED = 6
-
 # Confidence floor: perception emits a long tail of single-frame ghost tracks
 # (~34% of unique IDs in the live bag) with confidence ≤0.80, vs stable
 # tracks at ~0.999. Filtering here prevents the frontend from briefly
@@ -229,11 +224,10 @@ class WebHmiThreejsBridge:
                 continue
             candidates.append((t, obj))
 
-        # Keep only the N nearest tracks (ego-frame Euclidean distance). The
-        # cloud_indices slice below is the expensive step, so trim before it.
+        # Sort by ego-frame distance (nearest first) so the frontend renders
+        # close objects first. Upstream percept_topic_matcher caps at 14, so
+        # the survivor set stays bounded.
         candidates.sort(key=lambda p: p[0]["x"] * p[0]["x"] + p[0]["y"] * p[0]["y"])
-        if len(candidates) > TRACKS_MAX_RENDERED:
-            candidates = candidates[:TRACKS_MAX_RENDERED]
 
         tracks = []
         with_points = 0

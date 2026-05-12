@@ -16,11 +16,11 @@
 //   stamp, tracks[{id,tid,type,x,y,vx,vy,size_x,size_y,orientation,
 //                  confidence, points?}], ego_at_emit?{east,north,yaw}
 //
-// Sort/cap order (must match Python):
+// Sort order (must match Python):
 //   1. confidence < PERCEPT_MIN_CONFIDENCE drop
-//   2. distance² ASC
-//   3. top TRACKS_MAX_RENDERED
-//   4. per-track cloud_indices slice (cap PERCEPT_MAX_POINTS_PER_TRACK)
+//   2. distance² ASC (nearest first; per-track count is whatever
+//      percept_topic_matcher upstream emits — currently capped at 14)
+//   3. per-track cloud_indices slice (cap PERCEPT_MAX_POINTS_PER_TRACK)
 //
 // Single-threaded ros::spin() — no mutex on caches.
 
@@ -45,7 +45,6 @@ namespace {
 
 // Constants — must stay identical to web_hmi_threejs_bridge.py.
 constexpr std::size_t PERCEPT_MAX_POINTS_PER_TRACK = 256;
-constexpr std::size_t TRACKS_MAX_RENDERED         = 6;
 constexpr float       PERCEPT_MIN_CONFIDENCE      = 0.9f;
 
 inline const char* percept_type_str(int t) {
@@ -65,7 +64,7 @@ struct EgoSnap {
 };
 
 // Per-percept candidate accumulator. We collect lightweight metadata first,
-// then sort & cap, then do the heavy cloud slice for survivors only.
+// then sort by distance, then do the heavy cloud slice for survivors only.
 struct Candidate {
   int    id        = 0;
   int    tid       = 0;
@@ -191,23 +190,13 @@ private:
       candidates_.push_back(c);
     }
 
-    // dist² ASC, top TRACKS_MAX_RENDERED. partial_sort is O(N log K).
-    if (candidates_.size() > TRACKS_MAX_RENDERED) {
-      std::partial_sort(
-          candidates_.begin(),
-          candidates_.begin() + TRACKS_MAX_RENDERED,
-          candidates_.end(),
-          [](const Candidate& a, const Candidate& b) {
-            return a.dist2 < b.dist2;
-          });
-      candidates_.resize(TRACKS_MAX_RENDERED);
-    } else {
-      std::sort(
-          candidates_.begin(), candidates_.end(),
-          [](const Candidate& a, const Candidate& b) {
-            return a.dist2 < b.dist2;
-          });
-    }
+    // dist² ASC (nearest first). No cap — upstream percept_topic_matcher
+    // already limits to 14 tracks, so the survivor set stays bounded.
+    std::sort(
+        candidates_.begin(), candidates_.end(),
+        [](const Candidate& a, const Candidate& b) {
+          return a.dist2 < b.dist2;
+        });
 
     Json::Value root(Json::objectValue);
     root["stamp"] = stamp;

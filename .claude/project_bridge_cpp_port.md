@@ -24,7 +24,7 @@ originSessionId: e1d57818-0ba3-42fc-8e4d-2f895e224b6e
 - **JSON lib**: jsoncpp (`libjsoncpp-dev` 시스템 패키지), `StreamWriterBuilder` indentation="" 로 압축. nlohmann/json vendoring 회피.
 - **PointCloud2 zero-copy**: `ConstPtr` 보관 + `reinterpret_cast<const float*>(msg->data.data())` + `point_step/sizeof(float)` 스트라이드. 복사 없이 인덱싱.
 - **cloud_indices 비용 차이**: Python 에서 dominant cost (`std_msgs/Int32 .data` attribute access) 였던 부분이 C++ 직접 멤버 access 로 사실상 0. cap 먼저(`indices[:256]`) 원칙은 유지 (페이로드 크기 한도용).
-- **정렬·cap·슬라이싱 순서 (불변)**: confidence 컷 → candidate 수집(메타데이터만) → `partial_sort` dist² ASC top 6 → resize → 생존자만 `slicePoints` (cap 먼저) → JSON. 점군 슬라이싱은 정렬 후에 — 자르기 전에 슬라이싱하면 99% 낭비.
+- **정렬·슬라이싱 순서 (불변)**: confidence 컷 → candidate 수집(메타데이터만) → `std::sort` dist² ASC (cap 없음, 초기엔 `partial_sort` top 6 였으나 2026-05-12 cap 제거) → 생존자만 `slicePoints` (점군 cap 256 먼저) → JSON. 점군 슬라이싱은 정렬 후에 — 자르기 전에 슬라이싱하면 99% 낭비.
 - **transport hints**: 3개 구독 모두 `transport_hints().tcpNoDelay()`.
 - **단일 스레드 `ros::spin()`**: mutex 불필요. 멀티스레드 spinner 도입 시 cloud/percept/ego 캐시 보호 필수.
 
@@ -33,6 +33,16 @@ originSessionId: e1d57818-0ba3-42fc-8e4d-2f895e224b6e
 - 권장: 기존 Python 노드에 `~publish_tracks` ROS param (기본 False) 가드를 추가. False 면 `_pub_tracks` advertise + 관련 구독(`_sub_local`/`_sub_cloud`/`_sub_percept`) + 로그 타이머 전부 스킵. 다른 책임(map latched 발행)은 그대로 유지.
 - launch 에서 Python 노드에 명시적으로 `<param name="publish_tracks" value="false"/>` 주입, 옆에 cpp 노드 `<node>` 블록 추가. variant 가드(`if="$(eval arg('variant') in ('threejs', 'threejs_f1'))"`)로 사용 안 하는 variant 에서는 cpp 도 안 띄움.
 - 검증 순서: (1) `rostopic info <topic>` Publishers 단일 확인 → (2) Python 노드 `rosnode info` 의 Subscriptions 가 비었는지 → (3) `rostopic hz` 측정.
+
+## TRACKS_MAX_RENDERED=6 cap 제거 (2026-05-12 후속)
+- cpp 포팅으로 콜백 여유가 충분해진 뒤 사용자 요청으로 일괄 제거.
+- `web_hmi_threejs_tracks_node.cpp`: 상수 + `if (size > 6) partial_sort/resize else sort` 분기 → 단순 `std::sort(dist² ASC)`. 주석 동기화.
+- `web_hmi_threejs_bridge.py`: 동일 상수 + `candidates[:TRACKS_MAX_RENDERED]` 라인 제거 (가드 비활성이지만 일관성).
+- `web_hmi_bridge.py`: `OBJECTS_MAX=6` + cap 분기 제거. `_publish_objects` 정렬은 유지 (가까운 객체 먼저 발행).
+- 상한 책임: `percept_topic_matcher.cpp`의 `max_objects_to_publish=14`. web_hmi 측은 더 이상 cap 안 함.
+- 점군 cap 256은 유지 (페이로드 크기 안정성).
+- 라이브 적용은 launch 재기동 필요 (`web_hmi.launch`의 cpp 노드 `required="true"`).
+- `TrackBoxes.jsx`의 `TRACK_MISS_GRACE=4`는 cap 6 가정 하에서 줄인 값이라 cap 풀린 뒤엔 더 길게 둬도 무방 — 회귀 보이면 그 쪽 우선 점검.
 
 ## 메시지 오타 필드 (perception_ros_msg)
 포팅 시 반드시 그대로 유지:

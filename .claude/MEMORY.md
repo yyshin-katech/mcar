@@ -126,6 +126,7 @@
 - **Python → C++ 콜백 비용 함정**: `std_msgs/Int32 .data` attribute access 가 Python 콜백 시간 지배 (cloud_indices 만개 단위). C++ 직접 멤버 access 로 사실상 0 비용. cap 먼저 (`indices[:256]`) 원칙은 그대로 유지 (페이로드 크기 한도용).
 - 빌드 의존성: `libjsoncpp-dev` (시스템 패키지) + `pkg_check_modules(JSONCPP REQUIRED jsoncpp)` — nlohmann vendoring 회피. `find_package(catkin REQUIRED COMPONENTS roscpp std_msgs sensor_msgs perception_ros_msg mmc_msgs)` (rospy 기존 라인에 확장).
 - 검증 순서: (1) `rostopic info /hmi/threejs/tracks` Publishers 단일 cpp 확인 → (2) `rosnode info /web_hmi_threejs_bridge` Subscriptions 비었는지 → (3) `rostopic hz/bw` 측정.
+- **6개 cap 일괄 제거** (cpp 포팅으로 콜백 여유 확보된 뒤): `web_hmi_threejs_tracks_node.cpp`의 `TRACKS_MAX_RENDERED=6` 상수 + `partial_sort` cap 분기 제거 → 단순 `std::sort(dist² ASC)`. `web_hmi_threejs_bridge.py` 동일 상수/슬라이스 제거 (가드 비활성이라도 일관성). `web_hmi_bridge.py`의 `OBJECTS_MAX=6` 제거, 정렬은 유지. 상한은 이제 `percept_topic_matcher.cpp`의 14개 cap이 결정. 점군 cap `PERCEPT_MAX_POINTS_PER_TRACK=256`은 페이로드 안정성용으로 유지. 라이브 적용은 `roslaunch web_hmi web_hmi.launch` 재기동 필요 (cpp 노드 `required="true"`).
 
 ## Diagnostic 구조
 | 토픽 | 메시지 타입 | 소스 노드 | 판단 기준 |
