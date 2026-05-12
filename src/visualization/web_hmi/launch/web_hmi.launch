@@ -43,7 +43,9 @@
     <param name="map_shp" value="$(arg map_shp)"/>
   </node>
 
-  <!-- 2b. Three.js bridge — when variant=threejs or threejs_f1. -->
+  <!-- 2b. Three.js bridge (Python) — map / shapefile only. /hmi/threejs/tracks
+       is moved to the C++ node below; ~publish_tracks=false keeps Python from
+       advertising or subscribing to the percept/cloud hot path. -->
   <node if="$(eval arg('variant') in ('threejs', 'threejs_f1'))"
         name="web_hmi_threejs_bridge"
         pkg="web_hmi"
@@ -51,7 +53,16 @@
         output="screen"
         required="true">
     <param name="mapdir" value="$(arg threejs_mapdir)"/>
+    <param name="publish_tracks" value="false"/>
   </node>
+
+  <!-- 2c. Three.js tracks (C++) — percept → /hmi/threejs/tracks at 10 Hz. -->
+  <node if="$(eval arg('variant') in ('threejs', 'threejs_f1'))"
+        name="web_hmi_threejs_tracks_cpp"
+        pkg="web_hmi"
+        type="web_hmi_threejs_tracks_cpp"
+        output="screen"
+        required="true"/>
 
   <!-- 3. Static asset HTTP server -->
   <node name="web_hmi_server"

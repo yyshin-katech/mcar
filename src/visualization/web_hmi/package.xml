@@ -12,6 +12,16 @@
   <depend>rospy</depend>
   <depend>std_msgs</depend>
 
+  <!-- C++ tracks node (web_hmi_threejs_tracks_cpp) -->
+  <build_depend>roscpp</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>perception_ros_msg</build_depend>
+  <build_depend>mmc_msgs</build_depend>
+  <build_depend>libjsoncpp-dev</build_depend>
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>libjsoncpp1</exec_depend>
+
   <!-- Imports BaseHmiStateController which subscribes to all of these -->
   <exec_depend>pyqt_hmi</exec_depend>
   <exec_depend>mmc_msgs</exec_depend>

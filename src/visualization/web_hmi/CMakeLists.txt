@@ -3,10 +3,39 @@ project(web_hmi)
 
 find_package(catkin REQUIRED COMPONENTS
   rospy
+  roscpp
   std_msgs
+  sensor_msgs
+  perception_ros_msg
+  mmc_msgs
 )
 
-catkin_package()
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(JSONCPP REQUIRED jsoncpp)
+
+catkin_package(
+  CATKIN_DEPENDS roscpp std_msgs sensor_msgs perception_ros_msg mmc_msgs
+)
+
+include_directories(
+  ${catkin_INCLUDE_DIRS}
+  ${JSONCPP_INCLUDE_DIRS}
+)
+
+add_executable(web_hmi_threejs_tracks_cpp
+  src/web_hmi_threejs_tracks_node.cpp
+)
+add_dependencies(web_hmi_threejs_tracks_cpp
+  ${catkin_EXPORTED_TARGETS}
+)
+target_link_libraries(web_hmi_threejs_tracks_cpp
+  ${catkin_LIBRARIES}
+  ${JSONCPP_LIBRARIES}
+)
+
+install(TARGETS web_hmi_threejs_tracks_cpp
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 catkin_install_python(PROGRAMS
   scripts/web_hmi_bridge.py

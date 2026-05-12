@@ -99,9 +99,17 @@ class WebHmiThreejsBridge:
         self._pub_map = rospy.Publisher(
             "/hmi/threejs/map", String, queue_size=1, latch=True,
         )
-        self._pub_tracks = rospy.Publisher(
-            "/hmi/threejs/tracks", String, queue_size=2,
-        )
+        # Track publishing is owned by web_hmi_threejs_tracks_cpp when this
+        # param is false (default). The C++ node is faster on the percept hot
+        # path; keeping Python's advertiser around would create a dual
+        # publisher (last-advertise-wins + queue contention).
+        self._publish_tracks = bool(rospy.get_param("~publish_tracks", False))
+        if self._publish_tracks:
+            self._pub_tracks = rospy.Publisher(
+                "/hmi/threejs/tracks", String, queue_size=2,
+            )
+        else:
+            self._pub_tracks = None
         self._mapdir = rospy.get_param(
             "~mapdir",
             os.path.join(
@@ -123,28 +131,34 @@ class WebHmiThreejsBridge:
         self._last_ego = None  # (east, north, yaw) or None until first cb
         self._publish_map_once()
 
-        if to_control_team_from_local_msg is not None:
-            self._sub_local = rospy.Subscriber(
-                "/localization/to_control_team",
-                to_control_team_from_local_msg,
-                self._on_local, queue_size=4,
-            )
+        if self._publish_tracks:
+            if to_control_team_from_local_msg is not None:
+                self._sub_local = rospy.Subscriber(
+                    "/localization/to_control_team",
+                    to_control_team_from_local_msg,
+                    self._on_local, queue_size=4,
+                )
 
-        if RsPerceptionMsg is None:
-            rospy.logerr(
-                "web_hmi_threejs_bridge: RsPerceptionMsg unavailable; "
-                "/hmi/threejs/tracks will not be published"
-            )
+            if RsPerceptionMsg is None:
+                rospy.logerr(
+                    "web_hmi_threejs_bridge: RsPerceptionMsg unavailable; "
+                    "/hmi/threejs/tracks will not be published"
+                )
+            else:
+                self._sub_cloud = rospy.Subscriber(
+                    "/fusion_lidar_points", PointCloud2,
+                    self._on_cloud, queue_size=1, buff_size=2 ** 26,
+                )
+                self._sub_percept = rospy.Subscriber(
+                    "/percept_topic", RsPerceptionMsg,
+                    self._on_percept, queue_size=1, buff_size=2 ** 24,
+                )
+                rospy.Timer(rospy.Duration(5.0), self._log_publish_rate)
         else:
-            self._sub_cloud = rospy.Subscriber(
-                "/fusion_lidar_points", PointCloud2,
-                self._on_cloud, queue_size=1, buff_size=2 ** 26,
+            rospy.loginfo(
+                "web_hmi_threejs_bridge: ~publish_tracks=false — "
+                "/hmi/threejs/tracks is owned by web_hmi_threejs_tracks_cpp"
             )
-            self._sub_percept = rospy.Subscriber(
-                "/percept_topic", RsPerceptionMsg,
-                self._on_percept, queue_size=1, buff_size=2 ** 24,
-            )
-            rospy.Timer(rospy.Duration(5.0), self._log_publish_rate)
 
     def _on_local(self, msg):
         self._last_ego = (
