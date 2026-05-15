@@ -129,3 +129,14 @@ diff /home/ads/.claude/projects/-home-ads-mcar-v13/memory/MEMORY.md /home/ads/mc
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
 | 2026-05-12 | 초기 구성 | agents 3 (bridge-port-analyst/coder/verifier) + skills/bridge-cpp-port | `/hmi/threejs/tracks` 가 콜백 지연으로 0.95 Hz 까지 떨어져 web_hmi 트랙 박스가 1초마다 점프 — Python → C++ 포팅 요청 |
+
+## 하네스: senario-gps-pub
+
+**목표:** `mapfiles/senario/mat_viewer_senario_*.html` 주행 link 시퀀스를 따라 EPSG:5179 GPS 데이터를 40 km/h 일정 + 간단 동역학으로 시뮬레이션 발행하는 ROS publisher 신규 개발. 기존 `test_senario3_publisher.py` 와 동일 토픽/메시지 (`/localization/pose_2d_gps`, `mmc_msgs/localization2D_msg`) 패턴.
+
+**트리거:** "senario gps publisher 만들어", "mat 시나리오 시뮬", "senario_260514c 주행 시뮬", "40km/h GPS 시뮬", "senario gps pub 다시 만들어", "route 바꿔서 다시" 요청 시 `senario-gps-pub` 스킬 사용. 단순 코드 질문은 직접 응답.
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-05-15 | 초기 구성 | agents 3 (senario-sim-analyst/coder/verifier) + skills/senario-gps-pub | senario_260514c HTML 주행 시퀀스 기반 40 km/h GPS 시뮬레이터 publisher 신규 개발 요청 |
