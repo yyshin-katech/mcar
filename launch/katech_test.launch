@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
     <arg name="sweet_home" default="$(optenv HOME)" />
-    <!-- 시나리오 선택: senario1 또는 senario3 -->
-    <!-- roslaunch launch/katech_test.launch scenario:=senario1 -->
-    <!-- roslaunch launch/katech_test.launch scenario:=senario3 -->
-    <arg name="scenario" default="senario3" />
+    <!-- 시나리오 선택: mat 지도와 shp 지도를 분리 지정 -->
+    <!-- roslaunch launch/katech_test.launch mat_scenario:=senario3 shp_scenario:=senario3 -->
+    <arg name="mat_scenario" default="senario" />
+    <arg name="shp_scenario" default="HDMap_Oido_New" />
 
     <param name="EPSG" value="5179" />
 
-    <!-- 맵 경로 설정 (scenario arg에 따라 자동 변경) -->
+    <!-- 맵 경로 설정 (각 arg에 따라 자동 변경) -->
     <param name="MAPFILE_PATH"
-          value="$(find gps_system_localizer)/mapfiles/$(arg scenario)" />
+          value="$(find gps_system_localizer)/mapfiles/$(arg mat_scenario)" />
     <param name="SHP_MAP_PATH"
-          value="$(find gps_system_localizer)/src/shp_map/$(arg scenario)" />
+          value="$(find gps_system_localizer)/src/shp_map/$(arg shp_scenario)" />
 
    <group ns="sensors/gps">
         <include file="$(find novatel_gps_driver)/launch/tester_for_usb_eq.launch">
