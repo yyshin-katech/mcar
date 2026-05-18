@@ -162,6 +162,9 @@ def lanelet_data_initialize(shp_file):
                 coords_raw = geom['coordinates']
                 if len(coords_raw) == 0:
                     continue
+                # LINE_STRIP marker needs >=2 vertices, so skip point geometries
+                if geom_type in ('Point', 'MultiPoint'):
+                    continue
                 # Polygon: coordinates = [exterior_ring, ...], 각 ring은 (x,y,z) 튜플 목록
                 # LineString: coordinates = [(x,y,z), ...]
                 if geom_type in ('Polygon', 'MultiPolygon'):
@@ -265,7 +268,7 @@ class lanelet_marker(object):
         # Load multiple shapefiles from SHP_MAP_PATH param (scenario-specific)
         shp_map_path = rospy.get_param('SHP_MAP_PATH', DEFAULT_SHP_MAP_PATH)
         rospy.loginfo(f"SHP map path: {shp_map_path}")
-        self.wps = load_multiple_shapefiles(shp_map_path, "*.shp")
+        self.wps = load_multiple_shapefiles(shp_map_path, "A2_LINK.shp")
         self.e_ego = 0.0
         self.n_ego = 0.0
         self.vehicle_yaw = 0.0
