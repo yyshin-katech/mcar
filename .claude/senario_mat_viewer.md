@@ -7,8 +7,9 @@ originSessionId: 02987e96-3bce-4338-b524-4cc3596fca14
 ## 하네스 위치
 `/home/yuyeong/temp/harness_to_control_team/` (repo 외부)
 
-- `add_manuaver.py` — senario 322개 mat에 MANUAVER 필드 추가/덮어쓰기 (curve_lane.md 기반)
-- `regen_mat_viewer.py` — senario mat 데이터로 HTML 뷰어 재생성
+- `add_manuaver.py` — senario mat에 MANUAVER 필드 추가/덮어쓰기 (curve_lane.md 기반)
+- `apply_20260518_update.py` — mat 일괄 제거/트림(정확히 N m 보간) + 참조 정리. `trim_link(lid, 'front'|'back', meters)` 함수로 임의 길이 트림 가능
+- `regen_mat_viewer.py` — senario mat 데이터로 HTML 뷰어 재생성 (mat 수정 후 매번 실행)
 
 ## 대상 HTML
 `src/localization/gps_system_localizer/mapfiles/senario/mat_viewer_senario_260514c 1.html`

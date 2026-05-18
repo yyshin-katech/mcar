@@ -128,6 +128,16 @@
 - 검증 순서: (1) `rostopic info /hmi/threejs/tracks` Publishers 단일 cpp 확인 → (2) `rosnode info /web_hmi_threejs_bridge` Subscriptions 비었는지 → (3) `rostopic hz/bw` 측정.
 - **6개 cap 일괄 제거** (cpp 포팅으로 콜백 여유 확보된 뒤): `web_hmi_threejs_tracks_node.cpp`의 `TRACKS_MAX_RENDERED=6` 상수 + `partial_sort` cap 분기 제거 → 단순 `std::sort(dist² ASC)`. `web_hmi_threejs_bridge.py` 동일 상수/슬라이스 제거 (가드 비활성이라도 일관성). `web_hmi_bridge.py`의 `OBJECTS_MAX=6` 제거, 정렬은 유지. 상한은 이제 `percept_topic_matcher.cpp`의 14개 cap이 결정. 점군 cap `PERCEPT_MAX_POINTS_PER_TRACK=256`은 페이로드 안정성용으로 유지. 라이브 적용은 `roslaunch web_hmi web_hmi.launch` 재기동 필요 (cpp 노드 `required="true"`).
 
+### siheung_dev 브랜치 작업 (2026-05-18) — senario mat 정리 2차
+- `claude_work_list/20260518_mat_file_update.md` 입력으로 senario mat 일괄 정리. 완전 제거 14개(553/487/478/1022/1023/1403/1336/1195/1788/1078/678/689/779/2081), 앞부분 정확히 10m 트림 5개(417/1169/1885/2377; 2540은 길이 13.9m라 트림 후 원복), 뒷부분 정확히 10m 트림 7개(1186/913/1125/665/786/568/2182). 트림은 station=cut 지점에서 east/north 보간 후 그 너머 drop. 완전 제거된 LINK_ID를 NEXT/RIGHT/LEFT로 참조하던 6개 mat 파일은 자동 0 처리.
+- 추가 NEXT_LINK_ID 수정: link_548 → 418, 뒷부분 트림 7개 모두 → 0, link_870 → 1808, link_1074 → 1886. 후속 트림: link_913 뒤 3m 추가, link_1885 앞 5m 추가.
+- `guard_zone` 필드 일괄 0 처리(8개 링크: 1267/1268/1273/1274/1276/1277/1325/1326).
+- senario 322 → 308개 파일, signal-bearing 117 → 113개. mat_viewer HTML 재생성.
+- 하네스: `~/temp/harness_to_control_team/apply_20260518_update.py` (`trim_link(lid, side, meters)` 함수로 임의 길이 추가 트림 가능).
+
+### siheung_dev 브랜치 작업 (2026-05-18) — to_control_team 2-step 일반화
+- `to_control_team_demo.py:407-431` 2-step look-ahead 정지선 규칙을 LINK_ID 348/336 하드코딩에서 일반화. NEXT가 정지선이 아니고 NEXT_NEXT가 정지선이면서 길이 30m 이하일 때만 발화, `distance_to_lane_end`에 NEXT + NEXT_NEXT 길이 합산. senario에서 1-step 31개 / 2-step 28개 발화 확인.
+
 ### siheung_dev 브랜치 작업 (2026-05-18) — senario MANUAVER 보강
 - `launch/katech_test.launch`: `mat_scenario` default가 `senario3` → `senario`로 변경된 상태에서 좌/우회전 차선 신호등 매칭 실패. 원인: senario mat 파일에 `MANUAVER` 필드 자체가 없어 `to_control_team_demo.py`의 `.get('MANUAVER', [[0]])` 가 항상 0(STRAIGHT)로 떨어지고, V2X `j2735_decode.cpp` 가 movementName(LEFT/STRAIGHT/RIGHT)으로 SPaT 필터하면서 회전 신호 컷.
 - senario 322개 mat 전부에 `MANUAVER` int64 (1,1) 필드 추가. 회전 라벨은 `claude_work_list/curve_lane.md` (사용자 관리) — LEFT 9개(417/442/499/548/946/973/1878/2540/2541), RIGHT 3개(1205/1239/1242), 나머지 STRAIGHT 0. 신호-bearing 117개 전부 MANUAVER 보유 보장.
