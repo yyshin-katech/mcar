@@ -128,6 +128,14 @@
 - 검증 순서: (1) `rostopic info /hmi/threejs/tracks` Publishers 단일 cpp 확인 → (2) `rosnode info /web_hmi_threejs_bridge` Subscriptions 비었는지 → (3) `rostopic hz/bw` 측정.
 - **6개 cap 일괄 제거** (cpp 포팅으로 콜백 여유 확보된 뒤): `web_hmi_threejs_tracks_node.cpp`의 `TRACKS_MAX_RENDERED=6` 상수 + `partial_sort` cap 분기 제거 → 단순 `std::sort(dist² ASC)`. `web_hmi_threejs_bridge.py` 동일 상수/슬라이스 제거 (가드 비활성이라도 일관성). `web_hmi_bridge.py`의 `OBJECTS_MAX=6` 제거, 정렬은 유지. 상한은 이제 `percept_topic_matcher.cpp`의 14개 cap이 결정. 점군 cap `PERCEPT_MAX_POINTS_PER_TRACK=256`은 페이로드 안정성용으로 유지. 라이브 적용은 `roslaunch web_hmi web_hmi.launch` 재기동 필요 (cpp 노드 `required="true"`).
 
+### siheung_dev 브랜치 작업 (2026-05-18) — senario MANUAVER 보강
+- `launch/katech_test.launch`: `mat_scenario` default가 `senario3` → `senario`로 변경된 상태에서 좌/우회전 차선 신호등 매칭 실패. 원인: senario mat 파일에 `MANUAVER` 필드 자체가 없어 `to_control_team_demo.py`의 `.get('MANUAVER', [[0]])` 가 항상 0(STRAIGHT)로 떨어지고, V2X `j2735_decode.cpp` 가 movementName(LEFT/STRAIGHT/RIGHT)으로 SPaT 필터하면서 회전 신호 컷.
+- senario 322개 mat 전부에 `MANUAVER` int64 (1,1) 필드 추가. 회전 라벨은 `claude_work_list/curve_lane.md` (사용자 관리) — LEFT 9개(417/442/499/548/946/973/1878/2540/2541), RIGHT 3개(1205/1239/1242), 나머지 STRAIGHT 0. 신호-bearing 117개 전부 MANUAVER 보유 보장.
+- senario1 mat은 의도적으로 미작업 (64개 신호-bearing 모두 MANUAVER 누락 상태 유지). senario3는 변경 없음(이미 갖춤).
+- 회전차선 자동 검출 휴리스틱(시작/끝 heading delta)으로 senario3 라벨 검증: precision/recall 67% — MANUAVER는 운전 의도(차선 attr)이지 link geometry 가 아니므로 자동 판별 불가. 사람이 라벨 관리하는 것 확정.
+- `mapfiles/senario/mat_viewer_senario_260514c 1.html` 뷰어 재생성: line 815 `var DATA` GeoJSON 교체 + renderDetail 신호 섹션에 MANUAVER 행 추가. pyproj 미설치 환경이라 `cs2cs` CLI subprocess (TM `+lat_0=38 +lon_0=127.5 +k=0.9996 +x_0=1000000 +y_0=2000000 +ellps=GRS80`) 로 EPSG:5179→WGS84 일괄 변환. WAYPOINTS 배열 등 나머지 JS는 보존.
+- 작업 하네스: `/home/yuyeong/temp/harness_to_control_team/{add_manuaver.py,regen_mat_viewer.py,analyze.py}` (repo 외부). mat 백업: `/home/yuyeong/temp/senario_backup_<ts>/`.
+
 ### siheung_dev 브랜치 작업 (2026-05-18)
 - `lanelet_marker.py` POINTZ shapefile 크래시 수정 (`'float' object is not subscriptable`): fiona 가 Point geometry 를 `coordinates = (x,y,z)` **단일 튜플** 로 반환하는데 기존 코드는 LineString/Polygon 처럼 좌표 목록으로 가정 → `[coord[0] for coord in coords]` 에서 float 인덱싱 시도. 해결: `geom_type in ('Point', 'MultiPoint')` 면 continue (LINE_STRIP 마커는 ≥2 점 필요하므로 어차피 못 그림). HDMap_Oido_New 의 A1_NODE, B1_SAFETYSIGN, C1_TRAFFICLIGHT 등 POINTZ 레이어가 원인이었음.
 - `lanelet_marker.py` A2_LINK 전용으로 좁힘: `load_multiple_shapefiles(shp_map_path, "*.shp")` → `"A2_LINK.shp"`. HDMap_Oido_New 전체 레이어(11개) 로드 시 마커 9226개 → RViz 성능 경고(임계값 5000). 차선만 그리면 충분 + 성능 여유. `lanelet_marker.py:271`. 다른 레이어 시각화는 `/hmi/threejs/map` (web_hmi) 또는 향후 별도 노드에서 처리.
@@ -152,6 +160,9 @@
 - [qt_hmi + web_hmi rviz-grade follow](project_qt_hmi.md) — 50Hz ego pose 패턴(둘 다); ego-frame 트랙은 emit-time ego 스냅샷(`ego_at_emit`)과 페어링 필수
 - [bridge cpp 포팅 패턴](project_bridge_cpp_port.md) — Python `/hmi/threejs/tracks` 0.78 Hz → C++ 9.98 Hz. zero-copy PointCloud2 + dual-publisher 회피(`~publish_tracks` 가드) 일반 패턴
 - [senario-gps-pub harness](senario_gps_pub_harness.md) — senario HTML 주행 link 시퀀스 → 40 km/h GPS 시뮬레이션 publisher 신규 개발 파이프라인
+- [Map Data](map_data.md) — senario / senario3 mat 구조, MANUAVER 라벨(curve_lane.md) 원천
+- [senario mat 뷰어 재생성](senario_mat_viewer.md) — ~/temp 하네스, cs2cs로 EPSG:5179→WGS84
+- [Environment](environment.md) — WSL2/yuyeong PC, pyproj 미설치 → cs2cs CLI 사용
 
 ## 피드백 메모리
 - [일본어 사용 금지](feedback_no_japanese.md) — 응답에 일본어(한자) 금지, 한국어만 사용
