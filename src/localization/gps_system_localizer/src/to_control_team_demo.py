@@ -404,18 +404,24 @@ class DistanceCalculator(object):
                         p.distance_to_lane_end = p.distance_to_lane_end + next_link_length
                     break
 
-        # LINK_ID 348, 336: 다음링크 + 그 다음링크(정지선)의 길이까지 합산
-        if p.is_stop_line == 0 and p.LINK_ID in (348, 336) and p.NEXT_LINK_ID != 0:
+        # 2-step look-ahead: NEXT가 정지선이 아니고, NEXT_NEXT가 정지선이면서 길이 30m 이하이면
+        # 현재 링크에서 미리 정지선 정보 반영 + NEXT + NEXT_NEXT 길이까지 거리 합산
+        # (1-step에서 이미 처리됐다면 p.is_stop_line == 1이라 이 블록 skip)
+        if p.is_stop_line == 0 and p.NEXT_LINK_ID != 0:
             for road in self.target_roads:
                 if int(road['LINK_ID'][0][0]) == p.NEXT_LINK_ID:
+                    next_is_stop = int(road['is_stop_line'][0][0])
+                    # NEXT가 정지선이면 그 너머는 보지 않음 (1-step의 책임 영역)
+                    if next_is_stop != 0:
+                        break
                     next_link_length = road['station'][0][-1]
                     next_next_link_id = int(road['NEXT_LINK_ID'][0][0])
                     if next_next_link_id != 0:
                         for road2 in self.target_roads:
                             if int(road2['LINK_ID'][0][0]) == next_next_link_id:
                                 next_next_is_stop = int(road2['is_stop_line'][0][0])
-                                if next_next_is_stop == 1:
-                                    next_next_link_length = road2['station'][0][-1]
+                                next_next_link_length = road2['station'][0][-1]
+                                if next_next_is_stop == 1 and next_next_link_length <= 30.0:
                                     p.is_stop_line = 1
                                     p.look_at_signalGroupID = road2['look_at_signalGroupID'][0][0]
                                     p.look_at_IntersectionID = road2['look_at_IntersectionID'][0][0]
