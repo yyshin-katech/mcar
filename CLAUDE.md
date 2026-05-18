@@ -140,3 +140,14 @@ diff /home/ads/.claude/projects/-home-ads-mcar-v13/memory/MEMORY.md /home/ads/mc
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
 | 2026-05-15 | 초기 구성 | agents 3 (senario-sim-analyst/coder/verifier) + skills/senario-gps-pub | senario_260514c HTML 주행 시퀀스 기반 40 km/h GPS 시뮬레이터 publisher 신규 개발 요청 |
+
+## 하네스: v2x-signal-verify
+
+**목표:** `mapfiles/senario/` mat 의 신호등 매핑 ↔ `siheung_v2x` SPaT 디코딩(`/katri_v2x_node/katri_spat` 등) ↔ `to_control_team_demo.py` 신호등 매칭 로직의 정합성을 코드 변경 없이 정적 검증. 라이브 ROS 토픽 echo 는 SKIP (사용자 정책).
+
+**트리거:** "v2x 신호등 검증", "senario 신호등 매칭 확인", "SPaT 파싱 검증", "신호등 디코딩 흐름 점검" 요청 시 `v2x-signal-verify` 스킬 사용. 패치가 필요한 경우 별도 하네스/직접 수정으로 위임. 단순 코드 질문은 직접 응답.
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-05-18 | 초기 구성 | agents 2 (v2x-signal-analyst/verifier) + skills/v2x-signal-verify | senario 경로 mat 적용 시 v2x SPaT 파싱·매칭 정합성 검증 요청 |
