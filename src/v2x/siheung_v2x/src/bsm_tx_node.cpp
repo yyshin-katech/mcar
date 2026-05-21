@@ -108,8 +108,8 @@ class BsmTxNode {
   int         vehicle_width_cm_ = 190;
   int         vehicle_length_cm_= 464;
   bool        enable_udp_       = false;
-  std::string obu_ip_           = "192.168.0.10";
-  int         obu_port_         = 9999;
+  std::string obu_ip_           = "192.168.1.5";
+  int         obu_port_         = 6666;
 
   // UDP
   int          sock_fd_  = -1;
