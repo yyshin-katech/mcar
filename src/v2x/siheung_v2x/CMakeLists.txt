@@ -12,6 +12,8 @@ find_package(catkin REQUIRED COMPONENTS
   j3224_msgs
   v2x_msgs
   mmc_msgs
+  ublox_msgs
+  katech_custom_msgs
 )
 
 ###################################
@@ -19,7 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
 ###################################
 catkin_package(
  INCLUDE_DIRS include
- CATKIN_DEPENDS roscpp rospy std_msgs j3224_msgs v2x_msgs mmc_msgs
+ CATKIN_DEPENDS roscpp rospy std_msgs j3224_msgs v2x_msgs mmc_msgs ublox_msgs katech_custom_msgs
  DEPENDS system_lib
 )
 
@@ -64,4 +66,14 @@ target_link_libraries(tim_test
     ${catkin_LIBRARIES}
     ffasn1-base
     ffasn1-j2735-2020
+)
+
+## ── BSM TX ────────────────────────────────────────────────
+## bsm_tx_node: BSM 송신. KSR1600 헤더 + 2020.so 링크
+## (j2735_decode.cpp 와 같은 헤더지만 별도 executable 이라 충돌 없음)
+add_executable(bsm_tx_node src/bsm_tx_node.cpp)
+target_link_libraries(bsm_tx_node
+  ${catkin_LIBRARIES}
+  ffasn1-base
+  ffasn1-j2735-2020
 )
