@@ -4,7 +4,12 @@
 
     <param name="EPSG" value="5179" />
 
+    <!-- V2X RX (OBU → PC, UDP 9999) -->
     <node name="siheung_v2x_node"       type="siheung_v2x_node"     pkg="siheung_v2x"  respawn="true" />
-    <!-- pyqt_hmi launch 파일 포함 -->
-    <include file="$(find pyqt_hmi)/launch/pyqt_hmi.launch" />
+
+    <!-- V2X TX BSM (PC → OBU, UDP 6666) -->
+    <node name="bsm_tx_node"            type="bsm_tx_node"          pkg="siheung_v2x"  respawn="true" output="screen">
+        <param name="enable_udp"        value="true" />
+        <param name="vehicle_id"        value="EV01" />
+    </node>
 </launch>

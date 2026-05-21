@@ -71,6 +71,13 @@ bool parseVehicleIdHex(const std::string& in, uint8_t out[4]) {
   return true;
 }
 
+// ASCII fallback: 첫 4바이트만 사용, 짧으면 0x00 padding
+void parseVehicleIdAscii(const std::string& in, uint8_t out[4]) {
+  std::memset(out, 0, 4);
+  const size_t n = std::min(in.size(), static_cast<size_t>(4));
+  std::memcpy(out, in.data(), n);
+}
+
 }  // namespace
 
 // ---------------------------------------------------------------------------
@@ -144,10 +151,15 @@ BsmTxNode::BsmTxNode(ros::NodeHandle& nh, ros::NodeHandle& pnh)
     uint8_t parsed[4];
     if (parseVehicleIdHex(vid_str, parsed)) {
       std::memcpy(vehicle_id_, parsed, 4);
+      ROS_INFO("[bsm_tx] vehicle_id (hex) = %02X %02X %02X %02X",
+               vehicle_id_[0], vehicle_id_[1], vehicle_id_[2], vehicle_id_[3]);
     } else {
-      ROS_WARN_STREAM("[bsm_tx] failed to parse ~vehicle_id='" << vid_str
-                       << "' (expect 'AABBCCDD' or '0xAABBCCDD'); using default "
-                          "{0x00,0x00,0x00,0x01}");
+      parseVehicleIdAscii(vid_str, parsed);
+      std::memcpy(vehicle_id_, parsed, 4);
+      ROS_INFO("[bsm_tx] vehicle_id ASCII first-4 of '%s' = "
+               "%02X %02X %02X %02X",
+               vid_str.c_str(),
+               vehicle_id_[0], vehicle_id_[1], vehicle_id_[2], vehicle_id_[3]);
     }
   }
 

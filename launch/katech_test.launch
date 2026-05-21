@@ -45,7 +45,8 @@
   <node name="spat_CAN_writer"       type="spat_CAN_writer"     pkg="can"  respawn="true" />
 
   <!-- KATRI에서는 OFF-->
-  <node name="siheung_v2x_node"       type="siheung_v2x_node"     pkg="siheung_v2x"  respawn="true" />
+  <!-- siheung_v2x_node + bsm_tx_node 는 siheung.launch 로 분리 -->
+  <include file="$(dirname)/siheung.launch" />
 
   <node pkg="can"          type="katech_ped_detector.py"          name="katech_ped_detector_node"             respawn="true" />
   <node name="katech_ped_detector_can_writer_node"       type="ped_detector_can_writer"     pkg="can"  respawn="true" />
