@@ -2,8 +2,9 @@
 // bsm_tx_node.cpp
 //
 // J2735 BasicSafetyMessage (BSM) 송신 노드.
-// - NavPVT (/ublox/navpvt) + v_can (/sensors/v_can) 를 캐시하여 10Hz 로 BSM 을
-//   채우고 MessageFrame 으로 감싸 UPER 인코딩 → /siheung_v2x/bsm_tx 토픽 발행.
+// - Inspva (/sensors/gps/inspva, novatel_gps_msgs) + v_can (/sensors/v_can) 를
+//   캐시하여 10Hz 로 BSM 을 채우고 MessageFrame 으로 감싸 UPER 인코딩
+//   → /siheung_v2x/bsm_tx 토픽 발행.
 // - 옵션 (~enable_udp=true) 시 OBU 헤더(5바이트) prefix 후 UDP sendto 까지 수행.
 //
 // 사양: claude_work_list/bsm_tx.md (analyst 작성, 2026-05-21).
@@ -11,7 +12,7 @@
 
 #include <ros/ros.h>
 #include <std_msgs/UInt8MultiArray.h>
-#include <ublox_msgs/NavPVT.h>
+#include <novatel_gps_msgs/Inspva.h>
 #include <katech_custom_msgs/v_can_msg.h>
 
 #include <cerrno>
@@ -92,15 +93,15 @@ class BsmTxNode {
   // ROS
   ros::NodeHandle nh_;
   ros::NodeHandle pnh_;
-  ros::Subscriber sub_navpvt_;
+  ros::Subscriber sub_inspva_;
   ros::Subscriber sub_vcan_;
   ros::Publisher  pub_bsm_;
   ros::Timer      timer_;
 
   // 최신 상태 캐시
   std::mutex                     mtx_;
-  ublox_msgs::NavPVT             latest_navpvt_;
-  bool                           has_navpvt_ = false;
+  novatel_gps_msgs::Inspva       latest_inspva_;
+  bool                           has_inspva_ = false;
   katech_custom_msgs::v_can_msg  latest_vcan_;
   bool                           has_vcan_ = false;
 
@@ -108,7 +109,7 @@ class BsmTxNode {
   uint8_t msg_cnt_ = 0;
 
   // 파라미터
-  std::string navpvt_topic_     = "/ublox/navpvt";
+  std::string inspva_topic_     = "/sensors/gps/inspva";
   std::string vcan_topic_       = "/sensors/v_can";
   std::string bsm_topic_        = "/siheung_v2x/bsm_tx";
   uint8_t     vehicle_id_[4]    = {0x00, 0x00, 0x00, 0x01};
@@ -124,7 +125,7 @@ class BsmTxNode {
   uint8_t      obu_seq_  = 0;
 
   // 콜백
-  void onNavPvt(const ublox_msgs::NavPVT::ConstPtr& msg);
+  void onInspva(const novatel_gps_msgs::Inspva::ConstPtr& msg);
   void onVCan(const katech_custom_msgs::v_can_msg::ConstPtr& msg);
   void onTimer(const ros::TimerEvent&);
 
@@ -140,7 +141,7 @@ class BsmTxNode {
 BsmTxNode::BsmTxNode(ros::NodeHandle& nh, ros::NodeHandle& pnh)
   : nh_(nh), pnh_(pnh) {
   // 파라미터 로드
-  pnh_.param<std::string>("navpvt_topic", navpvt_topic_, navpvt_topic_);
+  pnh_.param<std::string>("inspva_topic", inspva_topic_, inspva_topic_);
   pnh_.param<std::string>("vcan_topic",   vcan_topic_,   vcan_topic_);
   pnh_.param<std::string>("bsm_topic",    bsm_topic_,    bsm_topic_);
 
@@ -170,7 +171,7 @@ BsmTxNode::BsmTxNode(ros::NodeHandle& nh, ros::NodeHandle& pnh)
   pnh_.param("obu_port",          obu_port_,          obu_port_);
 
   // Subscribe / Advertise
-  sub_navpvt_ = nh_.subscribe(navpvt_topic_, 10, &BsmTxNode::onNavPvt, this);
+  sub_inspva_ = nh_.subscribe(inspva_topic_, 10, &BsmTxNode::onInspva, this);
   sub_vcan_   = nh_.subscribe(vcan_topic_,   10, &BsmTxNode::onVCan,   this);
   pub_bsm_    = nh_.advertise<std_msgs::UInt8MultiArray>(bsm_topic_, 10);
 
@@ -200,7 +201,7 @@ BsmTxNode::BsmTxNode(ros::NodeHandle& nh, ros::NodeHandle& pnh)
   timer_ = nh_.createTimer(ros::Duration(0.1), &BsmTxNode::onTimer, this);
 
   ROS_INFO_STREAM("[bsm_tx] node started"
-                  << " navpvt=" << navpvt_topic_
+                  << " inspva=" << inspva_topic_
                   << " vcan="   << vcan_topic_
                   << " out="    << bsm_topic_
                   << " enable_udp=" << (enable_udp_ ? "true" : "false"));
@@ -213,10 +214,10 @@ BsmTxNode::~BsmTxNode() {
   }
 }
 
-void BsmTxNode::onNavPvt(const ublox_msgs::NavPVT::ConstPtr& msg) {
+void BsmTxNode::onInspva(const novatel_gps_msgs::Inspva::ConstPtr& msg) {
   std::lock_guard<std::mutex> lk(mtx_);
-  latest_navpvt_ = *msg;
-  has_navpvt_    = true;
+  latest_inspva_ = *msg;
+  has_inspva_    = true;
 }
 
 void BsmTxNode::onVCan(const katech_custom_msgs::v_can_msg::ConstPtr& msg) {
@@ -226,8 +227,8 @@ void BsmTxNode::onVCan(const katech_custom_msgs::v_can_msg::ConstPtr& msg) {
 }
 
 void BsmTxNode::onTimer(const ros::TimerEvent&) {
-  if (!has_navpvt_) {
-    ROS_WARN_THROTTLE(2.0, "[bsm_tx] waiting for NavPVT");
+  if (!has_inspva_) {
+    ROS_WARN_THROTTLE(2.0, "[bsm_tx] waiting for Inspva");
     return;
   }
 
@@ -313,23 +314,33 @@ bool BsmTxNode::fillBsm(j2735BasicSafetyMessage& bsm,
     core.secMark = static_cast<j2735DSecond>(ms_now % 60000ULL);
   }
 
-  // lat/lon: NavPVT 와 BSM 모두 1/10 microdeg → identity
-  core.lat  = static_cast<j2735Latitude>(
-                clampi(latest_navpvt_.lat,  -900000000,  900000000));
-  core.Long = static_cast<j2735Longitude>(
-                clampi(latest_navpvt_.lon, -1799999999, 1800000000));
-
-  // elev: NavPVT.hMSL[mm] → BSM Elevation[0.1m]
-  core.elev = static_cast<j2735Elevation>(
-                clampi(latest_navpvt_.hMSL / 100, -4096, 61439));
-
-  // positional accuracy
+  // lat/lon: Inspva[deg] → BSM[1/10 microdeg = 1e-7 deg]
   {
-    int a = static_cast<int>(latest_navpvt_.hAcc / 50);  // mm → 0.05m
-    core.accuracy.semiMajor    = (a > 254) ? 255 : a;
-    core.accuracy.semiMinor    = core.accuracy.semiMajor;
-    core.accuracy.orientation  = 65535;  // unavailable
+    long long lat_raw = static_cast<long long>(
+        std::round(latest_inspva_.latitude  * 1e7));
+    long long lon_raw = static_cast<long long>(
+        std::round(latest_inspva_.longitude * 1e7));
+    if (lat_raw < -900000000LL)  lat_raw = -900000000LL;
+    if (lat_raw >  900000000LL)  lat_raw =  900000000LL;
+    if (lon_raw < -1799999999LL) lon_raw = -1799999999LL;
+    if (lon_raw >  1800000000LL) lon_raw =  1800000000LL;
+    core.lat  = static_cast<j2735Latitude>(lat_raw);
+    core.Long = static_cast<j2735Longitude>(lon_raw);
   }
+
+  // elev: Inspva.height[m] → BSM Elevation[0.1m]
+  {
+    long long e = static_cast<long long>(
+        std::round(latest_inspva_.height * 10.0));
+    if (e < -4096LL)  e = -4096LL;
+    if (e > 61439LL)  e = 61439LL;
+    core.elev = static_cast<j2735Elevation>(e);
+  }
+
+  // positional accuracy : Inspva 에 std 가 없어 unavailable
+  core.accuracy.semiMajor    = 255;    // unavailable
+  core.accuracy.semiMinor    = 255;    // unavailable
+  core.accuracy.orientation  = 65535;  // unavailable
 
   // transmission
   core.transmission = has_vcan_
@@ -337,20 +348,24 @@ bool BsmTxNode::fillBsm(j2735BasicSafetyMessage& bsm,
             gearToTransmission(latest_vcan_.gear_status))
       : j2735TransmissionState_unavailable;
 
-  // speed: NavPVT.gSpeed[mm/s] → BSM Speed[0.02 m/s]
+  // speed: Inspva.north/east_velocity[m/s] → BSM Speed[0.02 m/s]
   {
-    int s = latest_navpvt_.gSpeed / 20;
+    double vN = latest_inspva_.north_velocity;
+    double vE = latest_inspva_.east_velocity;
+    double v  = std::sqrt(vN * vN + vE * vE);    // m/s
+    int s = static_cast<int>(std::round(v / 0.02));
     if (s < 0) s = 0;
     if (s > 8190) s = 8190;  // 8191 = unavailable 충돌 회피
     core.speed = static_cast<j2735Speed>(s);
   }
 
-  // heading: NavPVT.heading[deg*1e-5] → BSM Heading[0.0125 deg]
+  // heading: Inspva.azimuth[deg, 0=North] → BSM Heading[0.0125 deg]
   {
-    int32_t h = latest_navpvt_.heading;
-    if (h < 0) h += 36000000;  // -360e5..360e5 → 0..360e5
-    double hd  = static_cast<double>(h) * 1e-5;          // 0..360 deg
-    int hraw   = static_cast<int>(hd / 0.0125 + 0.5);
+    double az = latest_inspva_.azimuth;
+    // 정상 범위는 0..360 이나, 0 기준 음수가 올 수 있어 정규화
+    while (az < 0.0)     az += 360.0;
+    while (az >= 360.0)  az -= 360.0;
+    int hraw = static_cast<int>(std::round(az / 0.0125));
     if (hraw < 0)      hraw = 0;
     if (hraw > 28799)  hraw = 28799;
     core.heading = static_cast<j2735Heading>(hraw);

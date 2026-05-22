@@ -12,7 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   j3224_msgs
   v2x_msgs
   mmc_msgs
-  ublox_msgs
+  novatel_gps_msgs
   katech_custom_msgs
 )
 
@@ -21,7 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
 ###################################
 catkin_package(
  INCLUDE_DIRS include
- CATKIN_DEPENDS roscpp rospy std_msgs j3224_msgs v2x_msgs mmc_msgs ublox_msgs katech_custom_msgs
+ CATKIN_DEPENDS roscpp rospy std_msgs j3224_msgs v2x_msgs mmc_msgs novatel_gps_msgs katech_custom_msgs
  DEPENDS system_lib
 )
 
