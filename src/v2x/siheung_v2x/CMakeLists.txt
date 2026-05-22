@@ -77,3 +77,21 @@ target_link_libraries(bsm_tx_node
   ffasn1-base
   ffasn1-j2735-2020
 )
+
+## ── MQTT SPaT RX ────────────────────────────────────────────
+## mqtt_spat_rx_node: MQTT broker(V2N)에서 SPaT 수신
+find_library(MOSQUITTO_LIB mosquitto)
+if(NOT MOSQUITTO_LIB)
+  message(FATAL_ERROR "libmosquitto not found. Install: sudo apt install libmosquitto-dev")
+endif()
+
+add_executable(mqtt_spat_rx_node
+  src/mqtt_spat_rx_node.cpp
+  src/ffasn1-j2735-2026-KSR1600.c
+)
+target_link_libraries(mqtt_spat_rx_node
+  ${catkin_LIBRARIES}
+  ${MOSQUITTO_LIB}
+  ffasn1-base
+  ffasn1-j2735-2020
+)

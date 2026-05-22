@@ -12,4 +12,19 @@
         <param name="enable_udp"        value="true" />
         <param name="vehicle_id"        value="EV01" />
     </node>
+
+    <!-- V2X RX via MQTT (Cloud V2N → PC) -->
+    <node name="mqtt_spat_rx_node" type="mqtt_spat_rx_node" pkg="siheung_v2x"
+          respawn="true" output="screen">
+        <param name="broker_host"  value="121.137.106.141" />
+        <param name="broker_port"  value="23312" />
+        <param name="username"     value="ut_adcp" />
+        <param name="password"     value="ut_adcp123!@#" />
+        <param name="topic"        value="V2N/1321103202/trf_drct/spat" />
+        <param name="client_id"    value="" />
+        <param name="keepalive"    value="60" />
+        <param name="qos"          value="0" />
+        <param name="spat_topic"   value="/siheung_v2x/mqtt_spat" />
+        <param name="verbose_first_msg" value="true" />
+    </node>
 </launch>
