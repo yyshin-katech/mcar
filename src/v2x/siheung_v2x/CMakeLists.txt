@@ -95,3 +95,14 @@ target_link_libraries(mqtt_spat_rx_node
   ffasn1-base
   ffasn1-j2735-2020
 )
+
+## ── MQTT BSM TX ────────────────────────────────────────────
+## mqtt_bsm_tx_node: MQTT broker(V2N)로 BSM publish
+## (bsm_tx_node 의 BSM 인코딩 로직을 file-local 복제, libmosquitto 링크)
+add_executable(mqtt_bsm_tx_node src/mqtt_bsm_tx_node.cpp)
+target_link_libraries(mqtt_bsm_tx_node
+  ${catkin_LIBRARIES}
+  ${MOSQUITTO_LIB}
+  ffasn1-base
+  ffasn1-j2735-2020
+)

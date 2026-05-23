@@ -49,4 +49,21 @@
         <param name="spat_topic"   value="/siheung_v2x/mqtt_spat" />
         <param name="verbose_first_msg" value="true" />
     </node>
+
+    <!-- V2X TX BSM via MQTT (PC → Cloud V2N). mqtt_server arg 로 test/prod 전환 -->
+    <node name="mqtt_bsm_tx_node" type="mqtt_bsm_tx_node" pkg="siheung_v2x"
+          respawn="true" output="screen">
+        <param name="broker_host"  value="$(arg mqtt_host)" />
+        <param name="broker_port"  value="$(arg mqtt_port)" />
+        <param name="username"     value="$(arg mqtt_user)" />
+        <param name="password"     value="$(arg mqtt_pass)" />
+        <param name="topic"        value="V2N/1321103202/bsm" />
+        <param name="client_id"    value="" />
+        <param name="keepalive"    value="60" />
+        <param name="qos"          value="0" />
+        <param name="retain"       value="false" />
+        <param name="vehicle_id"   value="EV01" />
+        <param name="publish_rate" value="10.0" />
+        <param name="verbose_first_msg" value="true" />
+    </node>
 </launch>
