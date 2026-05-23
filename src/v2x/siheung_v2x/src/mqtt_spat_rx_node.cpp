@@ -128,6 +128,29 @@ public:
         return offset;
     }
 
+    // V2N MQTT 커스텀 16-byte 헤더 스킵
+    //   offset 0..3  : magic 04 00 ff 11
+    //   offset 4..11 : flags / sequence (가변)
+    //   offset 12..15: 후속 payload 길이 (big-endian, uint32)
+    //   offset 16..  : J2735 UPER MessageFrame (00 13 ... = SPaT)
+    static size_t skipMqttV2nHeader(const uint8_t* body, size_t body_len)
+    {
+        if (body_len < 16)
+            return 0;
+        if (body[0] != 0x04 || body[1] != 0x00 ||
+            body[2] != 0xff || body[3] != 0x11)
+            return 0;
+
+        uint32_t inner_len = (uint32_t)body[12] << 24 |
+                             (uint32_t)body[13] << 16 |
+                             (uint32_t)body[14] <<  8 |
+                             (uint32_t)body[15];
+        if (inner_len == 0 || inner_len > body_len - 16)
+            return 0;  // 길이 필드가 비정상이면 안전하게 skip 안 함
+
+        return 16;
+    }
+
     // SPaT 구조체 → ROS 메시지 변환 및 발행
     // to_control_team의 intersection_id, signalGroupID, MANUAVER 기반으로
     // 현재 링크에 필요한 신호만 필터링하여 발행
@@ -151,6 +174,21 @@ public:
             target_name = "RIGHT";
         else
             target_name = "STRAIGHT";
+
+        // (verify) 첫 디코딩 성공 시 SPaT 안 intersection 목록을 1회 dump
+        if (spat && spat->intersections.count > 0)
+        {
+            std::string ids;
+            for (size_t i = 0; i < spat->intersections.count && i < 8; ++i)
+            {
+                char buf[16];
+                std::snprintf(buf, sizeof(buf), "%s%d",
+                              i == 0 ? "" : ",", spat->intersections.tab[i].id.id);
+                ids += buf;
+            }
+            ROS_INFO_ONCE("[mqtt_spat_rx] decoded SPaT: %zu intersection(s) iid=[%s]",
+                          (size_t)spat->intersections.count, ids.c_str());
+        }
 
         v2x_msgs::intersection_array_msg spat_msg;
         spat_msg.time = ros::Time::now();
@@ -534,6 +572,15 @@ void MqttSpatRxNode::decodePayload(const std::vector<uint8_t>& buf)
 
     const uint8_t* body = buf.data();
     size_t body_len = buf.size();
+
+    // (선택) V2N MQTT 커스텀 16-byte 헤더 스킵 (magic 04 00 ff 11)
+    size_t v2n_off = SpatDecoder::skipMqttV2nHeader(body, body_len);
+    if (v2n_off > 0)
+    {
+        ROS_DEBUG("[mqtt_spat_rx] V2N hdr skipped (%zu B)", v2n_off);
+        body     += v2n_off;
+        body_len -= v2n_off;
+    }
 
     // (선택) WSMP 헤더 스킵
     size_t wsmp_off = SpatDecoder::skipWsmpHeader(body, body_len);

@@ -1,6 +1,15 @@
 # MQTT SPaT RX 노드 사양서
 
-대상: `src/v2x/siheung_v2x/` 패키지 신규 ROS 노드 — MQTT broker(`121.137.106.141:23312`)의 V2N SPaT 토픽을 구독해 J2735 SPaT 을 디코드하고 `v2x_msgs/intersection_array_msg` 로 발행한다.
+대상: `src/v2x/siheung_v2x/` 패키지 신규 ROS 노드 — MQTT broker 의 V2N SPaT 토픽을 구독해 J2735 SPaT 을 디코드하고 `v2x_msgs/intersection_array_msg` 로 발행한다.
+
+## MQTT broker 정보 (두 종류)
+
+| 이름 | Host | Port | Username | Password | 비고 |
+|------|------|------|----------|----------|------|
+| **테스트 서버 (test)** | `121.137.106.141` | `23312` | `ut_adcp` | `ut_adcp123!@#` | 인터넷 공인망, 개발/검증용 |
+| **실제 서버 (prod)** | `192.168.255.173` | `10044` | `xcms-mtqq` | `xcms123!` | 차량 사설망, 실제 운영용 |
+
+launch arg `mqtt_server:=test|prod` 로 선택 (기본 `test`).
 
 - 노드 이름 (제안): **`mqtt_spat_rx_node`**
 - 소스 파일 (제안): `src/v2x/siheung_v2x/src/mqtt_spat_rx_node.cpp`
@@ -304,10 +313,10 @@ decodePayload(const std::vector<uint8_t>& buf):
 
 | 파라미터 | 타입 | 기본값 | 설명 |
 |----------|------|--------|------|
-| `~broker_host` | string | `121.137.106.141` | MQTT broker IP |
-| `~broker_port` | int | `23312` | MQTT broker port |
-| `~username` | string | `ut_adcp` | MQTT 인증 사용자 |
-| `~password` | string | `ut_adcp123!@#` | MQTT 인증 비밀번호 |
+| `~broker_host` | string | `121.137.106.141` (test) / `192.168.255.173` (prod) | MQTT broker IP — launch arg `mqtt_server` 로 dispatch |
+| `~broker_port` | int | `23312` (test) / `10044` (prod) | MQTT broker port |
+| `~username` | string | `ut_adcp` (test) / `xcms-mtqq` (prod) | MQTT 인증 사용자 |
+| `~password` | string | `ut_adcp123!@#` (test) / `xcms123!` (prod) | MQTT 인증 비밀번호 |
 | `~topic` | string | `V2N/1321103202/trf_drct/spat` | 구독 토픽 |
 | `~client_id` | string | `""` (broker 자동 할당) | MQTT client id |
 | `~keepalive` | int | `60` | keepalive 초 |

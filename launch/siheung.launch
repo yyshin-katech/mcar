@@ -2,6 +2,28 @@
 <launch>
     <arg name="sweet_home" default="$(optenv HOME)" />
 
+    <!-- MQTT broker 선택: test = 인터넷 테스트 서버, prod = 차량 사설망 실제 서버 -->
+    <!-- 예) roslaunch launch/siheung.launch mqtt_server:=prod -->
+    <arg name="mqtt_server" default="test" />
+
+    <!--   테스트 서버 (test) : 121.137.106.141 : 23312 / ut_adcp -->
+    <arg name="mqtt_host_test" value="121.137.106.141" />
+    <arg name="mqtt_port_test" value="23312" />
+    <arg name="mqtt_user_test" value="ut_adcp" />
+    <arg name="mqtt_pass_test" value="ut_adcp123!@#" />
+
+    <!--   실제 서버 (prod) : 192.168.255.173 : 10044 / xcms-mtqq -->
+    <arg name="mqtt_host_prod" value="192.168.255.173" />
+    <arg name="mqtt_port_prod" value="10044" />
+    <arg name="mqtt_user_prod" value="xcms-mtqq" />
+    <arg name="mqtt_pass_prod" value="xcms123!" />
+
+    <!-- 선택된 서버로 dispatch -->
+    <arg name="mqtt_host" value="$(eval arg('mqtt_host_prod') if arg('mqtt_server')=='prod' else arg('mqtt_host_test'))" />
+    <arg name="mqtt_port" value="$(eval arg('mqtt_port_prod') if arg('mqtt_server')=='prod' else arg('mqtt_port_test'))" />
+    <arg name="mqtt_user" value="$(eval arg('mqtt_user_prod') if arg('mqtt_server')=='prod' else arg('mqtt_user_test'))" />
+    <arg name="mqtt_pass" value="$(eval arg('mqtt_pass_prod') if arg('mqtt_server')=='prod' else arg('mqtt_pass_test'))" />
+
     <param name="EPSG" value="5179" />
 
     <!-- V2X RX (OBU → PC, UDP 9999) -->
@@ -13,13 +35,13 @@
         <param name="vehicle_id"        value="EV01" />
     </node>
 
-    <!-- V2X RX via MQTT (Cloud V2N → PC) -->
+    <!-- V2X RX via MQTT (Cloud V2N → PC). mqtt_server arg 로 test/prod 전환 -->
     <node name="mqtt_spat_rx_node" type="mqtt_spat_rx_node" pkg="siheung_v2x"
           respawn="true" output="screen">
-        <param name="broker_host"  value="121.137.106.141" />
-        <param name="broker_port"  value="23312" />
-        <param name="username"     value="ut_adcp" />
-        <param name="password"     value="ut_adcp123!@#" />
+        <param name="broker_host"  value="$(arg mqtt_host)" />
+        <param name="broker_port"  value="$(arg mqtt_port)" />
+        <param name="username"     value="$(arg mqtt_user)" />
+        <param name="password"     value="$(arg mqtt_pass)" />
         <param name="topic"        value="V2N/1321103202/trf_drct/spat" />
         <param name="client_id"    value="" />
         <param name="keepalive"    value="60" />
