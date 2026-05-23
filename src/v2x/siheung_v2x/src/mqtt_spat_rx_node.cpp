@@ -18,6 +18,7 @@
 #include <cstring>
 #include <cstdint>
 #include <chrono>
+#include <map>
 
 extern "C" {
 #include <mosquitto.h>
@@ -102,6 +103,38 @@ void toControlTeamCallback(const mmc_msgs::to_control_team_from_local_msg::Const
     g_link_info.manuaver = msg->MANUAVER;
 }
 
+// ── OBU(WAVE) SPaT 중복 제거 캐시 ──────────────────────────────────────────
+// siheung_v2x j2735_decode 가 발행하는 /siheung_spat (OBU/WAVE 경유) 의
+// intersection_id 별 최근 수신 시각을 기록. MQTT 로 들어온 같은 intersection_id
+// 가 timeout 안에 OBU 캐시에도 존재하면 본 노드의 publish 는 skip — 동일
+// 신호등 정보는 OBU 경로(/siheung_spat) 만 to_control_team 으로 전달되도록 함.
+struct ObuSpatCache {
+    std::mutex mtx;
+    std::map<int, ros::Time> last_seen;  // intersection_id → 마지막 OBU 수신 시각
+};
+ObuSpatCache g_obu_cache;
+double g_obu_dedup_timeout = 2.0;  // 초; MqttSpatRxNode 생성자에서 파라미터로 갱신
+
+void obuSpatCallback(const v2x_msgs::intersection_array_msg::ConstPtr& msg)
+{
+    ros::Time now = ros::Time::now();
+    std::lock_guard<std::mutex> lock(g_obu_cache.mtx);
+    for (const auto& d : msg->data)
+    {
+        if (d.IntersectionID != 0)
+            g_obu_cache.last_seen[(int)d.IntersectionID] = now;
+    }
+}
+
+bool obuHasRecent(int iid)
+{
+    if (iid == 0) return false;
+    std::lock_guard<std::mutex> lock(g_obu_cache.mtx);
+    auto it = g_obu_cache.last_seen.find(iid);
+    if (it == g_obu_cache.last_seen.end()) return false;
+    return (ros::Time::now() - it->second).toSec() < g_obu_dedup_timeout;
+}
+
 class SpatDecoder {
 public:
     // WSMP 서브헤더 건너뛰기 (03 80 + BER 길이)
@@ -139,6 +172,11 @@ public:
     //   offset 6    : flags          (8 bit)  = 0x00
     //   offset 7    : message_id     (8 bit)  = container-level 메시지 식별자(시퀀스)
     //   offset 8-11 : psid           (32 bit BE) = 0x00014085 (<표 4-6> 외부 표)
+    //     ※ ~/protocol/경4 V2N FID PSID 정의안 (1).xlsx PSID 시트는 SPaT 행에서
+    //        decimal=82055 / hex=0x014085 로 두 값이 내부 모순됨.
+    //        0x014085 = decimal 82053 이며 BSM 등 다른 행은 정합. 운영 브로커가
+    //        실제 발행하는 raw 헤더가 0x00014085 (라이브 캡처 2026-05-23) 이므로
+    //        본 노드는 hex 값을 단일 출처로 사용 (BSM TX psid 와 동일 정책).
     //   offset 12-15: message_length (32 bit BE) = 이후 UPER 메시지 길이
     //   offset 16.. : message               = J2735 UPER MessageFrame (00 13 ... = SPaT)
     static size_t skipMqttV2nHeader(const uint8_t* body, size_t body_len)
@@ -175,15 +213,17 @@ public:
             cur_manuaver = g_link_info.manuaver;
         }
 
-        // MANUAVER → 타겟 movementName 매핑 (실제 디코딩 결과 기준)
-        // -1=LEFT, 0=STRAIGHT, 1=RIGHT
+        // MANUAVER → 타겟 movementName 매핑 (실제 브로커 데이터 기준)
+        // -1=LEFT, 0=STR(직진), 1=RIGHT
+        // 시흥 운영 브로커가 발행하는 SPaT movementName 은 "STR"/"LEFT"/"RIGHT"
+        // ("STRAIGHT" 가 아님 — 2026-05-23 라이브 캡처로 확인)
         std::string target_name;
         if (cur_manuaver == -1)
             target_name = "LEFT";
         else if (cur_manuaver == 1)
             target_name = "RIGHT";
         else
-            target_name = "STRAIGHT";
+            target_name = "STR";
 
         // (verify) 첫 디코딩 성공 시 SPaT 안 intersection 목록을 1회 dump
         if (spat && spat->intersections.count > 0)
@@ -211,6 +251,22 @@ public:
             spat_pub.publish(spat_msg);
             return;
         }
+
+        // OBU(WAVE) 가 동일 intersection_id 를 최근에 발행했으면 본 MQTT 노드는 skip.
+        // 동일 신호등 정보가 OBU/MQTT 양쪽에서 동시에 들어오는 상황을 가정하고,
+        // OBU 경로(/siheung_spat) 만 to_control_team 흐름으로 전달되도록 한다.
+        if (obuHasRecent(cur_intersection_id))
+        {
+            ROS_DEBUG_THROTTLE(2.0,
+                "[mqtt_spat_rx] iid=%d covered by OBU SPaT — skipping MQTT publish",
+                cur_intersection_id);
+            return;
+        }
+
+        // SPaT-level timeStamp (intersection.moy 가 없는 경우의 fallback).
+        // j2735SPAT.timeStamp 는 MinuteOfTheYear (optional). 표준 정합.
+        const bool   spat_has_moy = (spat && spat->timeStamp_option);
+        const int32_t spat_moy    = spat_has_moy ? (int32_t)spat->timeStamp : 0;
 
         for (size_t i = 0; i < spat->intersections.count; ++i)
         {
@@ -248,6 +304,20 @@ public:
                 int_msg.Movements.MovementStateName = move_name;
                 int_msg.Movements.SignalGroupID = movement.signalGroup;
 
+                // IntersectionStatusObject (J2735 BIT STRING SIZE(16), MSB first) → bool[16]
+                // ASN1BitString.len 은 bit 단위. buf 는 ceil(len/8) byte.
+                {
+                    const ASN1BitString& bs = intersection.status;
+                    size_t bits = bs.len;
+                    if (bits > 16) bits = 16;
+                    for (size_t k = 0; k < bits && bs.buf; ++k)
+                    {
+                        uint8_t byte = bs.buf[k / 8];
+                        int_msg.IntersectionStatusObject[k] =
+                            ((byte >> (7 - (k % 8))) & 0x01) ? true : false;
+                    }
+                }
+
                 if (movement.state_time_speed.count > 0)
                 {
                     auto& evt = movement.state_time_speed.tab[0];
@@ -257,8 +327,11 @@ public:
                         int_msg.Movements.TimeChangeDetails = evt.timing.minEndTime;
                 }
 
+                // MinuteOfTheYear : intersection.moy 우선, 없으면 SPaT-level timeStamp fallback
                 if (intersection.moy_option)
                     int_msg.MinuteOfTheYear = intersection.moy;
+                else if (spat_has_moy)
+                    int_msg.MinuteOfTheYear = spat_moy;
                 if (intersection.timeStamp_option)
                     int_msg.DSecond = intersection.timeStamp;
 
@@ -316,6 +389,7 @@ private:
     // ROS
     ros::Publisher  spat_pub_;
     ros::Subscriber ctrl_sub_;
+    ros::Subscriber obu_sub_;   // /siheung_spat (OBU SPaT) — dedup 용
 
     // MQTT (mosquitto C handle)
     struct mosquitto* mosq_;
@@ -382,12 +456,20 @@ MqttSpatRxNode::MqttSpatRxNode(ros::NodeHandle& nh, ros::NodeHandle& pnh)
     pnh.param<int>        ("reconnect_max", reconnect_max_, 30);
     pnh.param<bool>       ("verbose_first_msg", verbose_first_msg_, true);
 
+    // OBU SPaT (siheung_v2x j2735_decode 발행) 와 중복 신호등 제거용 파라미터
+    std::string obu_spat_topic;
+    pnh.param<std::string>("obu_spat_topic",   obu_spat_topic,        "/siheung_spat");
+    pnh.param<double>     ("obu_dedup_timeout", g_obu_dedup_timeout,  2.0);
+
     // 2. ROS publisher / subscriber
     spat_pub_ = nh.advertise<v2x_msgs::intersection_array_msg>(spat_topic_out_, 1);
     ctrl_sub_ = nh.subscribe("/localization/to_control_team", 1, toControlTeamCallback);
+    obu_sub_  = nh.subscribe(obu_spat_topic, 10, obuSpatCallback);
 
     ROS_INFO("[mqtt_spat_rx] started - broker=%s:%d topic=%s out=%s",
              broker_host_.c_str(), broker_port_, topic_.c_str(), spat_topic_out_.c_str());
+    ROS_INFO("[mqtt_spat_rx] OBU dedup: subscribed to %s (timeout=%.1fs)",
+             obu_spat_topic.c_str(), g_obu_dedup_timeout);
 
     // 4. mosquitto 초기화
     mosquitto_lib_init();
