@@ -4,8 +4,9 @@
 // J2735 BasicSafetyMessage (BSM) MQTT 송신 노드.
 // - Inspva (/sensors/gps/inspva, novatel_gps_msgs) + v_can (/sensors/v_can) 를
 //   캐시하여 10Hz 로 BSM 을 채우고 MessageFrame 으로 감싸 UPER 인코딩.
-// - V2N 16-byte 커스텀 헤더 prepend 후 MQTT broker 의 BSM 토픽
-//   (V2N/1321103202/bsm) 으로 publish.
+// - 경찰청 V2N 정보연계 규격 ITSK-00150-2 <표 4-11> "단일 메시지 전송을
+//   위한 V2N Container" (container_type=0x04, sem_length=0) 의 16-byte fixed
+//   header prepend 후 MQTT broker 의 BSM 토픽 (V2N/1321103202/bsm) 으로 publish.
 //
 // 사양서: claude_work_list/mqtt_bsm_tx.md (2026-05-23, siheung_dev)
 //   - BSM 인코딩 로직은 bsm_tx_node.cpp 에서 file-local 복제.
@@ -371,28 +372,38 @@ void MqttBsmTxNode::buildAndPublish(const uint8_t* uper_buf, size_t uper_len) {
   std::vector<uint8_t> payload;
   payload.reserve(16 + uper_len);
 
-  // offset 0..3 : magic
+  // 경찰청 V2N 정보연계 규격 ITSK-00150-2 <표 4-11> "단일 메시지 전송을
+  // 위한 V2N Container" (container_type=0x04, sem_length=0) 의 fixed 16-byte
+  // header. 시흥 V2N 브로커 SPaT 수신 페이로드와 동일 layout 을 따른다.
+
+  // offset 0 : container_type (8 bit) = 0x04 (단일 메시지 전송, <표 4-3>)
   payload.push_back(0x04);
+  // offset 1 : version (8 bit) = 0x00
   payload.push_back(0x00);
+  // offset 2-3 : fid (16 bit BE) = 0xFF11 (<표 4-4> 외부 표)
   payload.push_back(0xff);
   payload.push_back(0x11);
 
-  // offset 4..6 : version / reserved (SPaT 통계 기반 고정)
+  // offset 4 : standard_type (8 bit) = 0x01 (KS 표준, <표 4-5>)
   payload.push_back(0x01);
+  // offset 5 : sem_length (8 bit) = 0x00 (Service Enhancement Metadata 없음)
   payload.push_back(0x00);
+  // offset 6 : flags (8 bit) = 0x00
   payload.push_back(0x00);
 
-  // offset 7 : sequence counter (atomic post-increment)
+  // offset 7 : message_id (8 bit) = container-level 메시지 식별자(시퀀스)
+  //   <표 4-11> 주석: 실제 V2X 메시지 디코딩 이후의 id 와는 별개의
+  //   V2N container 레벨 고유 식별자
   const uint8_t cur_seq = seq_.fetch_add(1, std::memory_order_relaxed);
   payload.push_back(cur_seq);
 
-  // offset 8..11 : sender/site ID (고정)
+  // offset 8-11 : psid (32 bit BE) = 0x00014085 (<표 4-6> 외부 표)
   payload.push_back(0x00);
   payload.push_back(0x01);
   payload.push_back(0x40);
   payload.push_back(0x85);
 
-  // offset 12..15 : BE uint32 length
+  // offset 12-15 : message_length (32 bit BE) = 후속 UPER 메시지 길이
   const uint32_t inner = static_cast<uint32_t>(uper_len);
   payload.push_back(static_cast<uint8_t>((inner >> 24) & 0xff));
   payload.push_back(static_cast<uint8_t>((inner >> 16) & 0xff));

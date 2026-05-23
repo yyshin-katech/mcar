@@ -128,19 +128,29 @@ public:
         return offset;
     }
 
-    // V2N MQTT 커스텀 16-byte 헤더 스킵
-    //   offset 0..3  : magic 04 00 ff 11
-    //   offset 4..11 : flags / sequence (가변)
-    //   offset 12..15: 후속 payload 길이 (big-endian, uint32)
-    //   offset 16..  : J2735 UPER MessageFrame (00 13 ... = SPaT)
+    // V2N MQTT payload 앞단의 V2N container 16-byte fixed header 스킵.
+    // 경찰청 V2N 정보연계 규격 ITSK-00150-2 <표 4-11> "단일 메시지 전송을
+    // 위한 V2N Container" (container_type=0x04, sem_length=0) 정합 layout:
+    //   offset 0    : container_type (8 bit)  = 0x04 (단일 메시지 전송, <표 4-3>)
+    //   offset 1    : version        (8 bit)  = 0x00
+    //   offset 2-3  : fid            (16 bit BE) = 0xFF11 (<표 4-4> 외부 표)
+    //   offset 4    : standard_type  (8 bit)  = 0x01 (KS 표준, <표 4-5>)
+    //   offset 5    : sem_length     (8 bit)  = 0x00 (SEM 없음)
+    //   offset 6    : flags          (8 bit)  = 0x00
+    //   offset 7    : message_id     (8 bit)  = container-level 메시지 식별자(시퀀스)
+    //   offset 8-11 : psid           (32 bit BE) = 0x00014085 (<표 4-6> 외부 표)
+    //   offset 12-15: message_length (32 bit BE) = 이후 UPER 메시지 길이
+    //   offset 16.. : message               = J2735 UPER MessageFrame (00 13 ... = SPaT)
     static size_t skipMqttV2nHeader(const uint8_t* body, size_t body_len)
     {
         if (body_len < 16)
             return 0;
+        // container_type=0x04, version=0x00, fid=0xFF11 prefix check
         if (body[0] != 0x04 || body[1] != 0x00 ||
             body[2] != 0xff || body[3] != 0x11)
             return 0;
 
+        // message_length (32 bit BE) at offset 12..15
         uint32_t inner_len = (uint32_t)body[12] << 24 |
                              (uint32_t)body[13] << 16 |
                              (uint32_t)body[14] <<  8 |
