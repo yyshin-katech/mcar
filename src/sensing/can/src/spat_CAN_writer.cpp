@@ -10,6 +10,7 @@
 #include <cstring>
 #include <vector>
 #include <tuple>
+#include <mutex>
 
 #include <v2x_msgs/intersection_msg.h>
 #include <v2x_msgs/intersection_array_msg.h>
@@ -32,6 +33,12 @@ class SPAT_CAN_WRITER{
     ros::Subscriber sub1;
     uint16_t cur_intersection_id = 0;
 
+    // OBU SPaT 마지막 수신 시각 (MQTT fallback 판정용).
+    // default ros::Time(0) → 한 번도 못 받음 → MQTT 첫 메시지에서 곧바로 fallback.
+    ros::Time obu_last_seen_;
+    std::mutex spat_mtx_;             // obu_last_seen_ 보호용
+    double spat_stale_timeout_ = 2.0; // 초; main 에서 rosparam 으로 갱신
+
     unsigned int kvaDb_flags = 0;
     unsigned int dlc = 8;
 
@@ -46,6 +53,10 @@ class SPAT_CAN_WRITER{
     SPAT_CAN_WRITER();
     void CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& data);
     void CALLBACK_LOCAL(const mmc_msgs::to_control_team_from_local_msg& data);
+    void CALLBACK_MQTT_SPAT(const v2x_msgs::intersection_array_msg& data);
+    void WRITE_SPAT_CAN(const v2x_msgs::intersection_array_msg& msg,
+                        const char* source_tag);
+    bool OBU_IS_FRESH();
     short FIND_MSG_IDX(char* target_msg, vector<tuple<char*, vector<char*>>>* msg_list);
     canStatus OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num, char *filename, bool init_access_flag);
     void LOOP();
@@ -73,6 +84,35 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg)
     time1 = msg.time.sec%10000 + msg.time.nsec/1000000000.0;
   new_time = (msg.time.sec%10000 + msg.time.nsec/1000000000.0) - time1;
 
+  // OBU 우선: 들어오면 항상 CAN write + last_seen 갱신
+  {
+    std::lock_guard<std::mutex> lock(spat_mtx_);
+    obu_last_seen_ = ros::Time::now();
+  }
+  WRITE_SPAT_CAN(msg, "OBU");
+}
+
+void SPAT_CAN_WRITER::CALLBACK_MQTT_SPAT(const v2x_msgs::intersection_array_msg& msg){
+  // OBU 가 fresh 이면 MQTT 는 skip
+  if (OBU_IS_FRESH())
+  {
+    ROS_DEBUG_THROTTLE(5.0,
+      "[SPaT CAN] MQTT skipped - OBU fresh (last_seen < %.1fs)", spat_stale_timeout_);
+    return;
+  }
+  ROS_INFO_THROTTLE(5.0, "[SPaT CAN] OBU stale -> using MQTT SPaT");
+  WRITE_SPAT_CAN(msg, "MQTT");
+}
+
+bool SPAT_CAN_WRITER::OBU_IS_FRESH(){
+  std::lock_guard<std::mutex> lock(spat_mtx_);
+  if (obu_last_seen_.isZero()) return false;
+  return (ros::Time::now() - obu_last_seen_).toSec() < spat_stale_timeout_;
+}
+
+void SPAT_CAN_WRITER::WRITE_SPAT_CAN(const v2x_msgs::intersection_array_msg& msg,
+                                     const char* source_tag)
+{
   unsigned char can_data[dlc];
   memset(can_data, 0, sizeof(can_data));
 
@@ -83,7 +123,6 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg)
   unsigned int id_write, flag = 0;
   vector<double> temp_data;
 
-  // 현재 링크의 교차로 ID가 0이면 (신호 불필요 구간) 0 전송
   if (cur_intersection_id == 0)
   {
     temp_data = {0.0, 0.0, 0.0, 0.0, 0.0};
@@ -97,14 +136,14 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg)
                  (double)d.Movements.SignalGroupID,
                  (double)d.IntersectionID};
 
-    ROS_INFO("[SPaT CAN] IntID=%d SigGrp=%d Phase=%d minEnd=%.1fs",
+    ROS_INFO("[SPaT CAN/%s] IntID=%d SigGrp=%d Phase=%d minEnd=%.1fs",
+             source_tag,
              d.IntersectionID, d.Movements.SignalGroupID,
              d.Movements.MovementPhaseStatus,
              d.Movements.TimeChangeDetails / 10.0);
   }
   else
   {
-    // 매칭 없지만 교차로 구간: 이전 값 유지 위해 전송 skip
     return;
   }
 
@@ -200,13 +239,15 @@ int main(int argc, char **argv){
   bool init_access_flag = false;
 
   SPAT_CAN_WRITER SPaTCW;
+  node.param<double>("spat_stale_timeout", SPaTCW.spat_stale_timeout_, 2.0);
 
   can_status = SPaTCW.OPEN_CAN_CHANNEL_AND_READ_DB(channel_num, filename, init_access_flag);
 
   ros::Subscriber sub1 = node.subscribe("/siheung_spat", 1, &SPAT_CAN_WRITER::CALLBACK_SPAT, &SPaTCW);
   ros::Subscriber sub2 = node.subscribe("/localization/to_control_team", 1, &SPAT_CAN_WRITER::CALLBACK_LOCAL, &SPaTCW);
+  ros::Subscriber sub3 = node.subscribe("/siheung_v2x/mqtt_spat", 1, &SPAT_CAN_WRITER::CALLBACK_MQTT_SPAT, &SPaTCW);
 
-  ros::waitForShutdown();   
+  ros::waitForShutdown();
   canBusOff(hCAN);
   canClose(hCAN);
 }
