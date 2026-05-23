@@ -151,3 +151,14 @@ diff /home/ads/.claude/projects/-home-ads-mcar-v13/memory/MEMORY.md /home/ads/mc
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
 | 2026-05-18 | 초기 구성 | agents 2 (v2x-signal-analyst/verifier) + skills/v2x-signal-verify | senario 경로 mat 적용 시 v2x SPaT 파싱·매칭 정합성 검증 요청 |
+
+## 하네스: protocol-spec-check
+
+**목표:** `~/protocol/[ITSK-00150-2]V2N규격-제2부 V2N정보연계-경찰청연구과제규격.hwpx` 의 MQTT 인터페이스 규격을 추출하여 `siheung_v2x` 의 `mqtt_spat_rx_node` / `mqtt_bsm_tx_node` / `launch/siheung.launch` 가 규격에 정합한지 코드 변경 없이 정적 검증. 라이브 ROS 토픽 echo SKIP.
+
+**트리거:** "프로토콜 규격 확인", "V2N 규격 검증", "hwpx 규격 비교", "MQTT 인터페이스 정합성 확인", "프로토콜 문서랑 코드 비교" 요청 시 `protocol-spec-check` 스킬 사용. 패치 필요 시 별도 하네스/직접 수정으로 위임. 단순 코드 질문은 직접 응답.
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-05-23 | 초기 구성 | agents 2 (protocol-spec-analyst/verifier) + skills/protocol-spec-check | 경찰청 V2N 정보연계 hwpx 규격 ↔ 현재 MQTT 구현 정합성 검증 요청 |
