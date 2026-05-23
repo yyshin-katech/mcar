@@ -380,9 +380,11 @@ void MqttBsmTxNode::buildAndPublish(const uint8_t* uper_buf, size_t uper_len) {
   payload.push_back(0x04);
   // offset 1 : version (8 bit) = 0x00
   payload.push_back(0x00);
-  // offset 2-3 : fid (16 bit BE) = 0xFF11 (<표 4-4> 외부 표)
+  // offset 2-3 : fid (16 bit BE) = 0xFF10 (BSM, 차량→센터)
+  //   출처: ~/protocol/경4 V2N FID PSID 정의안 (1).xlsx FID 시트
+  //   (참고: SPaT 는 0xFF11, TLSM 은 0xFF12, 통행지시 결과 수집은 0xFF09)
   payload.push_back(0xff);
-  payload.push_back(0x11);
+  payload.push_back(0x10);
 
   // offset 4 : standard_type (8 bit) = 0x01 (KS 표준, <표 4-5>)
   payload.push_back(0x01);
@@ -397,11 +399,13 @@ void MqttBsmTxNode::buildAndPublish(const uint8_t* uper_buf, size_t uper_len) {
   const uint8_t cur_seq = seq_.fetch_add(1, std::memory_order_relaxed);
   payload.push_back(cur_seq);
 
-  // offset 8-11 : psid (32 bit BE) = 0x00014085 (<표 4-6> 외부 표)
+  // offset 8-11 : psid (32 bit BE) = 0x00014082 (BSM, PSID=82050)
+  //   출처: ~/protocol/경4 V2N FID PSID 정의안 (1).xlsx PSID 시트
+  //   (참고: SPaT 는 0x00014085=82055, TLSM 은 0x00014100=82176)
   payload.push_back(0x00);
   payload.push_back(0x01);
   payload.push_back(0x40);
-  payload.push_back(0x85);
+  payload.push_back(0x82);
 
   // offset 12-15 : message_length (32 bit BE) = 후속 UPER 메시지 길이
   const uint32_t inner = static_cast<uint32_t>(uper_len);
