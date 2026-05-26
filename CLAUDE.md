@@ -162,3 +162,15 @@ diff /home/ads/.claude/projects/-home-ads-mcar-v13/memory/MEMORY.md /home/ads/mc
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
 | 2026-05-23 | 초기 구성 | agents 2 (protocol-spec-analyst/verifier) + skills/protocol-spec-check | 경찰청 V2N 정보연계 hwpx 규격 ↔ 현재 MQTT 구현 정합성 검증 요청 |
+
+## 하네스: mqtt-vpn-setup
+
+**목표:** MQTT V2N 인터페이스 트래픽 (prod 브로커 `192.168.255.173:10044`) 만 kanavi VPN 터널 로 보내고, 그 외 인터넷·NTRIP·로컬 LAN 트래픽은 default route 를 유지하는 split-tunnel 을 외과적으로 구성·검증. 실 환경 VPN 은 **SecuwaySSL (Secuwiz)** — `~/sslvpn/SecuwaySSLU_client` + `conf/client.info` (`27.101.133.111:443`). OpenVPN 가정의 초기 사양서는 무시.
+
+**트리거:** "vpn 설정", "mqtt vpn", "split-tunnel", "kanavi vpn", "mqtt 인터페이스 vpn", "vpn 다시 설정", "vpn 재구성", "secuwayssl", "openvpn 분리 터널" 요청 시 `mqtt-vpn-setup` 스킬 사용. 단순 ROS/launch 질문이나 일반 네트워크 진단은 직접 응답.
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-05-26 | 초기 구성 | agents 3 (vpn-net-analyst/configurator/verifier) + skills/mqtt-vpn-setup | kanavi VPN 게이트웨이 통해 prod MQTT 브로커만 분리 터널 구성 요청 (자격증명 시스템 경로 보관, git 평문 금지) |
+| 2026-05-26 | 실 환경 검증 + 사실 보정 | memory/mqtt_vpn_setup_harness.md + 본 항목 | 실 VPN 은 OpenVPN 아닌 SecuwaySSL (Secuwiz) 로 판명. PDF 가이드 + `~/sslvpn/SecuwaySSLU_client` 로 27.101.133.111:443 접속, tun0=172.18.113.51 동적 할당. split push 자동 → 핵심 2조건 통과. prod MQTT → IID 517 (시화) SPaT 5 Hz 수신·디코드 검증 (signalGroup 60/80, phase GO). `publishSpat` 가 `/localization/to_control_team` 필터 사용 — 시연 시 dummy publish 필요 |

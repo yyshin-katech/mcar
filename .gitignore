@@ -54,3 +54,5 @@ CATKIN_IGNORE
 _workspace/
 _adapt_workspace/
 _adapt_workspace_prev/
+_workspace_vpn/
+_workspace_vpn_prev/
