@@ -1,0 +1,148 @@
+/* Vehicle Tracker v1 — desktop only (spec §5.2). */
+
+:root {
+  --sidebar-width: 280px;
+  --header-height: 56px;
+  --color-active: #2563eb;
+  --color-stale: #9ca3af;
+  --color-bg: #ffffff;
+  --color-text: #1f2937;
+  --color-text-muted: #6b7280;
+  --color-border: #e5e7eb;
+  --color-conn-ok: #16a34a;
+  --color-conn-bad: #dc2626;
+  --color-conn-pending: #d97706;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial,
+               "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+#header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: #111827;
+  color: #f9fafb;
+  z-index: 1000;
+}
+
+#header h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.status {
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.status.connecting { background: var(--color-conn-pending); color: #fff; }
+.status.connected  { background: var(--color-conn-ok); color: #fff; }
+.status.disconnected { background: var(--color-conn-bad); color: #fff; }
+
+main {
+  position: absolute;
+  top: var(--header-height);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+}
+
+#sidebar {
+  width: var(--sidebar-width);
+  border-right: 1px solid var(--color-border);
+  overflow-y: auto;
+  padding: 12px;
+}
+
+#sidebar h2 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+#vehicle-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#vehicle-list li {
+  padding: 10px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+#vehicle-list li:hover {
+  background: #f3f4f6;
+  border-color: var(--color-border);
+}
+
+#vehicle-list li.stale {
+  color: var(--color-stale);
+}
+
+#vehicle-list .vid {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+#vehicle-list .meta {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+#map {
+  flex: 1;
+  height: 100%;
+}
+
+/* Vehicle arrow marker (spec §5.4) */
+.vehicle-marker {
+  width: 28px;
+  height: 28px;
+  transform-origin: center center;
+  display: block;
+}
+
+.vehicle-marker svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.35));
+}
+
+.vehicle-marker .arrow {
+  fill: var(--color-active);
+  stroke: #ffffff;
+  stroke-width: 1.5;
+}
+
+.vehicle-marker.stale .arrow {
+  fill: var(--color-stale);
+}

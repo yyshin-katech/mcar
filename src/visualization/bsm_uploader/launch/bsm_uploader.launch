@@ -1,0 +1,13 @@
+<launch>
+  <node name="bsm_uploader_node" pkg="bsm_uploader"
+        type="bsm_uploader_node.py" output="screen" respawn="true">
+    <param name="server_url"      value="ws://13.209.88.22:8081/ws/ingest" />
+    <param name="vehicle_id"      value="EV01" />
+    <param name="publish_rate_hz" value="10.0" />
+    <param name="inspva_topic"    value="/sensors/gps/inspva" />
+    <param name="v_can_topic"     value="/sensors/v_can" />
+    <param name="reconnect_min_s" value="1.0" />
+    <param name="reconnect_max_s" value="30.0" />
+    <param name="drop_when_no_inspva" value="true" />
+  </node>
+</launch>
