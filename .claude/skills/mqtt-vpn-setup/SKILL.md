@@ -1,6 +1,6 @@
 ---
 name: mqtt-vpn-setup
-description: MQTT V2N 인터페이스 트래픽만 OpenVPN 터널 (kanavi 게이트웨이 172.18.113.51) 로 보내고, 나머지 인터넷·NTRIP·로컬 LAN 트래픽은 default route 를 유지하는 split-tunnel 을 구성·검증한다. siheung_v2x 의 mqtt_spat_rx_node / mqtt_bsm_tx_node 가 prod 브로커 (192.168.255.173:10044) 에 접속할 수 있도록 분석→구성→검증 파이프라인으로 적용한다. 사용자가 "vpn 설정", "mqtt vpn", "split-tunnel", "kanavi vpn", "mqtt 인터페이스 vpn", "vpn 다시 설정", "vpn 재구성", "openvpn 분리 터널", "192.168.255.173 vpn", "OpenVPN 클라이언트 설정" 등을 요청하면 반드시 이 스킬을 사용한다. 단순 ROS/launch 질문이나 일반 네트워크 진단은 직접 응답.
+description: MQTT V2N 인터페이스 트래픽만 시흥시 VPN 터널 (게이트웨이 172.18.113.51) 로 보내고, 나머지 인터넷·NTRIP·로컬 LAN 트래픽은 default route 를 유지하는 split-tunnel 을 구성·검증한다. siheung_v2x 의 mqtt_spat_rx_node / mqtt_bsm_tx_node 가 prod 브로커 (192.168.255.173:10044) 에 접속할 수 있도록 분석→구성→검증 파이프라인으로 적용한다. 사용자가 "vpn 설정", "mqtt vpn", "split-tunnel", "시흥시 vpn", "mqtt 인터페이스 vpn", "vpn 다시 설정", "vpn 재구성", "openvpn 분리 터널", "192.168.255.173 vpn", "OpenVPN 클라이언트 설정" 등을 요청하면 반드시 이 스킬을 사용한다. 단순 ROS/launch 질문이나 일반 네트워크 진단은 직접 응답.
 ---
 
 # mqtt-vpn-setup — MQTT V2N OpenVPN Split-Tunnel (Orchestrator)
@@ -17,7 +17,7 @@ prod MQTT 브로커 (`192.168.255.173:10044`) 트래픽만 OpenVPN 터널 (`172.
 
 - 자격증명 (ID `kana***1`, PW `kana****#$` — 마스킹 표기) 은 **오케스트레이터 메모리에만** 보관. 사양서·보고서·메모리 파일·코드·git 어디에도 평문 금지. 실제 값은 사용자가 chat 에서 직접 제공.
 - 마스킹 규칙: ID `kana***1`, PW `kana****#$` 로만 표기.
-- 시스템 경로 사용: `/etc/openvpn/client/kanavi-mqtt.conf` (644), `/etc/openvpn/auth-kanavi.txt` (600, root:root).
+- 시스템 경로 사용: `/etc/openvpn/client/siheung-mqtt.conf` (644), `/etc/openvpn/auth-siheung.txt` (600, root:root).
 - `.gitignore` 갱신은 *프로젝트 경로* 에 임시 .ovpn 이나 auth 파일이 들어올 때만. 시스템 경로는 git 무관.
 
 ## Phase 0: 컨텍스트 확인
@@ -46,7 +46,7 @@ prod MQTT 브로커 (`192.168.255.173:10044`) 트래픽만 OpenVPN 터널 (`172.
 산출물: `_workspace_vpn/01_analyst_spec.md`
 
 핵심 결정 사항:
-- tun 인터페이스명 (기본: `tun-kanavi` — 다른 VPN 충돌 회피)
+- tun 인터페이스명 (기본: `tun-siheung` — 다른 VPN 충돌 회피)
 - 브로커 라우팅 범위 (`/32` 단일 IP vs `/24` 서브넷)
 - pull-filter 정책 (`redirect-gateway`, `dhcp-option DNS` 무시)
 - VERDICT: ✅ / ⚠ (경고 있으나 진행 가능) / BLOCKED (.ovpn missing 등)
@@ -61,9 +61,9 @@ prod MQTT 브로커 (`192.168.255.173:10044`) 트래픽만 OpenVPN 터널 (`172.
 - sudo 비밀번호 (오케스트레이터가 환경 변수로 제공 시)
 
 적용 대상:
-- `/etc/openvpn/client/kanavi-mqtt.conf` (사양서의 .conf 본문 그대로)
-- `/etc/openvpn/auth-kanavi.txt` (자격증명 2줄, chmod 600)
-- systemd unit (`openvpn-client@kanavi-mqtt.service` generator 자동)
+- `/etc/openvpn/client/siheung-mqtt.conf` (사양서의 .conf 본문 그대로)
+- `/etc/openvpn/auth-siheung.txt` (자격증명 2줄, chmod 600)
+- systemd unit (`openvpn-client@siheung-mqtt.service` generator 자동)
 - launch/.gitignore (사양서가 요구 시만)
 
 산출물: `_workspace_vpn/02_configurator_report.md` + 시스템 변경.
@@ -74,11 +74,11 @@ prod MQTT 브로커 (`192.168.255.173:10044`) 트래픽만 OpenVPN 터널 (`172.
 
 핵심 입력:
 - `_workspace_vpn/02_configurator_report.md` (verdict 확인)
-- 시스템 상태 (`ip route`, `tun-kanavi`)
+- 시스템 상태 (`ip route`, `tun-siheung`)
 
 검증 핵심:
-1. `ip route get 192.168.255.173` → output 에 `dev tun-kanavi` 포함
-2. `ip route get 8.8.8.8` → output 의 dev 가 **tun-kanavi 아님** (default 유지)
+1. `ip route get 192.168.255.173` → output 에 `dev tun-siheung` 포함
+2. `ip route get 8.8.8.8` → output 의 dev 가 **tun-siheung 아님** (default 유지)
 
 산출물: `_workspace_vpn/03_verifier_report.md` + verdict:
 - **PASS**: 1~4 단계 + 6번 TCP 이상 통과
@@ -102,7 +102,7 @@ prod MQTT 브로커 (`192.168.255.173:10044`) 트래픽만 OpenVPN 터널 (`172.
 사용자 (chat) → 오케스트레이터 메모리
                  │
                  ├── analyst       : 위치만 기록 (사양서에 "사용자 제공값" 표기)
-                 ├── configurator  : Agent prompt 로 평문 전달 (1회), /etc/openvpn/auth-kanavi.txt 에만 기록
+                 ├── configurator  : Agent prompt 로 평문 전달 (1회), /etc/openvpn/auth-siheung.txt 에만 기록
                  └── verifier      : 미전달 (verifier 는 자격증명 불필요, TCP 도달성만 확인)
 ```
 
@@ -116,10 +116,10 @@ prod MQTT 브로커 (`192.168.255.173:10044`) 트래픽만 OpenVPN 터널 (`172.
 | Phase 1 | `172.18.113.51` ping 불가 | 경고로만 (사내망 진입 전이라 정상). configurator 는 진행, verifier 가 실제 검증. |
 | Phase 2 | sudo 비밀번호 없음 | configurator 가 *실행 명령 그대로* 보고서에 적고 사용자에게 직접 실행 요청. verifier 는 사용자 실행 후 재호출. |
 | Phase 2 | 사양서 BLOCKED | configurator 중단, 사용자에게 보고. |
-| Phase 2 | 기존 kanavi-mqtt.conf 충돌 | 백업 후 덮어쓰기. 사용자에게 백업 경로 보고. |
+| Phase 2 | 기존 siheung-mqtt.conf 충돌 | 백업 후 덮어쓰기. 사용자에게 백업 경로 보고. |
 | Phase 3 | systemctl start 실패 | journalctl 캡쳐 → configurator 재호출 (사양 점검). |
-| Phase 3 | `ip route get 192.168.255.173` 가 tun-kanavi 가 아님 | FAIL 보고. configurator 재호출 (route 줄 점검). |
-| Phase 3 | `ip route get 8.8.8.8` 가 tun-kanavi | **심각** — split-tunnel 실패, default route 가 VPN 으로 전환됨. configurator 즉시 재호출 (`route-nopull` + `pull-filter` 점검). |
+| Phase 3 | `ip route get 192.168.255.173` 가 tun-siheung 가 아님 | FAIL 보고. configurator 재호출 (route 줄 점검). |
+| Phase 3 | `ip route get 8.8.8.8` 가 tun-siheung | **심각** — split-tunnel 실패, default route 가 VPN 으로 전환됨. configurator 즉시 재호출 (`route-nopull` + `pull-filter` 점검). |
 | Phase 3 | mosquitto_sub timeout | TCP 도달성으로 디그레이드. PARTIAL PASS. |
 | Phase 3 | 2회 연속 FAIL | 사용자에게 보고 후 중단. |
 
@@ -146,13 +146,13 @@ Phase 3 (Phase 2 완료 후):
 ## 테스트 시나리오
 
 ### 정상 흐름
-1. 사용자: "vpn 설정해줘, kanavi VPN 으로 mqtt 만 분리 터널"
-2. 오케스트레이터: .ovpn 위치 확인 → `~/Downloads/kanavi.ovpn`
+1. 사용자: "vpn 설정해줘, 시흥시 VPN 으로 mqtt 만 분리 터널"
+2. 오케스트레이터: .ovpn 위치 확인 → `~/Downloads/siheung.ovpn`
 3. analyst: 환경 진단 + 사양서 작성 → `_workspace_vpn/01_analyst_spec.md` (VERDICT=✅)
-4. configurator: `/etc/openvpn/client/kanavi-mqtt.conf` + `/etc/openvpn/auth-kanavi.txt` 적용 → `_workspace_vpn/02_configurator_report.md`
+4. configurator: `/etc/openvpn/client/siheung-mqtt.conf` + `/etc/openvpn/auth-siheung.txt` 적용 → `_workspace_vpn/02_configurator_report.md`
 5. verifier:
-   - `systemctl start openvpn-client@kanavi-mqtt` → active
-   - `ip route get 192.168.255.173` → tun-kanavi ✅
+   - `systemctl start openvpn-client@siheung-mqtt` → active
+   - `ip route get 192.168.255.173` → tun-siheung ✅
    - `ip route get 8.8.8.8` → 기존 default ✅
    - `timeout 3 bash -c '</dev/tcp/192.168.255.173/10044'` → OK
    - → `_workspace_vpn/03_verifier_report.md` (PASS)
@@ -167,7 +167,7 @@ Phase 3 (Phase 2 완료 후):
 
 ### 에러 흐름 (split-tunnel 실패)
 1. Phase 1~2 정상 완료
-2. verifier: `ip route get 8.8.8.8` 가 tun-kanavi 로 감 → **심각 FAIL**
+2. verifier: `ip route get 8.8.8.8` 가 tun-siheung 으로 감 → **심각 FAIL**
 3. 오케스트레이터: configurator 재호출, "route-nopull / pull-filter 적용 여부 재점검" 사유 전달
 4. configurator: 사양서 비교 후 누락된 줄 추가
 5. verifier 재실행 → PASS
@@ -178,14 +178,14 @@ Phase 3 (Phase 2 완료 후):
 - `_workspace_vpn/01_analyst_spec.md`
 - `_workspace_vpn/02_configurator_report.md`
 - `_workspace_vpn/03_verifier_report.md`
-- 시스템 변경: `/etc/openvpn/client/kanavi-mqtt.conf`, `/etc/openvpn/auth-kanavi.txt`
+- 시스템 변경: `/etc/openvpn/client/siheung-mqtt.conf`, `/etc/openvpn/auth-siheung.txt`
 
 ## 산출물 체크리스트 (오케스트레이터가 사용자에게 보고 시)
 
 - [ ] tun 인터페이스명 + 라우팅 범위 (`/32` 또는 `/24`)
 - [ ] 검증 단계별 결과 (PASS / PARTIAL / FAIL)
 - [ ] split-tunnel 핵심 조건 2개의 출력 인용 (`ip route get 192.168.255.173` / `ip route get 8.8.8.8`)
-- [ ] 실행 명령: `sudo systemctl start openvpn-client@kanavi-mqtt`, `sudo systemctl enable ...` (권장 여부 verifier 가 결정)
+- [ ] 실행 명령: `sudo systemctl start openvpn-client@siheung-mqtt`, `sudo systemctl enable ...` (권장 여부 verifier 가 결정)
 - [ ] ROS 실행 명령: `roslaunch launch/siheung.launch mqtt_server:=prod`
 - [ ] `_workspace_vpn/` 보고서 3개 위치
 - [ ] 자격증명은 마스킹 (`kana***1` / `kana****#$`) 으로만 인용
@@ -194,5 +194,5 @@ Phase 3 (Phase 2 완료 후):
 
 - VPN 재구성 (.ovpn 갱신, 포트 변경, 브로커 대역 확장) → 부분 재실행
 - 재검증만 (`ip route get` 결과 재확인) → verifier 만
-- 자격증명 변경 → configurator 만 재호출 (auth-kanavi.txt 만 갱신)
+- 자격증명 변경 → configurator 만 재호출 (auth-siheung.txt 만 갱신)
 - VPN 제거 → 별도 요청 시 configurator 가 systemd disable + conf 백업 + 자격증명 파일 삭제

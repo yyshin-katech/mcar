@@ -13,7 +13,7 @@ tools: Read, Bash, Grep, Glob
 ## 작업 원칙
 - **사실 수집 우선**: 추측 금지. `ip route`, `ip addr`, `ss -tunlp`, `resolvectl status` 등을 직접 실행해 현재 상태를 캡쳐한다.
 - **외과적 사양**: split-tunnel 만 다룬다. 시스템 default route, DNS, 다른 VPN, 방화벽 정책을 임의로 바꾸지 않는다.
-- **자격증명 노출 금지**: ID/PW 는 사양서에 평문으로 쓰지 않는다. "사용자 제공 자격증명을 `/etc/openvpn/auth-kanavi.txt` 에 저장" 처럼 *위치만* 기록.
+- **자격증명 노출 금지**: ID/PW 는 사양서에 평문으로 쓰지 않는다. "사용자 제공 자격증명을 `/etc/openvpn/auth-siheung.txt` 에 저장" 처럼 *위치만* 기록.
 
 ## 검사 항목 (순서대로)
 
@@ -25,7 +25,7 @@ tools: Read, Bash, Grep, Glob
 2. **현재 라우팅 상태**
    - `ip route` 전체 캡쳐
    - `ip addr` 활성 인터페이스 (특히 wlp/eno/eth)
-   - 기존 tun/tap 인터페이스 (`ip link show type tun`) — 충돌 시 다른 이름 사용 (`dev tun-kanavi`).
+   - 기존 tun/tap 인터페이스 (`ip link show type tun`) — 충돌 시 다른 이름 사용 (`dev tun-siheung`).
 
 3. **VPN 서버 도달성**
    - `172.18.113.51` 가 사설 IP 라 직접 ping 가능한 환경인지 (사내망 / 다른 VPN 으로 이미 진입한 상태) 확인.
@@ -59,12 +59,12 @@ tools: Read, Bash, Grep, Glob
 ### 2) split-tunnel 전략 (결정)
 권장 기본 전략:
 ```
-# /etc/openvpn/client/kanavi-mqtt.conf 의 핵심 줄
+# /etc/openvpn/client/siheung-mqtt.conf 의 핵심 줄
 client
-dev tun-kanavi          # 다른 VPN 과 충돌 회피
+dev tun-siheung          # 다른 VPN 과 충돌 회피
 proto udp               # .ovpn 명시 우선
 remote 172.18.113.51 <port>
-auth-user-pass /etc/openvpn/auth-kanavi.txt
+auth-user-pass /etc/openvpn/auth-siheung.txt
 route-nopull            # 서버가 push 하는 default route 무시
 pull-filter ignore "redirect-gateway"
 pull-filter ignore "dhcp-option DNS"
@@ -75,11 +75,11 @@ script-security 2
 대안 전략 (NetworkManager / `ip route add` post-up hook) 도 한 단락으로 기록.
 
 ### 3) 자격증명 처리
-- `/etc/openvpn/auth-kanavi.txt` — 2줄 (1줄 ID, 2줄 PW). chmod 600, root:root.
+- `/etc/openvpn/auth-siheung.txt` — 2줄 (1줄 ID, 2줄 PW). chmod 600, root:root.
 - 사용자 제공 ID/PW 는 사양서에 평문 금지. "사용자가 chat 에서 제공한 값" 으로만 표시.
 
 ### 4) systemd 통합
-- 유닛: `openvpn-client@kanavi-mqtt.service` (Ubuntu 기본 generator)
+- 유닛: `openvpn-client@siheung-mqtt.service` (Ubuntu 기본 generator)
 - 자동 시작 여부는 사용자에 위임 (`enable` 권장 여부만 기록).
 
 ### 5) ROS launch 영향
@@ -87,16 +87,16 @@ script-security 2
 - `katech_test.launch` 가 `siheung.launch` 를 include 할 때 `mqtt_server` arg 전달이 빠져있으면 명시 추가 필요. (configurator 가 적용.)
 
 ### 6) .gitignore 갱신 목록
-- `/etc/openvpn/auth-kanavi.txt` 는 시스템 경로라 git 무관.
-- 만약 사용자 홈/프로젝트에 임시 저장한다면 `*.ovpn`, `auth-kanavi*.txt` 패턴 추가 — 사양서에 *조건부* 로 기록.
+- `/etc/openvpn/auth-siheung.txt` 는 시스템 경로라 git 무관.
+- 만약 사용자 홈/프로젝트에 임시 저장한다면 `*.ovpn`, `auth-siheung*.txt` 패턴 추가 — 사양서에 *조건부* 로 기록.
 
 ### 7) 검증 체크리스트 (verifier 가 그대로 실행)
-- `systemctl start openvpn-client@kanavi-mqtt`
-- `ip addr show tun-kanavi`
-- `ip route get 192.168.255.173` → tun-kanavi 로 가는지
+- `systemctl start openvpn-client@siheung-mqtt`
+- `ip addr show tun-siheung`
+- `ip route get 192.168.255.173` → tun-siheung 로 가는지
 - `ip route get 8.8.8.8` → 기존 default 유지 (split-tunnel 핵심)
 - `mosquitto_sub -h 192.168.255.173 -p 10044 -u <user> -P '<pw>' -t 'V2N/+/+/+' -v -W 5` (MQTT 자격증명은 `launch/siheung.launch` 의 `mqtt_user_prod` / `mqtt_pass_prod` 사용, 본 문서에 평문 금지)
-- `systemctl stop openvpn-client@kanavi-mqtt` 후 라우팅 원복 확인
+- `systemctl stop openvpn-client@siheung-mqtt` 후 라우팅 원복 확인
 
 ### 8) 차단 사유 (있으면)
 .ovpn 미제공, 172.18.113.51 도달 불가, 다른 VPN 활성 등 — 어떤 항목이 missing 인지 명확히. 이 경우 verdict = "BLOCKED, configurator 진행 불가".

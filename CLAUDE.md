@@ -165,13 +165,15 @@ diff /home/ads/.claude/projects/-home-ads-mcar-v13/memory/MEMORY.md /home/ads/mc
 
 ## 하네스: mqtt-vpn-setup
 
-**목표:** MQTT V2N 인터페이스 트래픽 (prod 브로커 `192.168.255.173:10044`) 만 kanavi VPN 터널 로 보내고, 그 외 인터넷·NTRIP·로컬 LAN 트래픽은 default route 를 유지하는 split-tunnel 을 외과적으로 구성·검증. 실 환경 VPN 은 **SecuwaySSL (Secuwiz)** — `~/sslvpn/SecuwaySSLU_client` + `conf/client.info` (`27.101.133.111:443`). OpenVPN 가정의 초기 사양서는 무시.
+**목표:** MQTT V2N 인터페이스 트래픽 (prod 브로커 `192.168.255.173:10044`) 만 시흥시 VPN 터널 로 보내고, 그 외 인터넷·NTRIP·로컬 LAN 트래픽은 default route 를 유지하는 split-tunnel 을 외과적으로 구성·검증. 실 환경 VPN 은 **시흥시 시범운행 인프라의 SecuwaySSL (Secuwiz)** — `~/sslvpn/SecuwaySSLU_client` + `conf/client.info` (`27.101.133.111:443`). OpenVPN 가정의 초기 사양서는 무시.
 
-**트리거:** "vpn 설정", "mqtt vpn", "split-tunnel", "kanavi vpn", "mqtt 인터페이스 vpn", "vpn 다시 설정", "vpn 재구성", "secuwayssl", "openvpn 분리 터널" 요청 시 `mqtt-vpn-setup` 스킬 사용. 단순 ROS/launch 질문이나 일반 네트워크 진단은 직접 응답.
+**트리거:** "vpn 설정", "mqtt vpn", "split-tunnel", "시흥시 vpn", "mqtt 인터페이스 vpn", "vpn 다시 설정", "vpn 재구성", "secuwayssl", "openvpn 분리 터널" 요청 시 `mqtt-vpn-setup` 스킬 사용. 단순 ROS/launch 질문이나 일반 네트워크 진단은 직접 응답.
 
 **변경 이력:**
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
-| 2026-05-26 | 초기 구성 | agents 3 (vpn-net-analyst/configurator/verifier) + skills/mqtt-vpn-setup | kanavi VPN 게이트웨이 통해 prod MQTT 브로커만 분리 터널 구성 요청 (자격증명 시스템 경로 보관, git 평문 금지) |
+| 2026-05-26 | 초기 구성 | agents 3 (vpn-net-analyst/configurator/verifier) + skills/mqtt-vpn-setup | 시흥시 VPN 게이트웨이 통해 prod MQTT 브로커만 분리 터널 구성 요청 (자격증명 시스템 경로 보관, git 평문 금지) |
 | 2026-05-26 | 실 환경 검증 + 사실 보정 | memory/mqtt_vpn_setup_harness.md + 본 항목 | 실 VPN 은 OpenVPN 아닌 SecuwaySSL (Secuwiz) 로 판명. PDF 가이드 + `~/sslvpn/SecuwaySSLU_client` 로 27.101.133.111:443 접속, tun0=172.18.113.51 동적 할당. split push 자동 → 핵심 2조건 통과. prod MQTT → IID 517 (시화) SPaT 5 Hz 수신·디코드 검증 (signalGroup 60/80, phase GO). `publishSpat` 가 `/localization/to_control_team` 필터 사용 — 시연 시 dummy publish 필요 |
 | 2026-05-26 | 다른 PC 셋업 산출물 추가 | tools/sslvpn/{SSU21-2.1.0.2-20230331.tgz, README.md} | 다른 PC 에서도 PDF 없이 동일 절차로 VPN 셋업·접속 가능하도록 클라이언트 tgz 와 설치/검증/트러블슈팅 가이드를 git 추적 |
+| 2026-05-26 | BSM 송신 검증 추가 | memory/mqtt_vpn_setup_harness.md + 본 항목 | `~/bag/20260508/*_0.bag` 리플레이 → `mqtt_bsm_tx_node` (prod 인자) → prod 브로커 `V2N/1321103202/bsm` 토픽 10 Hz 송신 확인. V2N header `04 00 ff 10` (BSM fid=FF10), PSID `00 01 40 82`, inner 40 byte J2735 BSM UPER 정합. v_can 미포함 bag 이라 steering/accel/yaw/brake 는 0 으로 채워짐. `use_sim_time=true` + `--clock` 미사용 시 timer 동결 함정 기록 |
+| 2026-05-26 | VPN 명칭 정정 (카네비 → 시흥시) | CLAUDE.md, MEMORY.md, memory/*, .claude/{agents,skills,mqtt_vpn_setup_harness.md}, tools/sslvpn/README.md | "kanavi VPN" 으로 부르던 것은 실제로 시흥시 시범운행 인프라의 VPN. 표기 통일을 위해 모든 문서·에이전트·스킬에서 "kanavi" → "siheung" (파일명 `kanavi-mqtt.conf` → `siheung-mqtt.conf`, `tun-kanavi` → `tun-siheung` 등) 정정. ID 마스킹 `kana***1` 은 실제 계정 패턴이므로 유지 |

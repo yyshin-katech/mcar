@@ -1,8 +1,8 @@
-# SecuwaySSL VPN 클라이언트 — kanavi 게이트웨이 접속
+# SecuwaySSL VPN 클라이언트 — 시흥시 VPN 게이트웨이 접속
 
-prod MQTT V2N 브로커 (`192.168.255.173:10044`) 에 외부 인터넷에서 접속할 때 사용하는 SecuwaySSL (Secuwiz, 한국 국정원 인증 LEA-128-CBC) VPN 클라이언트.
+prod MQTT V2N 브로커 (`192.168.255.173:10044`) 에 외부 인터넷에서 접속할 때 사용하는 SecuwaySSL (Secuwiz, 한국 국정원 인증 LEA-128-CBC) VPN 클라이언트. VPN 게이트웨이는 시흥시 시범운행 인프라에서 운영.
 
-운영자(카네비) 가 발급한 ID/PW 만 있으면 동작하며 `.ovpn` 인증서 / OpenVPN 설치 불필요. 서버가 split-tunnel 라우트를 자동 push 하므로 클라이언트 측 분리 터널 설정 작업도 필요 없다.
+운영자가 발급한 ID/PW 만 있으면 동작하며 `.ovpn` 인증서 / OpenVPN 설치 불필요. 서버가 split-tunnel 라우트를 자동 push 하므로 클라이언트 측 분리 터널 설정 작업도 필요 없다.
 
 원본 가이드 PDF: `~/리눅스 클라이언트 설치 및 사용 가이드 (1).pdf` (운영자 제공, git 비포함)
 
@@ -50,7 +50,7 @@ sudo ./SecuwaySSLU_client
 #   OTP      : <빈 엔터>   ← 운영 환경에서 OTP disable 이라 빈 입력으로 통과
 ```
 
-자격증명 (`ID` / `PW`) 은 카네비 운영자가 발급하며 **git/메모리/문서 어디에도 평문 금지**. 마스킹 표기 (`kana***1` / `kana****#$`) 만 인용 가능.
+자격증명 (`ID` / `PW`) 은 시흥시 VPN 운영자가 발급하며 **git/메모리/문서 어디에도 평문 금지**. 마스킹 표기 (`kana***1` / `kana****#$`) 만 인용 가능.
 
 `SecuwaySSL client conncted!!` 메시지가 나오면 접속 완료. 백그라운드로 데몬화하려면:
 
