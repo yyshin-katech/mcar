@@ -32,6 +32,9 @@ class SPAT_CAN_WRITER{
   public:
     ros::Subscriber sub1;
     uint16_t cur_intersection_id = 0;
+    int      cur_signal_group_id = 0;   // to_control_team.look_at_signalGroupID
+    int      cur_manuaver = 0;          // to_control_team.MANUAVER (-1=LEFT, 0=STR, 1=RIGHT)
+    std::mutex link_mtx_;               // cur_* 보호
 
     // OBU SPaT 마지막 수신 시각 (MQTT fallback 판정용).
     // default ros::Time(0) → 한 번도 못 받음 → MQTT 첫 메시지에서 곧바로 fallback.
@@ -73,7 +76,10 @@ SPAT_CAN_WRITER::SPAT_CAN_WRITER(){
 }
 
 void SPAT_CAN_WRITER::CALLBACK_LOCAL(const mmc_msgs::to_control_team_from_local_msg& data){
-  cur_intersection_id = data.look_at_IntersectionID;
+  std::lock_guard<std::mutex> lock(link_mtx_);
+  cur_intersection_id  = data.look_at_IntersectionID;
+  cur_signal_group_id  = data.look_at_signalGroupID;
+  cur_manuaver         = data.MANUAVER;
 }
 
 void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg){
@@ -123,28 +129,63 @@ void SPAT_CAN_WRITER::WRITE_SPAT_CAN(const v2x_msgs::intersection_array_msg& msg
   unsigned int id_write, flag = 0;
   vector<double> temp_data;
 
-  if (cur_intersection_id == 0)
+  // ego 링크 정보 스냅샷
+  int loc_iid, loc_sig, loc_man;
+  {
+    std::lock_guard<std::mutex> lock(link_mtx_);
+    loc_iid = cur_intersection_id;
+    loc_sig = cur_signal_group_id;
+    loc_man = cur_manuaver;
+  }
+
+  // ego 가 신호 불필요 링크 (IID=0) → CAN 신호 모두 0
+  if (loc_iid == 0)
   {
     temp_data = {0.0, 0.0, 0.0, 0.0, 0.0};
   }
-  else if (!msg.data.empty() && msg.data[0].IntersectionID != 0)
+  else
   {
-    auto& d = msg.data[0];
+    // 다운스트림 매칭: SPaT 안 모든 intersection × movement 중에서
+    //   (IID == loc_iid)
+    //   AND (loc_sig == 0  OR  SigGrp == loc_sig)
+    //   AND (movementName 비어있음  OR  loc_man 에 대응되는 방향)
+    // 첫 매칭 항목을 사용. 없으면 CAN 송신 생략.
+    const char* target_name = "STR";
+    if (loc_man == -1)      target_name = "LEFT";
+    else if (loc_man == 1)  target_name = "RIGHT";
+
+    const v2x_msgs::intersection_msg* matched = nullptr;
+    for (size_t i = 0; i < msg.data.size(); ++i)
+    {
+      const auto& d = msg.data[i];
+      if ((int)d.IntersectionID != loc_iid) continue;
+      if (loc_sig != 0 && (int)d.Movements.SignalGroupID != loc_sig) continue;
+      const std::string& mn = d.Movements.MovementStateName;
+      if (!mn.empty() && mn != target_name) continue;
+      matched = &d;
+      break;
+    }
+
+    if (matched == nullptr)
+    {
+      ROS_DEBUG_THROTTLE(2.0,
+        "[SPaT CAN/%s] no match for IID=%d SigGrp=%d Move=%s (data=%zu items)",
+        source_tag, loc_iid, loc_sig, target_name, msg.data.size());
+      return;
+    }
+
+    auto& d = *matched;
     temp_data = {0.0,
                  (double)d.Movements.TimeChangeDetails,
                  (double)d.Movements.MovementPhaseStatus,
                  (double)d.Movements.SignalGroupID,
                  (double)d.IntersectionID};
 
-    ROS_INFO("[SPaT CAN/%s] IntID=%d SigGrp=%d Phase=%d minEnd=%.1fs",
+    ROS_INFO_THROTTLE(1.0, "[SPaT CAN/%s] IntID=%d SigGrp=%d Phase=%d minEnd=%.1fs",
              source_tag,
              d.IntersectionID, d.Movements.SignalGroupID,
              d.Movements.MovementPhaseStatus,
              d.Movements.TimeChangeDetails / 10.0);
-  }
-  else
-  {
-    return;
   }
 
   msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
