@@ -79,14 +79,20 @@ bag 리플레이 + `mqtt_bsm_tx_node` (siheung_v2x) 로 prod 브로커 `V2N/1321
 - systemd unit `openvpn-client@siheung-mqtt.service` (Ubuntu 기본 generator 자동)
   - 위 파일·유닛은 OpenVPN 가정의 (미적용) 가상 구성. 실 환경은 SecuwaySSL 이라 적용되지 않음
 
-## 자격증명 보안
+## 자격증명 보안 (2026-05-26 정책 완화)
 
-- ID `kana***1`, PW `kana****#$` (마스킹 표기) — 실제 값은 사용자가 chat 에서 직접 제공, 메모리/git 에는 평문 금지
-- 메모리·사양서·보고서·git·코드 어디에도 평문 금지
-- 시스템 경로 (`/etc/openvpn/auth-siheung.txt`) 에만 실제 값 (chmod 600)
-- 오케스트레이터가 configurator Agent prompt 본문에만 1회 전달
+**2026-05-26 사용자 결정**: internal repo + 다른 PC 셋업 편의를 위해 VPN/MQTT 자격증명을 `launch/siheung.launch` 에 평문으로 포함하기로 함. 기존 "git 평문 금지" 정책은 launch 에 한해 완화.
 
-**Why:** 2026-05-26 시흥시 VPN 통해서만 prod MQTT 브로커 접속 가능 (시흥시 시범운행 인프라). 인터넷·NTRIP 등 다른 트래픽은 default route 유지해야 하므로 (OpenVPN 의 경우 redirect-gateway 차단, SecuwaySSL 은 서버 push 라우트로 자동 처리). 자격증명은 사용자가 chat 에 직접 입력 — git 평문 금지가 강한 제약.
+- `launch/siheung.launch` 에 평문 보관 (git tracked):
+  - `vpn_id` = `kanavi001`, `vpn_pass` = `kanavI99!@#$` (시흥시 VPN — SecuwaySSL 클라이언트 입력용 참조)
+  - `mqtt_user_prod` = `xcms-mtqq`, `mqtt_pass_prod` = `xcms123!` (prod 브로커)
+  - `mqtt_user_test` = `ut_adcp`, `mqtt_pass_test` = `ut_adcp123!@#` (test 브로커)
+  - `vpn_server_ip` = `27.101.133.111`, `vpn_server_port` = `443`
+- 마스킹 표기는 사용자 보고/문서·메모리 본문에서만 사용 (`kana***1` / `kana****#$`) — launch 자체에는 실제 값
+- 향후 public repo 화 / 외부 공유 시 환경변수 / 별도 conf 로 분리 필요 (현재는 internal)
+- OpenVPN 가정의 `/etc/openvpn/auth-siheung.txt` 는 미적용 가상 경로
+
+**Why:** 2026-05-26 시흥시 VPN 통해서만 prod MQTT 브로커 접속 가능 (시흥시 시범운행 인프라). 인터넷·NTRIP 등 다른 트래픽은 default route 유지해야 하므로 (OpenVPN 의 경우 redirect-gateway 차단, SecuwaySSL 은 서버 push 라우트로 자동 처리). 사용자가 다른 PC 에서도 git clone + launch 만으로 동작하도록 자격증명 launch 평문 포함을 명시 결정.
 
 **How to apply:**
 - 사용자가 "vpn 설정", "mqtt vpn", "split-tunnel" 등을 언급하면 `mqtt-vpn-setup` 스킬 호출
@@ -94,7 +100,8 @@ bag 리플레이 + `mqtt_bsm_tx_node` (siheung_v2x) 로 prod 브로커 `V2N/1321
 - SecuwaySSL 환경에서는 `_workspace_vpn/01_analyst_spec.md` 의 OpenVPN BLOCKED 결과를 무시하고 PDF 가이드 따라 `client.info` 만 수정
 - sudo 비밀번호 없으면 configurator 가 명령만 보고서에 적고 사용자 직접 실행 요청
 - 변경 후 verifier 의 핵심 2조건 (브로커=tun*, 8.8.8.8=default) 확인 필수
-- 마스킹 (`kana***1` / `kana****#$`) 으로만 인용
+- 사용자 보고/문서·외부 인용 시는 마스킹 (`kana***1` / `kana****#$`), git/launch 안에서는 평문 OK
+- public repo 화 요청이 들어오면 launch 자격증명 분리 필요성 즉시 환기
 
 ## 작업 디렉토리
 

@@ -2,9 +2,18 @@
 <launch>
     <arg name="sweet_home" default="$(optenv HOME)" />
 
-    <!-- MQTT broker 선택: test = 인터넷 테스트 서버, prod = 차량 사설망 실제 서버 -->
-    <!-- 예) roslaunch launch/siheung.launch mqtt_server:=prod -->
-    <arg name="mqtt_server" default="test" />
+    <!-- 시흥시 VPN (SecuwaySSL) 자격증명·서버 — launch 가 직접 VPN 을 띄우지는 않음.
+         다른 PC 셋업 시 ~/sslvpn/conf/client.info (vpn_ip / vpn_port) 와
+         sudo ./SecuwaySSLU_client 실행 시 입력할 ID/PW 참조용. -->
+    <arg name="vpn_server_ip"   value="27.101.133.111" />
+    <arg name="vpn_server_port" value="443" />
+    <arg name="vpn_id"          value="kanavi001" />
+    <arg name="vpn_pass"        value="kanavI99!@#$" />
+
+    <!-- MQTT broker 선택: test = 인터넷 테스트 서버, prod = 차량 사설망 실제 서버 (시흥시 VPN 필요) -->
+    <!-- 기본 prod. 인터넷 테스트 시 mqtt_server:=test 로 override -->
+    <!-- 예) roslaunch launch/siheung.launch mqtt_server:=test -->
+    <arg name="mqtt_server" default="prod" />
 
     <!--   테스트 서버 (test) : 121.137.106.141 : 23312 / ut_adcp -->
     <arg name="mqtt_host_test" value="121.137.106.141" />
