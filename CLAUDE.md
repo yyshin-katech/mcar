@@ -178,3 +178,15 @@ diff /home/ads/.claude/projects/-home-ads-mcar-v13/memory/MEMORY.md /home/ads/mc
 | 2026-05-26 | BSM 송신 검증 추가 | memory/mqtt_vpn_setup_harness.md + 본 항목 | `~/bag/20260508/*_0.bag` 리플레이 → `mqtt_bsm_tx_node` (prod 인자) → prod 브로커 `V2N/1321103202/bsm` 토픽 10 Hz 송신 확인. V2N header `04 00 ff 10` (BSM fid=FF10), PSID `00 01 40 82`, inner 40 byte J2735 BSM UPER 정합. v_can 미포함 bag 이라 steering/accel/yaw/brake 는 0 으로 채워짐. `use_sim_time=true` + `--clock` 미사용 시 timer 동결 함정 기록 |
 | 2026-05-26 | VPN 명칭 정정 (카네비 → 시흥시) | CLAUDE.md, MEMORY.md, memory/*, .claude/{agents,skills,mqtt_vpn_setup_harness.md}, tools/sslvpn/README.md | "kanavi VPN" 으로 부르던 것은 실제로 시흥시 시범운행 인프라의 VPN. 표기 통일을 위해 모든 문서·에이전트·스킬에서 "kanavi" → "siheung" (파일명 `kanavi-mqtt.conf` → `siheung-mqtt.conf`, `tun-kanavi` → `tun-siheung` 등) 정정. ID 마스킹 `kana***1` 은 실제 계정 패턴이므로 유지 |
 | 2026-05-26 | launch 자격증명 평문 정책 완화 + prod 기본화 | launch/siheung.launch, memory/mqtt_vpn_setup_harness.md | 다른 PC 셋업 편의를 위해 시흥시 VPN ID/PW 와 서버 IP/포트를 `launch/siheung.launch` arg 로 평문 포함 (`vpn_id`/`vpn_pass`/`vpn_server_ip`/`vpn_server_port`). `mqtt_server` default 를 `test` → `prod` 로 변경 (인터넷 테스트 시만 명시 override). 메모리 자격증명 보안 섹션을 launch 예외 명시로 갱신 |
+
+## 하네스: spat-viewer-build
+
+**목표:** VPN 통해 prod 브로커 (`192.168.255.173:10044`) 에서 들어오는 MQTT SPaT (`/siheung_v2x/mqtt_spat`) + OBU SPaT (`/siheung_spat`) 를 라이브로 보여주는 self-contained Leaflet HTML 뷰어 신규 개발. `mat_viewer_senario_*` 패턴으로 지도 위에 shp_map 도로 link, 교차로별 신호등 색/잔여시간, ego 마커(real-time), target intersection 강조. 메인 launch (`siheung.launch`) 와 동시 실행 가능 (별도 rosbridge_websocket).
+
+**트리거:** "spat 뷰어 만들어", "신호등 뷰어", "spat 시각화", "MQTT spat 보는 페이지", "vpn spat 확인 페이지", "뷰어 다시 만들어", "spat-viewer", "교차로 색 잘못 나옴" 요청 시 `spat-viewer-build` 스킬 사용. 단순 코드 질문은 직접 응답.
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-05-26 | 초기 구성 | agents 3 (spat-viewer-{analyst,coder,verifier}) + skills/spat-viewer-build | OBU>MQTT fallback 정책 적용 후 (commit 80624de — spat_CAN_writer 에서 ego 매칭, 발행자측 필터 제거) 라이브 SPaT 흐름을 메인 시스템 실행 중에도 브라우저로 확인할 수 있는 뷰어 요청 |
+| 2026-05-26 | 라이브 검증 + 데이터 소스 mat 재설계 | src/visualization/spat_viewer/* + memory/spat_viewer_build_harness.md | VPN+mqtt_spat_rx_node+roslaunch spat_viewer 라이브 검증 (브로커 IID 매치 13/15). 초기 shp 추출 (HDMap_Oido_New C1_TRAFFICLIGHT.shp, 2544 feature) 을 `mapfiles/senario/link_*.mat` 직접 추출로 교체 — mat 이 IID/SG/stop_line/MANUAVER 키를 직접 carry. 결과 308 link / 15 IID `[134,136,165,168,201,203,302,504,507,508,509,516,517,518,519]`. is_stop_line=1 링크 `#fab387` 강조 + legend 갱신. extract_map_data.py 는 pyproj 만 의존 (pyshp 제거) |

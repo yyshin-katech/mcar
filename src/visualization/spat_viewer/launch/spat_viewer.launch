@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<!--
+  spat_viewer.launch
+  - rosbridge_websocket (default port 9090) for roslibjs subscribe-only access
+  - python3 http.server (default port 8080) serving the self-contained Leaflet HTML
+
+  Usage (separate terminal from siheung.launch / katech_test.launch):
+    roslaunch spat_viewer spat_viewer.launch
+    xdg-open http://localhost:8080/
+-->
+<launch>
+  <arg name="port"      default="9090" />
+  <arg name="http_port" default="8080" />
+  <arg name="web_root"  default="$(find spat_viewer)/web" />
+
+  <!-- rosbridge WebSocket (roslibjs subscriber endpoint) -->
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch">
+    <arg name="port" value="$(arg port)" />
+  </include>
+
+  <!-- Static web server for index.html and data/*.json -->
+  <node name="spat_viewer_http"
+        pkg="spat_viewer"
+        type="serve_http.sh"
+        args="$(arg http_port) $(arg web_root)"
+        output="screen" />
+</launch>
