@@ -10,3 +10,5 @@
 - [Split commits when changes are logically distinct](feedback_commits.md) — split shared-module bugfix vs feature into separate commits even when "커밋 푸시" is one request
 - [전체 종료 / 다시 검토 workflow](feedback_clean_restart.md) — user routinely kills all ROS processes mid-debug to reset; not an error signal
 - [vehicle-tracker EC2 배포 현황](project_vehicle_tracker.md) — EC2 8081, SG sg-0cf772580602f467a, 로컬 Docker 없어 EC2 빌드, NIC ens5, nova-client가 8080 점유
+- [decode_md spat_udp_decode 호환 패치](reference_decode_md_spat_patch.md) — ~/decode_md/spat_udp_decode.py preprocess 보강 (ENUMERATED 두 번째 ... + trailing comma) + Windows Python 실행 필요
+- [WSL rostopic hz 불안정](feedback_wsl_rostopic_hz.md) — hz 가 Terminated 만 떠도 토픽은 흐를 수 있음. echo -n N 카운트 / tcpdump 로 cross-check
