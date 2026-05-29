@@ -305,11 +305,11 @@ int main(int argc, char** argv)
     ros::NodeHandle nh;
     ros::NodeHandle pnh("~");
 
-    // WSL mirrored 네트워킹에서 INADDR_ANY(0.0.0.0) 로는 미러 인터페이스 목적지
-    // UDP 가 소켓까지 전달되지 않는 경우가 있어, OBU 가 보내는 특정 IP/포트로 고정 바인드.
+    // 기본은 0.0.0.0(모든 인터페이스) — 실제 네이티브 Ubuntu 환경. WSL mirrored 테스트처럼
+    // 특정 인터페이스로만 바인드해야 하는 경우 launch 에서 ~bind_ip 로 override.
     std::string bind_ip;
     int bind_port = 0;
-    pnh.param<std::string>("bind_ip", bind_ip, "192.168.1.3");
+    pnh.param<std::string>("bind_ip", bind_ip, "0.0.0.0");
     pnh.param<int>("bind_port", bind_port, UDP_PORT);
 
     ros::Publisher spat_pub = nh.advertise<v2x_msgs::intersection_array_msg>("/siheung_spat", 1);

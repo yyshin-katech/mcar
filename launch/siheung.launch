@@ -35,8 +35,16 @@
 
     <param name="EPSG" value="5179" />
 
+    <!-- OBU UDP 수신 바인드. 기본 0.0.0.0(실제 네이티브 Ubuntu).
+         WSL mirrored 테스트에서는 obu_bind_ip:=192.168.1.3 으로 override -->
+    <arg name="obu_bind_ip"   default="0.0.0.0" />
+    <arg name="obu_bind_port" default="9999" />
+
     <!-- V2X RX (OBU → PC, UDP 9999) -->
-    <node name="siheung_v2x_node"       type="siheung_v2x_node"     pkg="siheung_v2x"  respawn="true" />
+    <node name="siheung_v2x_node"       type="siheung_v2x_node"     pkg="siheung_v2x"  respawn="true">
+        <param name="bind_ip"   value="$(arg obu_bind_ip)" />
+        <param name="bind_port" value="$(arg obu_bind_port)" />
+    </node>
 
     <!-- V2X TX BSM (PC → OBU, UDP 6666) -->
     <node name="bsm_tx_node"            type="bsm_tx_node"          pkg="siheung_v2x"  respawn="true" output="screen">
