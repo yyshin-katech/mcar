@@ -1,14 +1,15 @@
-- [User role and project](user_role.md) — yuyeong @ KATECH on the IONIQ 5 mcar stack; senior, Korean, no need to explain ROS basics
-- [siheung_dev branch focus](project_siheung_dev.md) — Oido/시화 시범운행; HDMap_Oido_New 11 MOLIT 레이어 (EPSG:32652→5179); web-hmi-adapt 하네스 (3-phase)
-- [ioniq5_hmi_dev branch focus](project_hmi_dev.md) — three HMI variants; diagnostic_only.launch boots threejs_f1; web-hmi-review 하네스
-- [qt_hmi + web_hmi rviz-grade follow](project_qt_hmi.md) — 50Hz ego pose 패턴(qt_hmi/web_hmi 둘 다); ego-frame 트랙은 emit-time ego 스냅샷(`ego_at_emit`)과 페어링 필수
-- [bag replay dual-publisher trap](project_bag_replay_hmi.md) — 시흥 bag에 /hmi/* 녹화돼 web_hmi와 dual-publisher; ghost/REC 가 안 잡히는 것처럼 보임; /hmi/*:=/sink/* remap 풀세트
-- [percept cloud_indices ↔ /percept_origin_rviz](project_percept_cloud_indices.md) — supplementinfo.cloud_indices index into /percept_origin_rviz (organized 1800×128), NOT /fusion_lidar_points
-- [V2N MQTT 16-byte 표준 V2N container 0x04](project_mqtt_v2n_spat.md) — `<표 4-11>` 정합 (sem_length=0 → 16 byte fixed); fid/psid 메시지별로 다름 (BSM=0xFF10/0x14082, SPaT=0xFF11/0x14085); xlsx 가 단일 출처
-- [V2N FID/PSID xlsx 출처](reference_v2n_fid_psid.md) — `~/protocol/경4 V2N FID PSID 정의안 (1).xlsx` 두 시트가 메시지별 fid/psid/방향/토픽의 단일 출처
-- [Vehicle PC hardware](project_target_hardware.md) — ASUS NUC + Intel iGPU (no discrete GPU); WebGL viable for light scenes, avoid heavy GLTF/shadows/post-processing
-- [Split commits when changes are logically distinct](feedback_commits.md) — split shared-module bugfix vs feature into separate commits even when "커밋 푸시" is one request
-- [전체 종료 / 다시 검토 workflow](feedback_clean_restart.md) — user routinely kills all ROS processes mid-debug to reset; not an error signal
-- [vehicle-tracker EC2 배포 현황](project_vehicle_tracker.md) — EC2 8081, SG sg-0cf772580602f467a, 로컬 Docker 없어 EC2 빌드, NIC ens5, nova-client가 8080 점유
+- [User Profile](user_profile.md) — 카텍 자율주행 연구원, 시흥 시나리오 작업 중
+- [V2X Package](v2x_package.md) — siheung_v2x 패키지 구조, SPaT/SDSM 디코딩
+- [SPaT 송신시각](reference_spat_timestamp.md) — OBU는 MOY+DSecond 있으나 9h 오프셋, MQTT는 MOY=0 (절대시각 없음)
+- [Environment](environment.md) — WSL2 개발환경, mirrored 네트워킹 가이드
+- [Map Data](map_data.md) — senario / senario3 mat 구조, MANUAVER 라벨(curve_lane.md) 원천
+- [senario mat 뷰어 재생성](senario_mat_viewer.md) — ~/temp 하네스, cs2cs로 EPSG:5179→WGS84
+- [CANoe Tool](canoe_tool.md) — CAN 송신 검증에 Vector CANoe 사용, rate/timing 디버깅의 1차 근거
+- [CAN Request Signals](feedback_can_request_signals.md) — MD_AD_Req 같은 request 신호는 1초 펄스, 활성 모드면 재요청 버튼 비활성화
+- [GPS Hardware](project_gps_hardware.md) — ZED-F9K USB serial(`/dev/ttyACM0`), 이더넷/NTRIP 미사용. cpt7 인터넷 ping 의도적 비활성
+- [Root-free Ping](feedback_root_permissions.md) — root 필요한 SOCK_RAW 대신 `system("ping ...")` + worker thread 패턴 선호
+- [Disable Undo Semantics](feedback_disable_undo.md) — "무력화 해제" 요청은 literal revert가 아니라 가려져있던 로직 버그까지 정상화하는 의미
+- [pyqt_hmi Primary UI](project_pyqt_hmi_primary.md) — 모니터링 화면은 pyqt_hmi가 메인, 신규 시각화/진단은 여기에 우선 반영
+- [v2x SPaT Topic](project_v2x_spat_topic.md) — siheung_dev 에서 SPaT는 `/siheung_spat`만 (diagnostic/pyqt_hmi 잔여 katri_spat 구독 2026-05-18 정리). katri_obu_interface 는 KATRI 환경용으로 보존
 - [decode_md spat_udp_decode 호환 패치](reference_decode_md_spat_patch.md) — ~/decode_md/spat_udp_decode.py preprocess 보강 (ENUMERATED 두 번째 ... + trailing comma) + Windows Python 실행 필요
 - [WSL rostopic hz 불안정](feedback_wsl_rostopic_hz.md) — hz 가 Terminated 만 떠도 토픽은 흐를 수 있음. echo -n N 카운트 / tcpdump 로 cross-check

@@ -303,6 +303,14 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "siheung_v2x_node");
     ros::NodeHandle nh;
+    ros::NodeHandle pnh("~");
+
+    // WSL mirrored 네트워킹에서 INADDR_ANY(0.0.0.0) 로는 미러 인터페이스 목적지
+    // UDP 가 소켓까지 전달되지 않는 경우가 있어, OBU 가 보내는 특정 IP/포트로 고정 바인드.
+    std::string bind_ip;
+    int bind_port = 0;
+    pnh.param<std::string>("bind_ip", bind_ip, "192.168.1.3");
+    pnh.param<int>("bind_port", bind_port, UDP_PORT);
 
     ros::Publisher spat_pub = nh.advertise<v2x_msgs::intersection_array_msg>("/siheung_spat", 1);
     ros::Publisher sdsm_pub = nh.advertise<j3224_msgs::sdsm>("/obu/sdsm", 1);
@@ -317,15 +325,21 @@ int main(int argc, char** argv)
 
     struct sockaddr_in addr {};
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(UDP_PORT);
-    addr.sin_addr.s_addr = INADDR_ANY;
-
-    if (bind(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0)
+    addr.sin_port = htons(static_cast<uint16_t>(bind_port));
+    if (inet_pton(AF_INET, bind_ip.c_str(), &addr.sin_addr) != 1)
     {
-        ROS_ERROR("Bind failed: %s", strerror(errno));
+        ROS_ERROR("Invalid bind_ip '%s'", bind_ip.c_str());
         close(sockfd);
         return 1;
     }
+
+    if (bind(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0)
+    {
+        ROS_ERROR("Bind failed on %s:%d : %s", bind_ip.c_str(), bind_port, strerror(errno));
+        close(sockfd);
+        return 1;
+    }
+    ROS_INFO("[siheung_v2x] UDP bound to %s:%d", bind_ip.c_str(), bind_port);
 
     if (set_nonblocking(sockfd) < 0)
     {
