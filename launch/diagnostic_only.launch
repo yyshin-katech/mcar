@@ -31,9 +31,4 @@
 
     <node pkg="gps_system_localizer"                    type="lanelet_marker.py"            name="lane_marker_node"                respawn="true" />
 
-    <!-- F1 dashboard + Three.js scene 웹 HMI (default) -->
-    <include file="$(find web_hmi)/launch/web_hmi.launch">
-        <arg name="variant" value="threejs_f1"/>
-    </include>
-
 </launch>
