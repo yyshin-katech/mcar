@@ -412,6 +412,11 @@ class DistanceCalculator(object):
             p.look_at_signalGroupID = 3
             p.look_at_IntersectionID = 1300
 
+        # 22번 링크: 정지선을 1로 전송하고, 남은거리 = 22번 남은거리 + 23번 링크 길이
+        if p.LINK_ID == 22:
+            p.is_stop_line = 1
+            p.distance_to_lane_end = p.distance_to_lane_end + (self.road_23['station'][0][-1] - self.road_23['station'][0][0])
+
         if p.LINK_ID in [4, 48, 49, 50, 51]:
             p.NEXT_LINK_ID = 0
         
