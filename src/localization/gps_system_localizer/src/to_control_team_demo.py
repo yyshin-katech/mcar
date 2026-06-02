@@ -140,6 +140,28 @@ class DistanceCalculator(object):
                     #     min_abs_d = abs(d)
                     #     current_closest_waypoint_index = closest_waypoint
                             
+            # ── 78→79 겹침 구간 처리 ──
+            # 78은 끝부분(s≈27, 36~37m)에서 79와 물리적으로 겹쳐, min-|d| 매처가
+            # 그 지점에서 79를 골라 78이 끝나기 전에 조기 전환된다.
+            # 직전 링크가 78이고 현재 79로 매칭됐는데 78이 아직 유효 후보(끝 도달 전)면
+            # 78을 유지하여 77→78→79 순서를 보장한다.
+            if current_lane_id >= 0 and self.old_lane_id == 78 \
+                    and self.target_roads[current_lane_id]['LINK_ID'][0][0] == 79:
+                idx78 = current_lane_id - 1  # target_roads[k] = link_{k+1}, 79 바로 앞이 78
+                if idx78 >= 0 and self.target_roads[idx78]['LINK_ID'][0][0] == 78 \
+                        and distances[idx78] <= 3.0:
+                    maps78 = self.target_roads[idx78]['station'][0]
+                    s78, d78 = xy2frenet_with_closest_waypoint(
+                        e, n, indexs[idx78],
+                        self.target_roads[idx78]['east'][0],
+                        self.target_roads[idx78]['north'][0],
+                        maps78)
+                    if s78 < maps78[-1]:  # 78 아직 안 끝남 → 78 유지
+                        current_lane_id = idx78
+                        current_s = s78
+                        current_d = d78
+                        current_closest_waypoint_index = indexs[idx78]
+
             ''' 가장 최근에 지난 waypoint index 던져주기'''
             if current_closest_waypoint_index > 0:
                 # matlab은 index가 1부터 시작하는 것에 조심하기
@@ -229,10 +251,6 @@ class DistanceCalculator(object):
         p.left_LaneChange_avail = self.target_roads[current_lane_id]['left_LaneChange_avail'][0][0]
         p.right_LaneChange_avail = self.target_roads[current_lane_id]['right_LaneChange_avail'][0][0]
         p.Speed_Limit = self.target_roads[current_lane_id]['Speed_Limit'][0][0]
-
-        if p.LINK_ID == 79 and p.waypoint_index > 87:
-            if self.old_lane_id == 78:
-                p.LINK_ID = 78
 
         p.distance_to_lane_end = self.target_roads[current_lane_id]['station'][0][-1] - current_s
 
