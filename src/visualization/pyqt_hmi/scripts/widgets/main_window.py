@@ -773,7 +773,7 @@ class MainDisplayWindow(QMainWindow):
                 return 1
         elif name == 'vcu':
             if self.vcu_stat_code == 1:
-                return 1
+                return 2  # VCU life_count 결손 = 장치 고장 → 에러
         elif name == 'ipc':
             if self.ipc_swc_code == 1:
                 return 1
