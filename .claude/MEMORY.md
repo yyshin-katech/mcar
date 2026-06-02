@@ -12,10 +12,11 @@
 ## Project Overview
 - ROS Noetic catkin workspace for autonomous driving (KATECH)
 - Location: `/home/katech/mcar/`
-- Main branch: `main` (2026-01-07 이후 변경 없음), active branches: `ioniq5`, `siheung_dev`
+- Main branch: `main` (2026-01-07 이후 변경 없음), active branches: `ioniq5_hmi_dev`(2026-06 현행), `ioniq5`, `siheung_dev`
 - sudo password: `1`
 
 ## Branch별 지도/설정
+- **ioniq5_hmi_dev** (2026-06 현행 HMI 작업 브랜치): MAPFILE_PATH=`mapfiles/K_CITY_20251201` (katech_test.launch)
 - **ioniq5**: MAPFILE_PATH=`mapfiles/K_CITY_20251201` (K-City 지도)
 - **siheung_dev**: MAPFILE_PATH=`mapfiles/$(arg scenario)` (senario1/senario3 선택), SHP_MAP_PATH=`src/shp_map/$(arg scenario)`
   - `scenario` arg: `senario1`(기본) 또는 `senario3`
@@ -30,8 +31,11 @@
 - **sensing/can**: CAN communication (Kvaser canlib + kvadblib), DBC-based signal encode/decode
 - **localization/gps_system_localizer**: GPS-based localization, publishes to control team
 - **diagnostic/**: System health monitoring (GPS, lidar, radar, camera, V2X, VCU, HMI, IPC)
+  - vcu_diagnostic: VCU Info 6종 life_count(/sensors/v_can) staleness(0.5s) 추적, 하나라도 미갱신 시 VCU_StatCode=1 (2026-06-02)
 - **v2x/siheung_v2x**: V2X communication (j3224_decode에서 리네임, KSR1600 추가)
 - **visualization/pyqt_hmi**: PyQt HMI (vehicle view, diagnostic, rosbag 녹화 등)
+  - 빌드 2개: 기본 `main_display.py`→`widgets/main_window.py`, A-1 `main_display_a1.py`→`utils/hmi_state.py`+`widgets_a1/`. 진단/표시 로직 변경 시 둘 다 반영
+  - 진단 status 색: 0=정상(green) 1=경고(orange) 2=에러(red). 규약: 토픽끊김→2, StatCode 도메인→1. 단 VCU는 StatCode==1(life_count 결손=device fault)을 error(2)로 표시 (2026-06-02)
 
 ## CAN 구성 (ioniq5 브랜치)
 - 전체 AD CAN 노드 DBC v5 통일 (CANdb_IONIQ5_AD_CAN_v5.dbc)
@@ -44,6 +48,8 @@
 ## Localization Details
 - **통일 좌표계: EPSG:5179** (Korea 2000 / Unified CS)
 - `to_control_team_demo.py`: .mat file based, Frenet coordinate, ODD判定
+  - **gotcha**: mat의 Speed_Limit·신호정보·is_stop_line을 읽은 뒤 LINK_ID별 하드코딩 분기로 덮어씀 → mat만 바꿔선 안 바뀜. 속도제한 등은 코드 분기 먼저 확인 (else 기본 30, 2026-06-01)
+  - 링크 매칭은 frenet min-|d|. 물리적 겹침 링크(78↔79, 78 끝 s≈27·36~37m)는 old_lane_id 기반 hysteresis로 조기전환 방지 (2026-06-02)
 - `to_control_team_demo_shp.py`: .shp file based (siheung_dev)
 - Key msgs: `localization2D_msg`, `to_control_team_from_local_msg`, `chassis_msg`
 
