@@ -36,8 +36,8 @@ class VCU_DIAGNOSTIC_PUB
 
         katech_diagnostic_msgs::vcu_diagnostic_msg vcu_msg;
 
-        uint8_t life_count_cur, life_count_old;
-        bool msg_received;
+        uint8_t life_count_cur[6], life_count_old[6];
+        ros::Time last_change_time[6];
 
         void timer_callback(const ros::TimerEvent&);
         void vcu_callback(const katech_custom_msgs::v_can_msg::ConstPtr& msg);

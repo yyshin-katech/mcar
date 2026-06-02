@@ -103,18 +103,21 @@ void IONIQ5_CAN_READER()
                                                                     (char *)"gear_status"}));
 
   // 1: TurnSignalInfo (ID 116)
-  msg_list.push_back(make_tuple((char *)"TurnSignalInfo", vector<char *>{(char *)"turn_signal_status"}));
+  msg_list.push_back(make_tuple((char *)"TurnSignalInfo", vector<char *>{(char *)"turn_signal_status",
+                                                                          (char *)"life_count"}));
 
   // 2: LongitudinalInfo (ID 115)
   msg_list.push_back(make_tuple((char *)"LongitudinalInfo", vector<char *>{(char *)"motor_rpm",
                                                                            (char *)"acceleration_pedal_pos",
                                                                            (char *)"brake_pedal_pos",
-                                                                           (char *)"brake_pressure"}));
+                                                                           (char *)"brake_pressure",
+                                                                           (char *)"life_count"}));
 
   // 3: SteeringInfo (ID 114)
   msg_list.push_back(make_tuple((char *)"SteeringInfo", vector<char *>{(char *)"steering_angle",
                                                                        (char *)"steering_torque",
-                                                                       (char *)"steering_angle_rate"}));
+                                                                       (char *)"steering_angle_rate",
+                                                                       (char *)"life_count"}));
 
   // 4: WheelInfo (ID 113, CAN FD 16 bytes)
   msg_list.push_back(make_tuple((char *)"WheelInfo", vector<char *>{(char *)"wheel_dir_fl",
@@ -128,14 +131,16 @@ void IONIQ5_CAN_READER()
                                                                      (char *)"wheel_speed_fl",
                                                                      (char *)"wheel_speed_fr",
                                                                      (char *)"wheel_speed_rl",
-                                                                     (char *)"wheel_speed_rr"}));
+                                                                     (char *)"wheel_speed_rr",
+                                                                     (char *)"life_count"}));
 
   // 5: DynamicInfo (ID 112, CAN FD 12 bytes)
   msg_list.push_back(make_tuple((char *)"DynamicInfo", vector<char *>{(char *)"long_acceleration",
                                                                       (char *)"lat_acceleration",
                                                                       (char *)"roll_rate",
                                                                       (char *)"pitch_rate",
-                                                                      (char *)"yaw_rate"}));
+                                                                      (char *)"yaw_rate",
+                                                                      (char *)"life_count"}));
 
   // 6: TurnSignalControl (ID 84)
   msg_list.push_back(make_tuple((char *)"TurnSignalControl", vector<char *>{(char *)"turn_signal_control_mode",
@@ -206,13 +211,16 @@ void IONIQ5_CAN_READER()
 
           case(0): // GearInfo
             switch(i){
-              case(0): vcan_msg.life_count = (uint8_t)value; break;
+              case(0): vcan_msg.life_count_gearinfo = (uint8_t)value; break;
               case(1): vcan_msg.gear_status = (uint8_t)value; break;
             }
           break;
 
           case(1): // TurnSignalInfo
-            vcan_msg.turn_signal_status = (uint8_t)value;
+            switch(i){
+              case(0): vcan_msg.turn_signal_status = (uint8_t)value; break;
+              case(1): vcan_msg.life_count_turnsignalinfo = (uint8_t)value; break;
+            }
           break;
 
           case(2): // LongitudinalInfo
@@ -221,6 +229,7 @@ void IONIQ5_CAN_READER()
               case(1): vcan_msg.acceleration_pedal_pos = value; break;
               case(2): vcan_msg.brake_pedal_pos = value; break;
               case(3): vcan_msg.brake_pressure = value; break;
+              case(4): vcan_msg.life_count_longitudinalinfo = (uint8_t)value; break;
             }
           break;
 
@@ -229,6 +238,7 @@ void IONIQ5_CAN_READER()
               case(0): vcan_msg.steering_angle = value; break;
               case(1): vcan_msg.steering_torque = value; break;
               case(2): vcan_msg.steering_angle_rate = value; break;
+              case(3): vcan_msg.life_count_steeringinfo = (uint8_t)value; break;
             }
           break;
 
@@ -246,6 +256,7 @@ void IONIQ5_CAN_READER()
               case(9):  vcan_msg.wheel_speed_fr = value; break;
               case(10): vcan_msg.wheel_speed_rl = value; break;
               case(11): vcan_msg.wheel_speed_rr = value; break;
+              case(12): vcan_msg.life_count_wheelinfo = (uint8_t)value; break;
             }
           break;
 
@@ -256,6 +267,7 @@ void IONIQ5_CAN_READER()
               case(2): vcan_msg.roll_rate = value; break;
               case(3): vcan_msg.pitch_rate = value; break;
               case(4): vcan_msg.yaw_rate = value; break;
+              case(5): vcan_msg.life_count_dynamicinfo = (uint8_t)value; break;
             }
           break;
 
