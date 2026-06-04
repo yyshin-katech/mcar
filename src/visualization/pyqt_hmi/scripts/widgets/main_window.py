@@ -95,8 +95,19 @@ class MainDisplayWindow(QMainWindow):
         # UI 초기화
         self.init_ui()
         
-        # 지도 로딩
-        map_path = "/home/ads/mcar_v13/src/localization/gps_system_localizer/src/A2_LINK_epsg5179.shp"
+        # 지도 로딩 — 절대경로 하드코딩 대신 프로젝트(ROS 패키지) 경로 기준으로 해석
+        # (다른 PC/워크스페이스에 옮겨도 동작)
+        try:
+            import rospkg
+            map_path = os.path.join(
+                rospkg.RosPack().get_path('gps_system_localizer'),
+                'src', 'A2_LINK_epsg5179.shp')
+        except Exception:
+            # rospkg 미가용 시 이 파일 위치에서 프로젝트 루트 역산
+            map_path = os.path.abspath(os.path.join(
+                os.path.dirname(__file__), '..', '..', '..', '..',
+                'localization', 'gps_system_localizer', 'src',
+                'A2_LINK_epsg5179.shp'))
         if os.path.exists(map_path):
             self.vehicle_view.load_map(map_path)
             rospy.loginfo(f"Map loaded: {map_path}")
