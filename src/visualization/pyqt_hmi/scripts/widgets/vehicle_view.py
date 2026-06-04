@@ -23,6 +23,9 @@ class VehicleViewWidget(QWidget):
         
         # 오브젝트 리스트
         self.objects = []
+
+        # 계획 경로(arc): from_Control arc_len/arc_kappa/arc_ds
+        self.planned_arc = None  # (arc_len, arc_kappa, arc_ds)
         
         # 스티어링 각도 (deg)
         self.steering_angle = 0.0
@@ -53,6 +56,9 @@ class VehicleViewWidget(QWidget):
 
     def set_objects(self, objects):
         self.objects = objects
+
+    def set_planned_arc(self, arc_len, arc_kappa, arc_ds):
+        self.planned_arc = (arc_len, arc_kappa, arc_ds)
         
     def rotate_point(self, x, y, angle):
         """Rotate point by angle around origin"""
@@ -98,6 +104,9 @@ class VehicleViewWidget(QWidget):
         
         # 지도 그리기
         self.draw_map(painter)
+
+        # 계획 경로(arc) 그리기
+        self.draw_planned_arc(painter, center_x, center_y)
 
         # 자차 그리기
         self.draw_ego_vehicle(painter, center_x, center_y)
@@ -171,6 +180,41 @@ class VehicleViewWidget(QWidget):
 
             if valid_points >= 2:
                 painter.drawPath(path)
+
+    def draw_planned_arc(self, painter, cx, cy):
+        """계획 경로(arc) 그리기 - body frame(전방 x=위, 좌측 y+=왼쪽)"""
+        if self.planned_arc is None:
+            return
+        arc_len, arc_kappa, arc_ds = self.planned_arc
+        if arc_len <= 0:
+            return
+
+        if arc_ds <= 0:
+            arc_ds = 0.5
+        n = int(round(arc_len / arc_ds)) + 1
+        n = max(2, min(400, n))
+
+        k = arc_kappa
+        path = QPainterPath()
+        for i in range(n):
+            s = arc_len * i / (n - 1)
+            if abs(k) < 1e-4:
+                x = s
+                y = 0.0
+            else:
+                x = math.sin(k * s) / k
+                y = (1.0 - math.cos(k * s)) / k
+            # body → 화면: 전방 x=위쪽, 좌측 y(+)=왼쪽 (draw_objects와 동일 규약)
+            screen_x = cx - y * self.scale
+            screen_y = cy - x * self.scale
+            if i == 0:
+                path.moveTo(screen_x, screen_y)
+            else:
+                path.lineTo(screen_x, screen_y)
+
+        painter.setPen(QPen(QColor(0, 230, 180), 3))
+        painter.setBrush(Qt.NoBrush)
+        painter.drawPath(path)
 
     def is_point_out_of_view(self, x, y, margin=0):
         """화면 밖 여부 확인"""

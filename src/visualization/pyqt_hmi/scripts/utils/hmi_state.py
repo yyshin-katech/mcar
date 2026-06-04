@@ -52,6 +52,7 @@ class BaseHmiStateController:
         'traffic_changed', 'diag_changed', 'gps_changed',
         'speed_limit_changed', 'link_lane_changed', 'odd_changed',
         'popup_changed', 'bag_state_changed', 'topic_event',
+        'arc_path_changed',
     )
 
     def __init__(self):
@@ -65,6 +66,11 @@ class BaseHmiStateController:
         self.autonomous_mode = 0
         self.aeb_flag = 0
         self.steering_angle = 0.0
+
+        # planned arc (from_Control)
+        self.arc_len = 0.0
+        self.arc_kappa = 0.0
+        self.arc_ds = 0.0
 
         # GPS / localization
         self.gps_rtk_code = 0
@@ -197,6 +203,11 @@ class BaseHmiStateController:
         if msg.autonomous_mode != self.autonomous_mode:
             self.autonomous_mode = msg.autonomous_mode
             self._emit('mode_changed', self.autonomous_mode)
+
+        self.arc_len = float(msg.arc_len)
+        self.arc_kappa = float(msg.arc_kappa)
+        self.arc_ds = float(msg.arc_ds)
+        self._emit('arc_path_changed', self.arc_len, self.arc_kappa, self.arc_ds)
 
     def _cb_v_can(self, msg):
         self.steering_angle = msg.steering_angle
@@ -444,6 +455,7 @@ class HmiStateController(BaseHmiStateController, QObject):
     popup_changed       = pyqtSignal(str, str)         # text, severity
     bag_state_changed   = pyqtSignal(bool, str)        # recording, info
     topic_event         = pyqtSignal(str)              # key, for Hz tracking
+    arc_path_changed    = pyqtSignal(float, float, float)  # arc_len, arc_kappa, arc_ds
 
     def __init__(self, parent=None):
         QObject.__init__(self, parent)

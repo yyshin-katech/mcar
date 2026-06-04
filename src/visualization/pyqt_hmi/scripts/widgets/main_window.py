@@ -27,6 +27,7 @@ class MainDisplayWindow(QMainWindow):
     update_vehicle_signal = pyqtSignal()
     update_steering_signal = pyqtSignal(float)
     update_objects_signal = pyqtSignal(list)
+    update_planned_arc_signal = pyqtSignal(float, float, float)
     
     def __init__(self):
         super().__init__()
@@ -111,6 +112,7 @@ class MainDisplayWindow(QMainWindow):
         self.update_vehicle_signal.connect(self.update_vehicle_view)
         self.update_steering_signal.connect(self.vehicle_view.set_steering_angle)
         self.update_objects_signal.connect(self.vehicle_view.set_objects)
+        self.update_planned_arc_signal.connect(self.vehicle_view.set_planned_arc)
         
         # Ctrl+C 처리
         signal.signal(signal.SIGINT, self.signal_handler)
@@ -664,6 +666,7 @@ class MainDisplayWindow(QMainWindow):
         
     def ioniq5_ad_can_callback(self, msg):
         self.autonomous_mode = msg.autonomous_mode
+        self.update_planned_arc_signal.emit(msg.arc_len, msg.arc_kappa, msg.arc_ds)
 
     def v_can_callback(self, msg):
         self.update_steering_signal.emit(msg.steering_angle)

@@ -12,11 +12,14 @@
 #include <tuple>
 
 #include <katech_custom_msgs/v_can_msg.h>
+#include <mmc_msgs/chassis_msg.h>
+#include <katech_custom_msgs/ioniq5_ad_can_msg.h>
 
 #include <algorithm>
 #include <math.h>
 #include <ctime>
 #include <sys/timeb.h>
+#include <mutex>
 
 #include <kvaDbLib.h>
 #include <canlib.h>
@@ -46,6 +49,25 @@ char buff[50];
 double value;
 
 katech_custom_msgs::v_can_msg vcan_msg;
+
+mmc_msgs::chassis_msg chassis;
+std::mutex chassis_mtx;
+ros::Publisher pub2;
+
+void ad_can_callback(const katech_custom_msgs::ioniq5_ad_can_msg::ConstPtr& m)
+{
+  std::lock_guard<std::mutex> lk(chassis_mtx);
+  chassis.vcu_ADMDStatus = m->autonomous_mode;
+  chassis.AEB_flag = m->AEB_flag;
+  chassis.LC_flag  = m->LC_flag;
+}
+
+void chassis_timer_cb(const ros::TimerEvent&)
+{
+  std::lock_guard<std::mutex> lk(chassis_mtx);
+  chassis.time = ros::Time::now();
+  pub2.publish(chassis);
+}
 
 canStatus OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num, char *filename, bool init_access_flag)
 {
@@ -334,6 +356,21 @@ void IONIQ5_CAN_READER()
       }
 
       pub1.publish(vcan_msg);
+
+      {
+        std::lock_guard<std::mutex> lk(chassis_mtx);
+        chassis.vcu_EPS_Status = (vcan_msg.lateral_ctrl_state == 1) ? 2 : 0;
+        chassis.vcu_ACC_Status = vcan_msg.longitudinal_ctrl_state;
+        chassis.vcu_SAS_Angle  = vcan_msg.steering_angle;
+        chassis.vcu_LONG_ACCEL = vcan_msg.long_acceleration;
+        chassis.vcu_VS = (vcan_msg.wheel_speed_fl + vcan_msg.wheel_speed_fr +
+                          vcan_msg.wheel_speed_rl + vcan_msg.wheel_speed_rr) / 4.0 * 3.6;
+        chassis.vcu_LeftTurnCtl    = (vcan_msg.target_turn_signal == 1 || vcan_msg.target_turn_signal == 3) ? 1 : 0;
+        chassis.vcu_RightTurnCtl   = (vcan_msg.target_turn_signal == 2 || vcan_msg.target_turn_signal == 3) ? 1 : 0;
+        chassis.vcu_HazardCtl      = (vcan_msg.target_turn_signal == 3) ? 1 : 0;
+        chassis.vcu_LeftTurnState  = (vcan_msg.turn_signal_status == 1 || vcan_msg.turn_signal_status == 3) ? 1 : 0;
+        chassis.vcu_RightTurnState = (vcan_msg.turn_signal_status == 2 || vcan_msg.turn_signal_status == 3) ? 1 : 0;
+      }
     }
     rate.sleep();
   }
@@ -348,6 +385,10 @@ int main(int argc, char **argv)
   spinner.start();
 
   pub1 = node.advertise<katech_custom_msgs::v_can_msg>("/sensors/v_can", 1);
+  pub2 = node.advertise<mmc_msgs::chassis_msg>("/sensors/chassis", 1);
+
+  ros::Subscriber sub_ad = node.subscribe("/sensors/ioniq5_ad_can", 1, ad_can_callback);
+  ros::Timer chassis_timer = node.createTimer(ros::Duration(0.02), chassis_timer_cb);
 
   string relative_path = ros::package::getPath("can");
   char filename[100];
