@@ -42,10 +42,11 @@
   - 진단 status 색: 0=정상(green) 1=경고(orange) 2=에러(red). 규약: 토픽끊김→2, StatCode 도메인→1. 단 VCU는 StatCode==1(life_count 결손=device fault)을 error(2)로 표시 (2026-06-02)
 
 ## CAN 구성 (ioniq5 브랜치)
-- 전체 AD CAN 노드 DBC v5 통일 (CANdb_IONIQ5_AD_CAN_v5.dbc)
+- 전체 AD CAN 노드 DBC v6 통일 (CANdb_IONIQ5_AD_CAN_v6.dbc, ioniq5_hmi_dev 2026-06-04 v5→v6). v6 = from_Control(512)에 arc_len/arc_kappa/arc_ds + AEB_flag/LC_flag, Mornitoring(513) obj 신호 추가
 - ch0: chassis_CAN_reader + local/spat/ped_detector/diagnostic writers
+  - chassis_CAN_reader: from_Control(512) arc_len/kappa/ds + AEB_flag/LC_flag 디코딩 → /sensors/ioniq5_ad_can. arc는 pyqt_hmi 주행경로 표출에 사용
 - ch1: track_CAN_writer_no_grid (PCAN2)
-- ch2: IONIQ5_CAN_reader (V_CAN_Release.dbc)
+- ch2: IONIQ5_CAN_reader (V_CAN_Release.dbc) → /sensors/v_can. 추가로 **/sensors/chassis(mmc_msgs/chassis_msg) 단독 owner 발행** (V_CAN 필드 합성 + /sensors/ioniq5_ad_can 구독으로 vcu_ADMDStatus=autonomous_mode/AEB/LC, 50Hz timer+mutex, 2026-06-04)
 - ch3: DTG_CAN_writer (2gen-2ch-C_IoniqEV_v2.dbc)
 - See [can_channel_map.md](can_channel_map.md) for full details
 
