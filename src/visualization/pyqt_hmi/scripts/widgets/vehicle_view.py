@@ -26,7 +26,8 @@ class VehicleViewWidget(QWidget):
 
         # 계획 경로(arc): from_Control arc_len/arc_kappa/arc_ds
         self.planned_arc = None  # (arc_len, arc_kappa, arc_ds)
-        
+        self.arc_visible = True   # 주행경로(arc) 표출 On/Off
+
         # 스티어링 각도 (deg)
         self.steering_angle = 0.0
 
@@ -59,7 +60,10 @@ class VehicleViewWidget(QWidget):
 
     def set_planned_arc(self, arc_len, arc_kappa, arc_ds):
         self.planned_arc = (arc_len, arc_kappa, arc_ds)
-        
+
+    def set_arc_visible(self, on):
+        self.arc_visible = bool(on)
+
     def rotate_point(self, x, y, angle):
         """Rotate point by angle around origin"""
         cos_angle = math.cos(angle)
@@ -183,7 +187,7 @@ class VehicleViewWidget(QWidget):
 
     def draw_planned_arc(self, painter, cx, cy):
         """계획 경로(arc) 그리기 - body frame(전방 x=위, 좌측 y+=왼쪽)"""
-        if self.planned_arc is None:
+        if not self.arc_visible or self.planned_arc is None:
             return
         arc_len, arc_kappa, arc_ds = self.planned_arc
         if arc_len <= 0:

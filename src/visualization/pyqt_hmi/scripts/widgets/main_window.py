@@ -228,8 +228,35 @@ class MainDisplayWindow(QMainWindow):
         layout.addWidget(traffic_group)
 
         layout.addStretch()
+
+        # 주행경로(arc) 표출 On/Off 토글 (왼쪽 하단)
+        self.arc_toggle_button = QPushButton("주행경로 ON")
+        self.arc_toggle_button.setCheckable(True)
+        self.arc_toggle_button.setChecked(True)
+        self.arc_toggle_button.setMinimumHeight(44)
+        self.arc_toggle_button.setStyleSheet("""
+            QPushButton {
+                background-color: #3a3f47; color: #c8ccd2;
+                border: 2px solid #555; border-radius: 6px;
+                font-size: 15px; font-weight: bold;
+            }
+            QPushButton:checked {
+                background-color: #00b894; color: white;
+                border: 2px solid #00e6b4;
+            }
+        """)
+        # 초기 상태(setChecked) 반영 후 연결 → 생성 시 콜백이 vehicle_view 보다 먼저 호출되는 것 방지
+        self.arc_toggle_button.toggled.connect(self.on_arc_toggle)
+        layout.addWidget(self.arc_toggle_button)
+
         panel.setLayout(layout)
         return panel
+
+    def on_arc_toggle(self, checked):
+        """주행경로(arc) 표출 On/Off"""
+        self.arc_toggle_button.setText("주행경로 ON" if checked else "주행경로 OFF")
+        self.vehicle_view.set_arc_visible(checked)
+        self.vehicle_view.update()
     
     def create_mode_group(self):
         """모드 그룹 생성"""
