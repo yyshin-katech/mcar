@@ -33,6 +33,10 @@
 - **diagnostic/**: System health monitoring (GPS, lidar, radar, camera, V2X, VCU, HMI, IPC)
   - vcu_diagnostic: VCU Info 6종 life_count(/sensors/v_can) staleness(0.5s) 추적, 하나라도 미갱신 시 VCU_StatCode=1 (2026-06-02)
 - **v2x/siheung_v2x**: V2X communication (j3224_decode에서 리네임, KSR1600 추가)
+  - **SPaT 활성 토픽은 브랜치마다 정반대 — 점검 전 `git branch` 확인** (2026-06-04):
+    - `ioniq5_hmi_dev`: `/katri_v2x_node/katri_spat` (katri_obu_interface 활성, katech_test.launch:35). `/siheung_spat` 없음. 구독: spat_CAN_writer(→차량 CAN V2X_SPaT_1)/v2x_diagnostic/stat_display/pyqt 양빌드
+    - `siheung_dev`: `/siheung_spat` (siheung_v2x_node), katri_v2x_node 주석처리
+    - katri 경로: `~/katri_dsrc/decodeSample.c`가 SIG_SPAT[5]를 1024B UDP(:50000)로 송신→katri_obu_interface 수신, struct byte-identical(포맷 일치). `MovementStateName`은 발행만 되고 읽는 소비자 없음(spat_CAN_writer는 movementName_1 신호에 상수 0)
 - **visualization/pyqt_hmi**: PyQt HMI (vehicle view, diagnostic, rosbag 녹화 등)
   - 빌드 2개: 기본 `main_display.py`→`widgets/main_window.py`, A-1 `main_display_a1.py`→`utils/hmi_state.py`+`widgets_a1/`. 진단/표시 로직 변경 시 둘 다 반영
   - 진단 status 색: 0=정상(green) 1=경고(orange) 2=에러(red). 규약: 토픽끊김→2, StatCode 도메인→1. 단 VCU는 StatCode==1(life_count 결손=device fault)을 error(2)로 표시 (2026-06-02)
