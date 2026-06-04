@@ -40,6 +40,8 @@
 - **visualization/pyqt_hmi**: PyQt HMI (vehicle view, diagnostic, rosbag 녹화 등)
   - 빌드 2개: 기본 `main_display.py`→`widgets/main_window.py`, A-1 `main_display_a1.py`→`utils/hmi_state.py`+`widgets_a1/`. 진단/표시 로직 변경 시 둘 다 반영
   - 진단 status 색: 0=정상(green) 1=경고(orange) 2=에러(red). 규약: 토픽끊김→2, StatCode 도메인→1. 단 VCU는 StatCode==1(life_count 결손=device fault)을 error(2)로 표시 (2026-06-02)
+  - 기본 빌드(main_window.py): 좌측 하단 "주행경로 ON/OFF" 토글(arc 표출 제어), shp 지도 경로는 rospkg(gps_system_localizer)로 해석(절대경로 하드코딩 제거) (2026-06-04)
+  - **WSLg gotcha**: VehicleViewWidget.wheelEvent 줌은 `isActiveWindow()` 가드 필수. WSLg/XWayland는 wheel을 키보드 포커스가 아닌 커서 위치 기준으로 전달해, 다른 창 선택 후 스크롤해도 커서가 HMI 위면 줌이 먹었음 (2026-06-04). 클릭 라우팅 이상도 같은 WSLg 입력 특성으로 추정(코드상 grabMouse/eventFilter 없음)
 
 ## CAN 구성 (ioniq5 브랜치)
 - 전체 AD CAN 노드 DBC v6 통일 (CANdb_IONIQ5_AD_CAN_v6.dbc, ioniq5_hmi_dev 2026-06-04 v5→v6). v6 = from_Control(512)에 arc_len/arc_kappa/arc_ds + AEB_flag/LC_flag, Mornitoring(513) obj 신호 추가

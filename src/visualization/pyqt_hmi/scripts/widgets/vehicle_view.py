@@ -443,14 +443,22 @@ class VehicleViewWidget(QWidget):
         painter.drawText(x - 5, cy + r_outer + 18, f"Steer: {self.steering_angle:.1f}")
 
     def wheelEvent(self, event):
-        """마우스 휠로 줌 조정"""
+        """마우스 휠로 줌 조정 (창이 활성 + 커서가 위젯 위일 때만)"""
+        # WSLg/XWayland 는 wheel 을 키보드 포커스가 아닌 커서 위치 기준으로
+        # 전달해, 다른 창을 선택(Ctrl+Tab)해도 커서가 이 위에 있으면 줌이 먹는다.
+        # pyqt 창이 활성일 때만 줌 처리하고 그 외에는 이벤트를 넘긴다.
+        if not self.isActiveWindow():
+            event.ignore()
+            return
+
         delta = event.angleDelta().y()
         zoom_factor = 1.2
-        
+
         if delta > 0:
             self.scale /= zoom_factor
         else:
             self.scale *= zoom_factor
-        
+
         self.scale = max(1.0, min(50.0, self.scale))
         self.update()
+        event.accept()
