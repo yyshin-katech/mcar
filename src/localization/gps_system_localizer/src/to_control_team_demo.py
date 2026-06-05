@@ -374,8 +374,7 @@ class DistanceCalculator(object):
             p.yaw_error_size = yaw_error_size
 
             # # 현재 주행할 경로쪽으로 방향이 제대로 맞으면 오토모드 송출 아니면, 수동모드 송출 ##
-            # 자율주행 모드(ad_mode==1)일 때는 yaw 검사 skip (회전 중 오탈 방지)
-            if p.On_ODD == 0 and p.Road_State == 0 and self.ad_mode != 1:
+            if p.On_ODD == 0 and p.Road_State == 0:
                 if p.LINK_ID == 52 and p.distance_to_lane_end < 60.0:
                     p.Speed_Limit = 15
                     p.On_ODD = 0
@@ -383,7 +382,8 @@ class DistanceCalculator(object):
                 elif p.LINK_ID in [61, 34, 35, 36, 37, 53, 54, 55, 67, 68, 73]:
                     p.On_ODD = 1
                     p.Road_State = 2
-                else:
+                # 자율주행 모드(ad_mode==1)일 때는 yaw 검사 skip (회전 중 오탈 방지)
+                elif self.ad_mode != 1:
                     if yaw_error_size < ODD_YAW_ERR_THRESHOLD:
                         # rospy.loginfo("On ODD")
                         p.Wrong_Way_Warn = 0
