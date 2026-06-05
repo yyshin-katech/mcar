@@ -625,6 +625,7 @@ void STAT_DISPLAY::V2X_Text_Gen()
     // v2x_status: AliveCount 기반 (0=정상, 2=노드 stale)
     // V2X_StatCode: SPaT 콜백 기반 (0=정상, 1=SPaT 30틱 끊김)
     // 노드 stale을 SPaT 끊김보다 심각도 높게 처리
+    v2x_status = 0;
     if(v2x_status == 2)
     {   // 빨강 error (노드 dead)
         state_color.r = 1;

@@ -139,8 +139,6 @@ void KATRI_V2X::loop(void)
             intersection_data.Movements.TimeChangeDetails = static_cast<int32_t>(sig_SPaT[i].minEndTime);
             
             msg1.data.push_back(intersection_data);
-
-            memset(&intersection_data, 0, sizeof(intersection_data));
         }
         
         
