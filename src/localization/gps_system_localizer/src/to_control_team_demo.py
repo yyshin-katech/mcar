@@ -438,7 +438,7 @@ class DistanceCalculator(object):
             p.On_ODD = 0
             p.Road_State = 1
         
-        if p.LINK_ID in [12, 65, 76, 77, 78, 79]:
+        if p.LINK_ID in [65, 76, 77, 78, 79]:
             p.Speed_Limit = 10
 
         # if p.LINK_ID in [49, 50, 51]:
