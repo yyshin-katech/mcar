@@ -9,6 +9,25 @@
 - [audio_setup.md](audio_setup.md) — NUC13ANH-B 오디오(ALC256 analog 잭만, HDMI 미지원), PulseAudio 카드 프로파일 off 복구 절차
 - [project_ioniq5_work.md](project_ioniq5_work.md) — ioniq5 브랜치 2026-04 작업 이력
 
+### 개발 머신(WSL) auto-memory (yuyeong)
+- [user_profile.md](user_profile.md) — 카텍 자율주행 연구원, 시흥+K-City 시나리오, 브랜치 ioniq5_hmi_dev
+- [v2x_package.md](v2x_package.md) — siheung_v2x 패키지 구조, SPaT/SDSM 디코딩
+- [reference_spat_timestamp.md](reference_spat_timestamp.md) — OBU는 MOY+DSecond 있으나 9h 오프셋, MQTT는 MOY=0 (절대시각 없음)
+- [environment.md](environment.md) — WSL2 개발환경, mirrored 네트워킹 가이드
+- [map_data.md](map_data.md) — senario / senario3 mat 구조, MANUAVER 라벨(curve_lane.md) 원천
+- [senario_mat_viewer.md](senario_mat_viewer.md) — ~/temp 하네스, cs2cs로 EPSG:5179→WGS84
+- [canoe_tool.md](canoe_tool.md) — CAN 송신 검증에 Vector CANoe 사용, rate/timing 디버깅의 1차 근거
+- [feedback_can_request_signals.md](feedback_can_request_signals.md) — MD_AD_Req 같은 request 신호는 1초 펄스, 활성 모드면 재요청 버튼 비활성화
+- [project_gps_hardware.md](project_gps_hardware.md) — ZED-F9K USB serial(`/dev/ttyACM0`), 이더넷/NTRIP 미사용. cpt7 인터넷 ping 의도적 비활성
+- [feedback_root_permissions.md](feedback_root_permissions.md) — root 필요한 SOCK_RAW 대신 `system("ping ...")` + worker thread 패턴 선호
+- [feedback_disable_undo.md](feedback_disable_undo.md) — "무력화 해제" 요청은 literal revert가 아니라 가려져있던 로직 버그까지 정상화하는 의미
+- [project_pyqt_hmi_primary.md](project_pyqt_hmi_primary.md) — 모니터링 화면은 pyqt_hmi가 메인, 빌드 2개(기본/A-1) 둘 다 반영, 진단 status 0/1/2 규약
+- [project_active_branch_map.md](project_active_branch_map.md) — ioniq5_hmi_dev + K_CITY_20260608, to_control_team_demo가 mat 값을 코드에서 덮어쓰는 gotcha
+- [project_v2x_spat_topic.md](project_v2x_spat_topic.md) — SPaT 활성 토픽 브랜치마다 정반대: ioniq5_hmi_dev=`/katri_v2x_node/katri_spat`(katri_obu_interface 활성), siheung_dev=`/siheung_spat`. 점검 전 git branch 확인. MovementStateName은 소비자 없음
+- [reference_decode_md_spat_patch.md](reference_decode_md_spat_patch.md) — ~/decode_md/spat_udp_decode.py preprocess 보강 (ENUMERATED 두 번째 ... + trailing comma) + Windows Python 실행 필요
+- [feedback_wsl_rostopic_hz.md](feedback_wsl_rostopic_hz.md) — hz 가 Terminated 만 떠도 토픽은 흐를 수 있음. echo -n N 카운트 / tcpdump 로 cross-check
+- [feedback_wslg_wheel_input.md](feedback_wslg_wheel_input.md) — WSLg는 wheel/클릭을 커서 위치 기준 전달. PyQt wheelEvent에 isActiveWindow 가드 필요(다른 창 선택해도 줌 먹는 증상)
+
 ## Project Overview
 - ROS Noetic catkin workspace for autonomous driving (KATECH)
 - Location: `/home/katech/mcar/`
