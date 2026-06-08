@@ -16,7 +16,7 @@
 - sudo password: `1`
 
 ## Branch별 지도/설정
-- **ioniq5_hmi_dev** (2026-06 현행 HMI 작업 브랜치): MAPFILE_PATH=`mapfiles/K_CITY_20251201` (katech_test.launch)
+- **ioniq5_hmi_dev** (2026-06 현행 HMI 작업 브랜치): MAPFILE_PATH=`mapfiles/K_CITY_20260608` (katech_test.launch)
 - **ioniq5**: MAPFILE_PATH=`mapfiles/K_CITY_20251201` (K-City 지도)
 - **siheung_dev**: MAPFILE_PATH=`mapfiles/$(arg scenario)` (senario1/senario3 선택), SHP_MAP_PATH=`src/shp_map/$(arg scenario)`
   - `scenario` arg: `senario1`(기본) 또는 `senario3`
