@@ -56,6 +56,8 @@ STAT_DISPLAY::STAT_DISPLAY()
     vcu_status = 2;
     cam_status = 2;
     ipc_status = 2;
+
+    last_spat_time_ = ros::Time(0);  // 첫 SPaT 수신 전까지 stale
 }
 
 STAT_DISPLAY::~STAT_DISPLAY()
@@ -65,6 +67,8 @@ STAT_DISPLAY::~STAT_DISPLAY()
 
 void STAT_DISPLAY::traffic_light_callback(const v2x_msgs::intersection_array_msg::ConstPtr& msg)
 {
+    last_spat_time_ = ros::Time::now();  // SPaT 수신 시각 기록 (staleness 판정용)
+
     uint16_t target_intersection_id = local_msg.look_at_IntersectionID;
     uint8_t target_signal_group_id = local_msg.look_at_signalGroupID;
     intersectionid = local_msg.look_at_IntersectionID;
@@ -620,22 +624,25 @@ void STAT_DISPLAY::V2X_Text_Gen()
     V2X_text.left = 20;
     V2X_text.top = 50+30+30+30;
 
-    V2X_AliveCnt_Check(v2x_msg.V2X_AliveCount);
+    // SPaT(/katri_v2x_node/katri_spat) 0.5s 이상 미수신 = 데이터 없음
+    bool spat_stale = (now - last_spat_time_).toSec() > 0.5;
+    // to_control_team: 현재 링크에서 신호등 정보가 필요한지 (look_at 값이 0이 아니면 필요)
+    bool tl_needed = (local_msg.look_at_signalGroupID != 0);
 
-    // v2x_status: AliveCount 기반 (0=정상, 2=노드 stale)
-    // V2X_StatCode: SPaT 콜백 기반 (0=정상, 1=SPaT 30틱 끊김)
-    // 노드 stale을 SPaT 끊김보다 심각도 높게 처리
-    
-    if(v2x_status == 2)
-    {   // 빨강 error (노드 dead)
-        state_color.r = 1;
-        state_color.g = 0;
-        state_color.b = 0;
-        state_color.a = 1;
-        V2X_text.fg_color = state_color;
+    // 고장 판정: 신호등 정보가 필요한데 SPaT가 0.5s 안 들어오면 고장 → v2x_status=2 → TOR
+    // 신호등 불필요 구간의 SPaT 미수신은 고장 아님(데이터 없음 표시만)
+    if(tl_needed && spat_stale)
+    {
+        v2x_status = 2;
     }
-    else if(v2x_msg.V2X_StatCode == 1)
-    {   // 주황 warning (SPaT 끊김)
+    else
+    {
+        v2x_status = 0;
+    }
+
+    // 색상: SPaT 데이터 없음(또는 OBU ping 끊김)이면 주황, 정상 수신이면 초록
+    if(spat_stale || v2x_msg.V2X_StatCode == 1)
+    {   // 주황 warning (SPaT 데이터 없음 / OBU ping 끊김)
         // v2x_status = 1;
         state_color.r = 1;
         state_color.g = 0.5;
@@ -661,30 +668,6 @@ void STAT_DISPLAY::V2X_Text_Gen()
     v2x_pub.publish(V2X_text);
 
     katech_diag_msg.v2x_status = v2x_status;
-}
-
-void STAT_DISPLAY::V2X_AliveCnt_Check(uint8_t current_cnt)
-{
-    //ADCU AliveCount Check
-    current_v2x_cnt = current_cnt;
-    if(current_v2x_cnt == last_v2x_cnt)
-    {
-        unchanged_v2x_cnt++;
-    }
-    else
-    {
-        unchanged_v2x_cnt = 0;
-        last_v2x_cnt = current_v2x_cnt;
-    }
-
-    if(unchanged_v2x_cnt > 5)
-    {
-        v2x_status = 2;
-    }
-    else
-    {
-        v2x_status = 0;
-    }
 }
 
 void STAT_DISPLAY::HMI_Text_Gen()

@@ -29,6 +29,7 @@
 - [feedback_wslg_wheel_input.md](feedback_wslg_wheel_input.md) — WSLg는 wheel/클릭을 커서 위치 기준 전달. PyQt wheelEvent에 isActiveWindow 가드 필요(다른 창 선택해도 줌 먹는 증상)
 - [reference_diag_replay_harness.md](reference_diag_replay_harness.md) — ~/diag_replay_sample, CANoe mat(v7.3/h5py)→rosbag, vcu_diagnostic 검증(make_vcan_bag.py=구 v_can / make_adcan_bag.py=현행 AutonomousState) + 슈퍼바이저/종/횡 고장구간 라벨링
 - [project_control_fault_not_displayed.md](project_control_fault_not_displayed.md) — 슈퍼바이저/횡/종 error_code 표출 경로. 2026-06-09 vcu_diagnostic을 AutonomousState(life_count staleness OR error_code≠0) 기반으로 교체 → VCU 슬롯 표출
+- [project_v2x_spat_takeover_decoupled.md](project_v2x_spat_takeover_decoupled.md) — V2X SPaT↔TOR. AliveCount(=SPaT 수신 카운터) 경로로 SPaT 갭이 TOR 유발. 2026-06-09 stat_display 게이팅: 신호등 필요(look_at≠0)+SPaT 0.5s 미수신만 v2x_status=2→TOR, SPaT 없으면 주황. off-intersection false TOR 제거
 
 ## Project Overview
 - ROS Noetic catkin workspace for autonomous driving (KATECH)
