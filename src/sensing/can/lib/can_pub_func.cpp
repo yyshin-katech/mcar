@@ -716,7 +716,8 @@ void CHASSIS_CAN_READER(){
   msg_list.push_back(make_tuple((char*)"BrainState", vector<char*> {(char*)"life_count",\
                                                                     (char*)"brain_status"}));
 
-  msg_list.push_back(make_tuple((char*)"AutonomousState", vector<char*> {(char*)"operation_mode",\
+  msg_list.push_back(make_tuple((char*)"AutonomousState", vector<char*> {(char*)"life_count",\
+                                                                         (char*)"operation_mode",\
                                                                          (char*)"autonomous_mode",\
                                                                          (char*)"error_code",\
                                                                          (char*)"warning_code"}));
@@ -812,10 +813,11 @@ void CHASSIS_CAN_READER(){
               kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
 
               switch(i){
-                case(0): msg.operation_mode = (uint8_t)value; break;
-                case(1): msg.autonomous_mode = (uint8_t)value; break;
-                case(2): msg.error_code = (uint16_t)value; break;
-                case(3): msg.warning_code = (uint16_t)value; break;
+                case(0): msg.autonomous_life_count = (uint8_t)value; break;
+                case(1): msg.operation_mode = (uint8_t)value; break;
+                case(2): msg.autonomous_mode = (uint8_t)value; break;
+                case(3): msg.error_code = (uint16_t)value; break;
+                case(4): msg.warning_code = (uint16_t)value; break;
               }
             }
             pub1.publish(msg);

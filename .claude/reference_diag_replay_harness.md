@@ -9,9 +9,10 @@ metadata:
 
 ## 하네스 위치
 `~/diag_replay_sample/` (repo 외부)
-- `make_vcan_bag.py` — CANoe 익스포트 .mat → `/sensors/v_can` rosbag. `--fault`로 steering life_count @30s 동결 주입
+- `make_vcan_bag.py` — CANoe 익스포트 .mat → `/sensors/v_can` rosbag. `--fault`로 steering life_count @30s 동결 주입 (구 v_can 로직 회귀용, 보존)
+- `make_adcan_bag.py` — **(2026-06-09 신규)** mat `AutonomousState__life_count`/`__error_code` → `/sensors/ioniq5_ad_can` rosbag + `/fault_ground_truth` → `adcan_replay_labeled.bag`. 현행 vcu_diagnostic 검증용
 - `label_segments.py` — 고장구간 라벨링 → `fault_segments.csv` + `vcan_replay_labeled.bag`(+ `/fault_ground_truth`)
-- `vcan_replay_normal.bag` / `_fault.bag` / `_labeled.bag`, `README.md`
+- `vcan_replay_normal.bag` / `_fault.bag` / `_labeled.bag`, `adcan_replay_labeled.bag`, `README.md`
 - 원본: `~/2026-06-01_10-41-15_071_Diagnostic_S_LG_LA.mat`
 
 ## 이 mat의 재현 고장 구조 (ground truth)
@@ -22,7 +23,8 @@ metadata:
 
 ## 핵심 사실
 - CANoe .mat은 **MATLAB v7.3(HDF5)** → scipy 불가, `h5py` 필요. 각 신호 `(2,N)`: row0=시각(초), row1=값
-- `vcu_diagnostic`은 v_can_msg의 **6종 life_count**(gear/turnsignal/longitudinal/steering/**wheel/dynamic**info)만 읽어 0.5s 내 변화 없으면 `/diagnostic/vcu` `VCU_StatCode=1`. error_code는 안 봄
+- **(2026-06-09 변경)** `vcu_diagnostic` 판정 기준을 **AutonomousState(ID 16) 기반으로 교체**. 이제 구독 `/sensors/ioniq5_ad_can`, `autonomous_life_count`(신규 msg 필드 + can_pub_func.cpp 디코딩 추가) 가 0.5s 내 안 변하면(침묵/동결) 고장, 살아있으나 `error_code != 0` 이면 고장. 검증: adcan bag 1배속 재생 시 ground truth 6구간과 StatCode 전이 1:1 일치 확인됨
+- (구) `vcu_diagnostic`은 v_can_msg의 **6종 life_count**(gear/turnsignal/longitudinal/steering/**wheel/dynamic**info)만 읽어 0.5s 내 변화 없으면 `VCU_StatCode=1` 했음(error_code 무시). make_vcan_bag.py 가 이 로직용
 - 이 익스포트엔 **WheelInfo/DynamicInfo(CAN FD) 없음** → 정상판정 위해 life_count만 증가 합성
 - 실측 자체가 연속 아님: **LongitudinalInfo가 자주 dropout(최대 12s 공백)** → normal 재생도 ~49% stale(실제 고장 이벤트). 깨끗한 정상 baseline 원하면 life_count 연속 합성 필요
 

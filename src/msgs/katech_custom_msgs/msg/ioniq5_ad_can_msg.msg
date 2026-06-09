@@ -16,6 +16,7 @@ uint8 brain_life_count
 uint8 brain_status
 
 # AutonomousState (ID 16)
+uint8 autonomous_life_count
 uint8 operation_mode
 uint8 autonomous_mode
 uint16 error_code
