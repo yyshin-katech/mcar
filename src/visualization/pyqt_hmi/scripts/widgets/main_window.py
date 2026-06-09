@@ -4,6 +4,7 @@
 import rospy
 import signal
 import os
+import re
 import subprocess
 import datetime
 from PyQt5.QtWidgets import *
@@ -63,6 +64,22 @@ class MainDisplayWindow(QMainWindow):
         # bag 녹화 상태
         self.bag_process = None
         self.bag_recording = False
+        # 토글 OFF 시 녹화에서 제외할 LiDAR/인지 토픽 (용량 큰 토픽)
+        self.optional_record_topics = [
+            "/left/rslidar_packets_difop",
+            "/middle/rslidar_packets",
+            "/middle/rslidar_packets_difop",
+            "/percept_background_rviz",
+            "/percept_cluster_rviz",
+            "/percept_ground_rviz",
+            "/percept_non_ground_rviz",
+            "/percept_origin_rviz",
+            "/percept_sematic_rviz",
+            "/percept_topic",
+            "/perception_info_rviz",
+            "/perception_pre_known_rviz",
+            "/right/rslidar_packets_difop",
+        ]
         
         self.eps_status = 0
         self.traffic_light_color = 0
@@ -634,10 +651,26 @@ class MainDisplayWindow(QMainWindow):
         """)
         self.bag_record_btn.clicked.connect(self.toggle_bag_recording)
 
+        # LiDAR/인지 토픽 포함 여부 토글 (ON: 같이 저장, OFF: 제외하고 저장)
+        self.lidar_topic_btn = QPushButton("LiDAR ON")
+        self.lidar_topic_btn.setCheckable(True)
+        self.lidar_topic_btn.setChecked(True)
+        self.lidar_topic_btn.setFixedSize(80, 28)
+        self.lidar_topic_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #6c757d; color: white; font-size: 12px;
+                font-weight: bold; border-radius: 4px; border: none;
+            }
+            QPushButton:checked { background-color: #28a745; }
+            QPushButton:hover { background-color: #5a6268; }
+        """)
+        self.lidar_topic_btn.toggled.connect(self.on_lidar_topic_toggle)
+
         self.bag_status_label = QLabel("Stopped")
         self.bag_status_label.setStyleSheet("color: #888; font-size: 11px; background: transparent;")
 
         btn_layout.addWidget(self.bag_record_btn)
+        btn_layout.addWidget(self.lidar_topic_btn)
         btn_layout.addWidget(self.bag_status_label)
         btn_layout.addStretch()
         bag_layout.addLayout(btn_layout)
@@ -1039,6 +1072,9 @@ class MainDisplayWindow(QMainWindow):
         else:
             self.manual_button.setChecked(True)
 
+    def on_lidar_topic_toggle(self, checked):
+        self.lidar_topic_btn.setText("LiDAR ON" if checked else "LiDAR OFF")
+
     def toggle_bag_recording(self):
         if self.bag_recording:
             self.stop_bag_recording()
@@ -1054,12 +1090,17 @@ class MainDisplayWindow(QMainWindow):
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         prefix = os.path.join(bag_dir, timestamp)
 
-        self.bag_process = subprocess.Popen(
-            ["rosbag", "record", "-a", "--split", "--size=10240", "-o", prefix],
-            preexec_fn=os.setsid
-        )
+        cmd = ["rosbag", "record", "-a"]
+        # 토글 OFF면 LiDAR/인지 토픽을 제외 (-x 정규식). ON이면 전체(-a) 그대로 저장.
+        if not self.lidar_topic_btn.isChecked():
+            exclude_regex = "(" + "|".join(re.escape(t) + "$" for t in self.optional_record_topics) + ")"
+            cmd += ["-x", exclude_regex]
+        cmd += ["--split", "--size=10240", "-o", prefix]
+
+        self.bag_process = subprocess.Popen(cmd, preexec_fn=os.setsid)
         self.bag_recording = True
         self.bag_path_edit.setEnabled(False)
+        self.lidar_topic_btn.setEnabled(False)
         self.bag_record_btn.setText("STOP")
         self.bag_record_btn.setStyleSheet("""
             QPushButton {
@@ -1079,6 +1120,7 @@ class MainDisplayWindow(QMainWindow):
             self.bag_process = None
         self.bag_recording = False
         self.bag_path_edit.setEnabled(True)
+        self.lidar_topic_btn.setEnabled(True)
         self.bag_record_btn.setText("REC")
         self.bag_record_btn.setStyleSheet("""
             QPushButton {
