@@ -714,7 +714,9 @@ class MainDisplayWindow(QMainWindow):
         self.gear_status = msg.gear_status
 
     def chassis_callback(self, msg):
-        self.current_speed = getattr(msg, 'vehicle_speed', 0)
+        # 속도는 v_can 휠속도(v_can_callback)로만 구동한다.
+        # chassis_msg엔 vehicle_speed 필드가 없어 getattr가 0을 반환 → current_speed를
+        # 0으로 덮어써 v_can 값과 번갈아 표시되며 깜빡임/미표시가 발생했었음.
         self.aeb_flag = getattr(msg, 'AEB_flag', 0)
         
     def local_callback(self, msg):
