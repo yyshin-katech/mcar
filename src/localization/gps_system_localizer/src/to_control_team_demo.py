@@ -422,11 +422,18 @@ class DistanceCalculator(object):
         else:
             p.Speed_Limit = 30
 
+        # 19번 링크: 정지선을 1로 전송하고, 남은거리 = 19번 남은거리 + 20번 링크 길이
+        # (교차로/시그널그룹 1300/3은 19번 맵에 이미 입력돼 있어 별도 전달 불필요)
+        if p.LINK_ID == 19:
+            p.is_stop_line = 1
+            p.distance_to_lane_end = p.distance_to_lane_end + (self.road_20['station'][0][-1] - self.road_20['station'][0][0])
+
         if p.LINK_ID == 20:
             p.look_at_signalGroupID = 3
             p.look_at_IntersectionID = 1300
 
         # 22번 링크: 정지선을 1로 전송하고, 남은거리 = 22번 남은거리 + 23번 링크 길이
+        # (교차로/시그널그룹 700/4는 22번 맵에 이미 있어 별도 전달 불필요)
         if p.LINK_ID == 22:
             p.is_stop_line = 1
             p.distance_to_lane_end = p.distance_to_lane_end + (self.road_23['station'][0][-1] - self.road_23['station'][0][0])
