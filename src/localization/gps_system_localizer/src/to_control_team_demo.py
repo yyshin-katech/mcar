@@ -234,6 +234,7 @@ class DistanceCalculator(object):
         # n = 1916057.58
         yaw = msg.yaw
         # yaw = 1.2
+        alt = msg.altitude
 
         current_lane_id, current_lane_name, distance_to_entry_end, distance_to_exit_start, current_s, current_d, current_closest_waypoint_in_MATLAB = self.compute_my_lane_cy(e, n)
 
@@ -404,6 +405,7 @@ class DistanceCalculator(object):
         p.host_east = e
         p.host_north = n
         p.host_yaw = yaw  # radian
+        p.host_altitude = alt  # MSL [m]
         p.waypoint_index = current_closest_waypoint_in_MATLAB
         p.station = current_s
         p.lateral_offset = current_d

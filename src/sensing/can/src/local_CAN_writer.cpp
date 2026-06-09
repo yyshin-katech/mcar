@@ -112,7 +112,8 @@ LOCAL_CAN_WRITER::LOCAL_CAN_WRITER(){
                                                                      (char*)"MD_AD_Req"}));
 
   msg_list.push_back(make_tuple((char*)"CAR_EGO_A_Ex",  vector<char*> {(char*)"X_High",\
-                                                                     (char*)"Y_High"}));
+                                                                     (char*)"Y_High",\
+                                                                     (char*)"ALTITUDE"}));
 
   msg_list.push_back(make_tuple((char*)"MOTOR_RPM", vector<char *>{(char *)"Curr_gear",\
                                                                    (char *)"N"}));
@@ -306,7 +307,7 @@ void LOCAL_CAN_WRITER::CALLBACK_LOCAL(const mmc_msgs::to_control_team_from_local
           temp_data = {east, north};
 
           target_msg2 = (char*)"CAR_EGO_A_Ex";
-          temp_data2 = {east_high, north_high};
+          temp_data2 = {(double)east_high, (double)north_high, (double)msg.host_altitude};
         }
         
       break;
@@ -438,7 +439,7 @@ int main(int argc, char **argv){
   string relative_path = ros::package::getPath("can");
   char filename[100];
 
-  strcpy(filename, (relative_path + "/dbc/CANdb_IONIQ5_AD_CAN_v6.dbc").c_str());
+  strcpy(filename, (relative_path + "/dbc/CANdb_IONIQ5_AD_CAN_v7.dbc").c_str());
   int channel_num = 0;
   bool init_access_flag = false;
 

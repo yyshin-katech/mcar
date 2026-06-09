@@ -49,6 +49,7 @@ public:
     pose_msg.EPSG = 5179;              
     pose_msg.east = east;
     pose_msg.north = north;
+    pose_msg.altitude = msg->hMSL * 1e-3;  // mm -> m (MSL, 해발고도)
 
     double heading = msg->heading * 1e-5;
     pose_msg.yaw = 1.57 - heading * M_PI / 180.0;  

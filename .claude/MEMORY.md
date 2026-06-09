@@ -31,6 +31,7 @@
 - [project_control_fault_not_displayed.md](project_control_fault_not_displayed.md) — 슈퍼바이저/횡/종 error_code 표출 경로. 2026-06-09 vcu_diagnostic을 AutonomousState(life_count staleness OR error_code≠0) 기반으로 교체 → VCU 슬롯 표출
 - [project_v2x_spat_takeover_decoupled.md](project_v2x_spat_takeover_decoupled.md) — V2X SPaT↔TOR. AliveCount(=SPaT 수신 카운터) 경로로 SPaT 갭이 TOR 유발. 2026-06-09 stat_display 게이팅: 신호등 필요(look_at≠0)+SPaT 0.5s 미수신만 v2x_status=2→TOR, SPaT 없으면 주황. off-intersection false TOR 제거
 - [project_blackbox_recorder.md](project_blackbox_recorder.md) — pyqt_hmi blackbox_recorder 노드. TOR 트리거 시 [이전10s,이후2s] 저장(LiDAR/인지 13토픽 제외). 경량 모니터+C++ rosbag record 롤링버퍼(Python 전토픽 버퍼링은 실차부하에 막힘). 합성 하네스 PASS, 실차 종단검증 권장
+- [project_altitude_can_flow.md](project_altitude_can_flow.md) — 2026-06 hMSL→host_altitude→CAR_EGO_A_Ex.ALTITUDE(id1830, 32bit float byte4-7, DLC4→8). DBC v7 신설(파일별 분리 관례), writer+reader 둘 다 v7. local_CAN_writer는 dlc=8 고정 송신. 실차/CANoe rate·timing 미검증
 
 ## Project Overview
 - ROS Noetic catkin workspace for autonomous driving (KATECH)
