@@ -37,7 +37,8 @@ from v2x_msgs.msg import intersection_array_msg
 from perception_ros_msg.msg import object_array_msg
 
 
-GPS_STD_WARN_M = 0.05  # 5 cm precision threshold (mirrors legacy)
+GPS_STD_WARN_M = 0.05   # 5 cm precision threshold → warning
+GPS_STD_ERROR_M = 0.15  # 15 cm precision threshold → error
 DIAG_MISS_THRESHOLD = 10  # 10 ticks × 100 ms = 1 s
 
 
@@ -312,9 +313,12 @@ class BaseHmiStateController:
 
         if name == 'gps':
             if self.gps_rtk_code < 2:
-                return 1
-            if self.gps_lon_std > GPS_STD_WARN_M or self.gps_lat_std > GPS_STD_WARN_M:
-                return 1
+                return 2  # RTK Fixed 아님(No RTK/Float) → 고장
+            max_std = max(self.gps_lon_std, self.gps_lat_std)
+            if max_std > GPS_STD_ERROR_M:
+                return 2  # 정밀도 15cm 초과 → 고장
+            if max_std > GPS_STD_WARN_M:
+                return 1  # 정밀도 5cm 초과 → 경고
         elif name == 'lidar':
             if 1 in (self.lidar_center_code, self.lidar_right_code, self.lidar_left_code):
                 return 1

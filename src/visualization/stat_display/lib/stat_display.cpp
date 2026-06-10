@@ -273,18 +273,31 @@ void STAT_DISPLAY::GPS_Text_Gen()
 
     GPS_AliveCnt_Check(cpt7_msg.GPS_INS_AliveCnt);
 
-    if (gps_status == 1 || cpt7_msg.GPSRTK_StatCode < 2)
-    {   // 주황 warning (carrSoln: 0=No RTK, 1=Float)
-        state_color.r = 1;
-        state_color.g = 0.5;
+    // AliveCnt 단절이 아닐 때만 RTK/정밀도 조건으로 재판정
+    // (pyqt_hmi 기준과 동일: RTK Fixed 아님 또는 std>15cm → 고장, std>5cm → 경고)
+    if (gps_status == 0)
+    {
+        double max_std = (cpt7_msg.lon_std > cpt7_msg.lat_std) ? cpt7_msg.lon_std : cpt7_msg.lat_std;
+        if (cpt7_msg.GPSRTK_StatCode < 2)
+            gps_status = 2;  // RTK Fixed 아님(No RTK/Float) → 고장
+        else if (max_std > 0.15)
+            gps_status = 2;  // 정밀도 15cm 초과 → 고장
+        else if (max_std > 0.05)
+            gps_status = 1;  // 정밀도 5cm 초과 → 경고
+    }
+
+    if (gps_status == 0)
+    {   // 녹색 정상
+        state_color.r = 0;
+        state_color.g = 0.8;
         state_color.b = 0;
         state_color.a = 1;
         GPS_text.fg_color = state_color;
     }
-    else if (gps_status == 0)
-    {   //흰색 정상 
-        state_color.r = 0;
-        state_color.g = 0.8;
+    else if (gps_status == 1)
+    {   // 주황 warning
+        state_color.r = 1;
+        state_color.g = 0.5;
         state_color.b = 0;
         state_color.a = 1;
         GPS_text.fg_color = state_color;
@@ -1402,8 +1415,14 @@ void STAT_DISPLAY::GPS_STD_Text_Gen()
     GPS_STD_text.left = 20;
     GPS_STD_text.top = 380;
 
-    if (cpt7_msg.lon_std > 0.05 || cpt7_msg.lat_std > 0.05)
-    {   // 정밀도 나쁨: 주황
+    if (cpt7_msg.lon_std > 0.15 || cpt7_msg.lat_std > 0.15)
+    {   // 정밀도 고장: 빨강
+        state_color.r = 1.0;
+        state_color.g = 0.0;
+        state_color.b = 0.0;
+    }
+    else if (cpt7_msg.lon_std > 0.05 || cpt7_msg.lat_std > 0.05)
+    {   // 정밀도 경고: 주황
         state_color.r = 1.0;
         state_color.g = 0.5;
         state_color.b = 0.0;

@@ -107,7 +107,8 @@ class MainDisplayWindow(QMainWindow):
         self.look_at_signal_group_id = 0
         self.traffic_light_color = 0   # 0=unknown, 1=green, 2=orange, 3=red
         self.traffic_light_time = 0
-        self.GPS_STD_WARN_M = 0.05  # 5cm 초과 시 정밀도 경고
+        self.GPS_STD_WARN_M = 0.05   # 5cm 초과 시 정밀도 경고
+        self.GPS_STD_ERROR_M = 0.15  # 15cm 초과 시 정밀도 고장
 
         # UI 초기화
         self.init_ui()
@@ -838,9 +839,12 @@ class MainDisplayWindow(QMainWindow):
         # 메시지 수신 중 → StatCode 도메인 조건으로 warning 판정
         if name == 'gps':
             if self.gps_rtk_code < 2:
-                return 1  # No RTK or Float
-            if self.gps_lon_std > self.GPS_STD_WARN_M or self.gps_lat_std > self.GPS_STD_WARN_M:
-                return 1  # 정밀도 5cm 초과
+                return 2  # RTK Fixed 아님(No RTK/Float) → 고장
+            max_std = max(self.gps_lon_std, self.gps_lat_std)
+            if max_std > self.GPS_STD_ERROR_M:
+                return 2  # 정밀도 15cm 초과 → 고장
+            if max_std > self.GPS_STD_WARN_M:
+                return 1  # 정밀도 5cm 초과 → 경고
         elif name == 'lidar':
             if 1 in (self.lidar_center_code, self.lidar_right_code, self.lidar_left_code):
                 return 1
