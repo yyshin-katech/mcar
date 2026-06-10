@@ -84,6 +84,7 @@ class MainWindowA1(QMainWindow):
         self.stats.add('std',   "GPS STD", "—", unit="cm")
         self.stats.add('link',  "LINK", "—")
         self.stats.add('lane',  "LANE", "—")
+        self.stats.add('time',  "GPS TIME", "—")
         v.addWidget(self.stats)
 
         v.addStretch(1)
@@ -160,6 +161,7 @@ class MainWindowA1(QMainWindow):
         c.speed_limit_changed.connect(lambda v: self.stats.set('limit', int(v)))
         c.steering_changed.connect(lambda v: self.stats.set('steer', f"{v:.1f}"))
         c.gps_changed.connect(self._on_gps)
+        c.gps_time_changed.connect(lambda s: self.stats.set('time', s))
         c.link_lane_changed.connect(self._on_link_lane)
         c.odd_changed.connect(self._on_odd)
 

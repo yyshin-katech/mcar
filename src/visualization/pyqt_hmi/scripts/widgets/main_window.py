@@ -14,7 +14,7 @@ from PyQt5.QtGui import *
 from std_msgs.msg import UInt8, Bool
 from katech_diagnostic_msgs.msg import *
 from katech_custom_msgs.msg import ioniq5_ad_can_msg, v_can_msg
-from mmc_msgs.msg import chassis_msg, to_control_team_from_local_msg
+from mmc_msgs.msg import chassis_msg, to_control_team_from_local_msg, gps_time_msg
 from v2x_msgs.msg import intersection_array_msg
 from perception_ros_msg.msg import object_array_msg
 
@@ -109,6 +109,7 @@ class MainDisplayWindow(QMainWindow):
         self.traffic_light_time = 0
         self.GPS_STD_WARN_M = 0.05   # 5cm 초과 시 정밀도 경고
         self.GPS_STD_ERROR_M = 0.15  # 15cm 초과 시 정밀도 고장
+        self.gps_time_str = "--:--:--"  # NavPVT(UTC)→KST 변환 시각 (CAN GPSTimestamp와 동일 소스)
 
         # UI 초기화
         self.init_ui()
@@ -548,9 +549,21 @@ class MainDisplayWindow(QMainWindow):
             }
         """)
 
+        self.gps_time_label = QLabel("GPS Time (KST): --:--:--")
+        self.gps_time_label.setStyleSheet("""
+            QLabel {
+                font-size: 16px;
+                font-weight: bold;
+                color: white;
+                background-color: transparent;
+                padding: 5px;
+            }
+        """)
+
         gps_layout.addWidget(self.lane_label)
         gps_layout.addWidget(self.gpsrtk_label)
         gps_layout.addWidget(self.gps_std_label)
+        gps_layout.addWidget(self.gps_time_label)
         gps_group.setLayout(gps_layout)
 
         return gps_group
@@ -684,6 +697,7 @@ class MainDisplayWindow(QMainWindow):
     def init_ros_subscribers(self):
         """ROS Subscriber 초기화"""
         rospy.Subscriber("/diagnostic/cpt7_gps", cpt7_gps_diagnostic_msg, self.gps_callback)
+        rospy.Subscriber("/localization/gps_time", gps_time_msg, self.gps_time_callback)
         rospy.Subscriber("/diagnostic/adcu", k_adcu_diagnostic_msg, self.adcu_callback)
         rospy.Subscriber("/diagnostic/lidar", lidar_diagnostic_msg, self.lidar_callback)
         rospy.Subscriber("/diagnostic/radar", radar_diagnostic_msg, self.radar_callback)
@@ -704,6 +718,21 @@ class MainDisplayWindow(QMainWindow):
         self.gps_rtk_code = msg.GPSRTK_StatCode
         self.gps_lon_std = msg.lon_std
         self.gps_lat_std = msg.lat_std
+
+    def gps_time_callback(self, msg):
+        # /localization/gps_time (gps_world_tf 발행) 의 UTC 분해값 → KST = UTC+9
+        # 콜백에서는 문자열만 계산해 저장하고, 라벨 갱신은 periodic_update(타이머)에서 처리
+        if not msg.valid:
+            self.gps_time_str = "--:--:--"
+            return
+        try:
+            utc = datetime.datetime(msg.year, msg.month, msg.day,
+                                    msg.hour, msg.minute, msg.second,
+                                    tzinfo=datetime.timezone.utc)
+            kst = utc + datetime.timedelta(hours=9)
+            self.gps_time_str = kst.strftime("%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            self.gps_time_str = "--:--:--"
 
     def adcu_callback(self, msg):
         self.diag_flags['adcu']['received'] = True
@@ -953,6 +982,9 @@ class MainDisplayWindow(QMainWindow):
                 padding: 5px;
             }}
         """.format(color=std_color))
+
+        # GPS 시각 (KST)
+        self.gps_time_label.setText("GPS Time (KST): " + self.gps_time_str)
 
         # 센서 인디케이터 업데이트
         self.update_sensor_display()

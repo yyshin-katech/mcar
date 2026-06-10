@@ -21,9 +21,9 @@
 #include <mmc_msgs/chassis_msg.h>
 #include <mmc_msgs/motor_rpm_msg.h>
 #include <mmc_msgs/to_control_team_from_local_msg.h>
+#include <mmc_msgs/gps_time_msg.h>
 // #include <novatel_gps_msgs/NovatelMessageHeader.h>
 // #include <novatel_gps_msgs/NovatelPosition.h>
-#include <ublox_msgs/NavPVT.h>
 #include <std_msgs/UInt8.h>
 
 #include <algorithm>
@@ -61,7 +61,7 @@ class LOCAL_CAN_WRITER{
     void CALLBACK_LOCAL(const mmc_msgs::to_control_team_from_local_msg& msg);
     void CALLBACK_RPM(const mmc_msgs::motor_rpm_msg& msg);
     // void CALLBACK_TimeStamp(const novatel_gps_msgs::NovatelPosition& msg);
-    void CALLBACK_TimeStamp(const ublox_msgs::NavPVT::ConstPtr& msg);
+    void CALLBACK_TimeStamp(const mmc_msgs::gps_time_msg::ConstPtr& msg);
     void CALLBACK_ModeCommand(const std_msgs::UInt8::ConstPtr& msg);
     short FIND_MSG_IDX(char* target_msg, vector<tuple<char*, vector<char*>>>* msg_list);
     canStatus OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num, char *filename, bool init_access_flag);
@@ -128,7 +128,7 @@ LOCAL_CAN_WRITER::LOCAL_CAN_WRITER(){
 
 }
  
-void LOCAL_CAN_WRITER::CALLBACK_TimeStamp(const ublox_msgs::NavPVT::ConstPtr& msg)
+void LOCAL_CAN_WRITER::CALLBACK_TimeStamp(const mmc_msgs::gps_time_msg::ConstPtr& msg)
 {
   unsigned char can_data[dlc];
   char* target_msg;
@@ -139,38 +139,12 @@ void LOCAL_CAN_WRITER::CALLBACK_TimeStamp(const ublox_msgs::NavPVT::ConstPtr& ms
   unsigned int id_write, flag = 0;
   int re_value = 0;
 
-  // u-blox NavPVT 시간 필드 추출
-  // year: 년도 (1999-2099)
-  // month: 월 (1-12)
-  // day: 일 (1-31)
-  // hour: 시 (0-23)
-  // min: 분 (0-59)
-  // sec: 초 (0-60)
-  // nano: 나노초 (UTC)
-  
-  int year = msg->year;
-  int month = msg->month;
-  int day = msg->day;
-  int hour = msg->hour;
-  int minute = msg->min;
-  int second = msg->sec;
-  
-  // 나노초를 밀리초로 변환
-  // nano는 -1e9 ~ 1e9 범위를 가질 수 있음
-  int millisecond = msg->nano / 1000000;
-  
-  // nano가 음수인 경우 처리 (초 미만의 음수 보정)
-  if (millisecond < 0) {
-    millisecond += 1000;
-    second -= 1;
-  }
-  
-  // 밀리초는 0-999 범위로 제한
-  millisecond = std::max(0, std::min(999, millisecond));
-
+  // /localization/gps_time (gps_world_tf 발행, UTC 분해값) → CAN GPSTimestamp 송신.
+  // NavPVT 추출/ms 정규화는 gps_world_tf 에서 수행됨. 여기서는 CAN 인코딩(year-2000)만.
   target_msg = (char*)"GPSTimestamp";
-  temp_data = {(double)millisecond, (double)second, (double)minute, 
-               (double)hour, (double)day, (double)month, (double)(year-2000)};
+  temp_data = {(double)msg->millisecond, (double)msg->second, (double)msg->minute,
+               (double)msg->hour, (double)msg->day, (double)msg->month,
+               (double)((int)msg->year - 2000)};
    
   msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
   kvaDbGetMsgByName(dh, target_msg, &mh);
@@ -183,9 +157,6 @@ void LOCAL_CAN_WRITER::CALLBACK_TimeStamp(const ublox_msgs::NavPVT::ConstPtr& ms
 
   re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
   memset(can_data, 0, sizeof(can_data));
-
-  // ROS_INFO("u-blox Time: %04d-%02d-%02d %02d:%02d:%02d.%03d UTC",
-  //         year, month, day, hour, minute, second, millisecond);
 }
 
 void LOCAL_CAN_WRITER::CALLBACK_RPM(const mmc_msgs::motor_rpm_msg& msg)
@@ -449,7 +420,7 @@ int main(int argc, char **argv){
 
   ros::Subscriber sub1 = node.subscribe("/localization/to_control_team", 1, &LOCAL_CAN_WRITER::CALLBACK_LOCAL, &LCW);
   ros::Subscriber sub2 = node.subscribe("/sensors/rpm", 1, &LOCAL_CAN_WRITER::CALLBACK_RPM, &LCW);
-  ros::Subscriber sub3 = node.subscribe("/ublox/navpvt", 1, &LOCAL_CAN_WRITER::CALLBACK_TimeStamp, &LCW);
+  ros::Subscriber sub3 = node.subscribe("/localization/gps_time", 1, &LOCAL_CAN_WRITER::CALLBACK_TimeStamp, &LCW);
   ros::Subscriber sub4 = node.subscribe("/vehicle/mode_command", 1, &LOCAL_CAN_WRITER::CALLBACK_ModeCommand, &LCW);
 
   ros::waitForShutdown();   

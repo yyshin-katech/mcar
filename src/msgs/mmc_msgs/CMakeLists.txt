@@ -36,6 +36,7 @@ add_message_files(
  ioniq_motion_lane.msg
  ioniq_motion_lane_array.msg
  motor_rpm_msg.msg
+ gps_time_msg.msg
 )
 
 
