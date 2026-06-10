@@ -16,6 +16,7 @@
 - [environment.md](environment.md) — WSL2 개발환경, mirrored 네트워킹 가이드
 - [map_data.md](map_data.md) — senario / senario3 mat 구조, MANUAVER 라벨(curve_lane.md) 원천
 - [senario_mat_viewer.md](senario_mat_viewer.md) — ~/temp 하네스, cs2cs로 EPSG:5179→WGS84
+- [reference_kcity_mat_viewer.md](reference_kcity_mat_viewer.md) — K_CITY mat 편집/뷰어. ~/kcity_map/regen_kcity_viewer.py(pyproj, var DATA 1줄 교체, build_feature 재사용). mat east/north는 row(1,N) 필수(to_control_team ['east'][0]). 2026-06-10 link_79/83 끝40m 단순절삭 + link_81/82/83 row 통일
 - [canoe_tool.md](canoe_tool.md) — CAN 송신 검증에 Vector CANoe 사용, rate/timing 디버깅의 1차 근거
 - [feedback_can_request_signals.md](feedback_can_request_signals.md) — MD_AD_Req 같은 request 신호는 1초 펄스, 활성 모드면 재요청 버튼 비활성화
 - [project_gps_hardware.md](project_gps_hardware.md) — ZED-F9K USB serial(`/dev/ttyACM0`), 이더넷/NTRIP 미사용. cpt7 인터넷 ping 의도적 비활성
