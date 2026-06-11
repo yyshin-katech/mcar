@@ -13,6 +13,8 @@ add_message_files(
  intersection_msg.msg
  intersection_array_msg.msg
  movement_msg.msg
+ v2x_go_ahead_msg.msg
+ v2x_pedes_assist_msg.msg
 )
 
 

@@ -61,6 +61,19 @@ target_link_libraries(j2735_universal_node
   ffasn1-j2735-2020
 )
 
+## ── J2735 TIM RX ───────────────────────────────────────────
+## OBU UDP packet -> J2735 UPER decode -> v2x_go_ahead/pedes_assist topics
+add_executable(j2735_TIM_rx_node
+  src/j2735_TIM_rx_node.cpp
+  src/ffasn1-j2735-2026-KSR1600.c
+)
+target_link_libraries(j2735_TIM_rx_node
+  ${catkin_LIBRARIES}
+  ffasn1-base
+  ffasn1-j2735-2020
+)
+add_dependencies(j2735_TIM_rx_node ${catkin_EXPORTED_TARGETS})
+
 add_executable(tim_test src/tim_decode_test.cpp)
 target_link_libraries(tim_test
     ${catkin_LIBRARIES}
