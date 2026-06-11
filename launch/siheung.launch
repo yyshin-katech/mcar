@@ -15,6 +15,10 @@
     <!-- 예) roslaunch launch/siheung.launch mqtt_server:=test -->
     <arg name="mqtt_server" default="prod" />
 
+    <!-- BSM partII 주행예정 링크 시퀀스 확장 (사설 규격, partII_Id=63).
+         기본 false. 활성화: roslaunch launch/siheung.launch enable_route_partii:=true -->
+    <arg name="enable_route_partii" default="false" />
+
     <!--   테스트 서버 (test) : 121.137.106.141 : 23312 / ut_adcp -->
     <arg name="mqtt_host_test" value="121.137.106.141" />
     <arg name="mqtt_port_test" value="23312" />
@@ -101,5 +105,11 @@
         <param name="vehicle_id"   value="EV01" />
         <param name="publish_rate" value="10.0" />
         <param name="verbose_first_msg" value="true" />
+        <!-- 주행예정 링크 ID 시퀀스 (partII, P1 JSON) — 기본 비활성, arg 로 토글 -->
+        <param name="enable_route_partii" value="$(arg enable_route_partii)" />
+        <param name="route_partii_id"     value="63" />
+        <param name="route_lookahead"     value="10" />
+        <param name="route_topic"         value="/localization/to_control_team" />
+        <param name="link_map_path" value="$(find siheung_v2x)/config/senario_link_map.csv" />
     </node>
 </launch>

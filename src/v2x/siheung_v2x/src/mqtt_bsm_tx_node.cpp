@@ -17,7 +17,9 @@
 #include <ros/ros.h>
 #include <novatel_gps_msgs/Inspva.h>
 #include <katech_custom_msgs/v_can_msg.h>
+#include <mmc_msgs/to_control_team_from_local_msg.h>
 
+#include <algorithm>
 #include <atomic>
 #include <cerrno>
 #include <cmath>
@@ -25,8 +27,13 @@
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
+#include <fstream>
+#include <map>
 #include <mutex>
+#include <set>
+#include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 extern "C" {
@@ -97,6 +104,7 @@ class MqttBsmTxNode {
   ros::NodeHandle pnh_;
   ros::Subscriber sub_inspva_;
   ros::Subscriber sub_vcan_;
+  ros::Subscriber sub_route_;
   ros::Timer      timer_;
 
   // ── 최신 입력 캐시 ──────────────────────────────────
@@ -105,6 +113,21 @@ class MqttBsmTxNode {
   bool                             has_inspva_ = false;
   katech_custom_msgs::v_can_msg    latest_vcan_;
   bool                             has_vcan_ = false;
+  int                              cur_link_id_ = 0;   // to_control_team.LINK_ID
+  bool                             has_route_   = false;
+
+  // ── 주행예정 링크 시퀀스 (partII, P1 JSON) ──────────
+  //   link_map_: LINK_ID(int) → (LINK_ID_string, NEXT_LINK_ID)
+  std::map<int, std::pair<std::string, int>> link_map_;
+  bool        enable_route_partii_ = true;
+  // 사설 partII_Id. J2735 PartII-Id ::= INTEGER(0..63), 표준 0/1/2 회피 → 63 사용.
+  int         route_partii_id_     = 63;
+  int         route_lookahead_     = 10;   // 현재 포함 최대 링크 개수 N
+  std::string link_map_path_;
+  std::string route_topic_ = "/localization/to_control_team";
+  // encode 시점까지 살아있어야 하는 partII 저장소 (멤버)
+  std::string            route_json_;
+  j2735PartIIcontent_1   partii_storage_{};
 
   // ── BSM 카운터 (UPER 안의 msgCnt, 0..127 wrap) ─────
   uint8_t bsm_msg_cnt_ = 0;        // mtx_input_ 보호
@@ -142,7 +165,14 @@ class MqttBsmTxNode {
   // ── 콜백 ───────────────────────────────────────────
   void onInspva(const novatel_gps_msgs::Inspva::ConstPtr& msg);
   void onVCan  (const katech_custom_msgs::v_can_msg::ConstPtr& msg);
+  void onRoute (const mmc_msgs::to_control_team_from_local_msg::ConstPtr& msg);
   void onTimer (const ros::TimerEvent&);
+
+  // 주행예정 링크 시퀀스 유틸
+  bool   loadLinkMap(const std::string& path);
+  // cur_id 부터 NEXT_LINK_ID 체인을 N개까지 따라가 P1 JSON 생성.
+  // 호출자가 mtx_input_ 를 이미 잡고 있어야 한다(재잠금 안 함).
+  std::string buildRouteJson(int cur_id, int n) const;
 
   // mosquitto static → 인스턴스 dispatch
   static void onConnect   (struct mosquitto*, void* userdata, int rc);
@@ -203,9 +233,36 @@ MqttBsmTxNode::MqttBsmTxNode(ros::NodeHandle& nh, ros::NodeHandle& pnh)
   pnh_.param("publish_rate", publish_rate_, publish_rate_);
   if (publish_rate_ <= 0.0) publish_rate_ = 10.0;
 
+  // 2-b. 주행예정 링크 시퀀스 (partII) 파라미터
+  pnh_.param("enable_route_partii", enable_route_partii_, enable_route_partii_);
+  pnh_.param("route_partii_id",     route_partii_id_,     route_partii_id_);
+  if (route_partii_id_ < 0 || route_partii_id_ > 63) {   // PartII-Id ::= INTEGER(0..63)
+    ROS_WARN("[mqtt_bsm_tx] route_partii_id %d out of range(0..63) -> 63", route_partii_id_);
+    route_partii_id_ = 63;
+  }
+  pnh_.param("route_lookahead",     route_lookahead_,     route_lookahead_);
+  if (route_lookahead_ < 1)   route_lookahead_ = 1;
+  if (route_lookahead_ > 100) route_lookahead_ = 100;
+  pnh_.param<std::string>("link_map_path",  link_map_path_, link_map_path_);
+  pnh_.param<std::string>("route_topic",    route_topic_,   route_topic_);
+
+  if (enable_route_partii_) {
+    if (link_map_path_.empty() || !loadLinkMap(link_map_path_)) {
+      ROS_WARN("[mqtt_bsm_tx] route partII disabled: link_map_path '%s' empty/unreadable",
+               link_map_path_.c_str());
+      enable_route_partii_ = false;
+    } else {
+      ROS_INFO("[mqtt_bsm_tx] route partII enabled: %zu links, partII_id=%d, lookahead=%d, topic=%s",
+               link_map_.size(), route_partii_id_, route_lookahead_, route_topic_.c_str());
+    }
+  }
+
   // 3. Subscribe
   sub_inspva_ = nh_.subscribe(inspva_topic_, 10, &MqttBsmTxNode::onInspva, this);
   sub_vcan_   = nh_.subscribe(vcan_topic_,   10, &MqttBsmTxNode::onVCan,   this);
+  if (enable_route_partii_) {
+    sub_route_ = nh_.subscribe(route_topic_, 10, &MqttBsmTxNode::onRoute, this);
+  }
 
   // 4. Timer (publish_rate Hz)
   const double period = 1.0 / publish_rate_;
@@ -313,6 +370,76 @@ void MqttBsmTxNode::onVCan(const katech_custom_msgs::v_can_msg::ConstPtr& msg) {
   std::lock_guard<std::mutex> lk(mtx_input_);
   latest_vcan_ = *msg;
   has_vcan_    = true;
+}
+
+void MqttBsmTxNode::onRoute(
+    const mmc_msgs::to_control_team_from_local_msg::ConstPtr& msg) {
+  std::lock_guard<std::mutex> lk(mtx_input_);
+  cur_link_id_ = static_cast<int>(msg->LINK_ID);
+  has_route_   = true;
+}
+
+// ---------------------------------------------------------------------------
+// 링크맵 CSV 로드: "link_id,link_id_string,next_link_id" (헤더 1줄)
+//   scripts/build_senario_link_map.py 산출물.
+// ---------------------------------------------------------------------------
+bool MqttBsmTxNode::loadLinkMap(const std::string& path) {
+  std::ifstream in(path.c_str());
+  if (!in.is_open()) return false;
+
+  link_map_.clear();
+  std::string line;
+  bool first = true;
+  size_t bad = 0;
+  while (std::getline(in, line)) {
+    if (!line.empty() && line.back() == '\r') line.pop_back();
+    if (line.empty()) continue;
+    if (first) { first = false; if (line.find("link_id") != std::string::npos) continue; }
+
+    const size_t c1 = line.find(',');
+    const size_t c2 = (c1 == std::string::npos) ? std::string::npos : line.find(',', c1 + 1);
+    if (c1 == std::string::npos || c2 == std::string::npos) { ++bad; continue; }
+
+    const std::string s_id   = line.substr(0, c1);
+    const std::string s_str  = line.substr(c1 + 1, c2 - c1 - 1);
+    const std::string s_next = line.substr(c2 + 1);
+    try {
+      const int lid  = std::stoi(s_id);
+      const int next = std::stoi(s_next);
+      link_map_[lid] = std::make_pair(s_str, next);
+    } catch (...) { ++bad; }
+  }
+  if (bad) ROS_WARN("[mqtt_bsm_tx] link map: %zu malformed lines skipped", bad);
+  return !link_map_.empty();
+}
+
+// ---------------------------------------------------------------------------
+// cur_id 부터 NEXT_LINK_ID 체인을 n개까지 따라가 P1 JSON 생성.
+//   {"v":1,"n":N,"links":["A222BF785057","A222BF785082",...]}
+//   links[0] = 현재 링크, 이후 = 곧 지날 링크. 생성 불가 시 "" 반환.
+//   (호출자가 mtx_input_ 보유 가정 — link_map_ 은 startup 이후 불변이라 안전)
+// ---------------------------------------------------------------------------
+std::string MqttBsmTxNode::buildRouteJson(int cur_id, int n) const {
+  if (link_map_.find(cur_id) == link_map_.end()) return std::string();
+
+  std::ostringstream ss;
+  ss << "{\"v\":1,\"links\":[";
+  std::set<int> seen;
+  int id = cur_id, cnt = 0;
+  while (cnt < n) {
+    auto f = link_map_.find(id);
+    if (f == link_map_.end()) break;
+    if (!seen.insert(id).second) break;   // 사이클 방지
+    if (cnt > 0) ss << ",";
+    ss << "\"" << f->second.first << "\"";
+    ++cnt;
+    const int next = f->second.second;
+    if (next == 0) break;
+    id = next;
+  }
+  ss << "],\"n\":" << cnt << "}";
+  if (cnt == 0) return std::string();
+  return ss.str();
 }
 
 // ---------------------------------------------------------------------------
@@ -567,10 +694,30 @@ bool MqttBsmTxNode::fillBsm(j2735BasicSafetyMessage& bsm,
   core.size.length = static_cast<j2735VehicleLength>(
                        clampi(vehicle_length_cm_, 0, 4095));
 
-  // partII / regional: omit
-  bsm.partII_option   = FALSE;
-  bsm.partII.tab      = nullptr;
-  bsm.partII.count    = 0;
+  // partII: 주행예정 링크 ID 시퀀스 (P1 JSON, 사설 partII_Id, OpenType raw octets)
+  //   route_json_ / partii_storage_ 는 멤버라 onTimer 의 encode 시점까지 유효.
+  //   (mtx_input_ 보유 상태 — buildRouteJson 은 재잠금 안 함)
+  if (enable_route_partii_ && has_route_) {
+    route_json_ = buildRouteJson(cur_link_id_, route_lookahead_);
+  } else {
+    route_json_.clear();
+  }
+  if (!route_json_.empty()) {
+    partii_storage_.partII_Id         = static_cast<j2735PartII_Id>(route_partii_id_);
+    partii_storage_.partII_Value.type = nullptr;  // raw octet_string 모드
+    partii_storage_.partII_Value.u.octet_string.buf =
+        reinterpret_cast<uint8_t*>(const_cast<char*>(route_json_.data()));
+    partii_storage_.partII_Value.u.octet_string.len = route_json_.size();
+    bsm.partII_option = TRUE;
+    bsm.partII.tab    = &partii_storage_;
+    bsm.partII.count  = 1;
+  } else {
+    bsm.partII_option = FALSE;
+    bsm.partII.tab    = nullptr;
+    bsm.partII.count  = 0;
+  }
+
+  // regional: omit
   bsm.regional_option = FALSE;
   bsm.regional.tab    = nullptr;
   bsm.regional.count  = 0;
