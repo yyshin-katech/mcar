@@ -32,12 +32,13 @@ from katech_diagnostic_msgs.msg import (cam_diagnostic_msg,
                                         v2x_diagnostic_msg,
                                         vcu_diagnostic_msg)
 from katech_custom_msgs.msg import ioniq5_ad_can_msg, v_can_msg
-from mmc_msgs.msg import chassis_msg, to_control_team_from_local_msg
+from mmc_msgs.msg import chassis_msg, to_control_team_from_local_msg, gps_time_msg
 from v2x_msgs.msg import intersection_array_msg
 from perception_ros_msg.msg import object_array_msg
 
 
-GPS_STD_WARN_M = 0.05  # 5 cm precision threshold (mirrors legacy)
+GPS_STD_WARN_M = 0.05   # 5 cm precision threshold → warning
+GPS_STD_ERROR_M = 0.15  # 15 cm precision threshold → error
 DIAG_MISS_THRESHOLD = 10  # 10 ticks × 100 ms = 1 s
 
 
@@ -52,6 +53,7 @@ class BaseHmiStateController:
         'traffic_changed', 'diag_changed', 'gps_changed',
         'speed_limit_changed', 'link_lane_changed', 'odd_changed',
         'popup_changed', 'bag_state_changed', 'topic_event',
+        'arc_path_changed', 'gps_time_changed',
     )
 
     def __init__(self):
@@ -65,6 +67,11 @@ class BaseHmiStateController:
         self.autonomous_mode = 0
         self.aeb_flag = 0
         self.steering_angle = 0.0
+
+        # planned arc (from_Control)
+        self.arc_len = 0.0
+        self.arc_kappa = 0.0
+        self.arc_ds = 0.0
 
         # GPS / localization
         self.gps_rtk_code = 0
@@ -127,6 +134,7 @@ class BaseHmiStateController:
     # ─── ROS subscribers ─────────────────────────────────────────
     def _init_subscribers(self):
         rospy.Subscriber("/diagnostic/cpt7_gps", cpt7_gps_diagnostic_msg, self._cb_gps)
+        rospy.Subscriber("/localization/gps_time", gps_time_msg, self._cb_gps_time)
         rospy.Subscriber("/diagnostic/adcu", k_adcu_diagnostic_msg, self._cb_adcu)
         rospy.Subscriber("/diagnostic/lidar", lidar_diagnostic_msg, self._cb_lidar)
         rospy.Subscriber("/diagnostic/radar", radar_diagnostic_msg, self._cb_radar)
@@ -152,6 +160,20 @@ class BaseHmiStateController:
         self.gps_lat_std = msg.lat_std
         self._emit('gps_changed', self.gps_rtk_code, self.gps_lon_std, self.gps_lat_std)
         self._emit('topic_event', 'gps')
+
+    def _cb_gps_time(self, msg):
+        # /localization/gps_time (gps_world_tf 발행) 의 UTC 분해값 → KST = UTC+9
+        if not msg.valid:
+            self._emit('gps_time_changed', "--:--:--")
+            return
+        try:
+            utc = datetime.datetime(msg.year, msg.month, msg.day,
+                                    msg.hour, msg.minute, msg.second,
+                                    tzinfo=datetime.timezone.utc)
+            kst = utc + datetime.timedelta(hours=9)
+            self._emit('gps_time_changed', kst.strftime("%H:%M:%S"))
+        except ValueError:
+            self._emit('gps_time_changed', "--:--:--")
 
     def _cb_adcu(self, msg):
         self.diag_flags['adcu']['received'] = True
@@ -197,6 +219,11 @@ class BaseHmiStateController:
         if msg.autonomous_mode != self.autonomous_mode:
             self.autonomous_mode = msg.autonomous_mode
             self._emit('mode_changed', self.autonomous_mode)
+
+        self.arc_len = float(msg.arc_len)
+        self.arc_kappa = float(msg.arc_kappa)
+        self.arc_ds = float(msg.arc_ds)
+        self._emit('arc_path_changed', self.arc_len, self.arc_kappa, self.arc_ds)
 
     def _cb_v_can(self, msg):
         self.steering_angle = msg.steering_angle
@@ -301,16 +328,19 @@ class BaseHmiStateController:
 
         if name == 'gps':
             if self.gps_rtk_code < 2:
-                return 1
-            if self.gps_lon_std > GPS_STD_WARN_M or self.gps_lat_std > GPS_STD_WARN_M:
-                return 1
+                return 2  # RTK Fixed 아님(No RTK/Float) → 고장
+            max_std = max(self.gps_lon_std, self.gps_lat_std)
+            if max_std > GPS_STD_ERROR_M:
+                return 2  # 정밀도 15cm 초과 → 고장
+            if max_std > GPS_STD_WARN_M:
+                return 1  # 정밀도 5cm 초과 → 경고
         elif name == 'lidar':
             if 1 in (self.lidar_center_code, self.lidar_right_code, self.lidar_left_code):
                 return 1
         elif name == 'v2x' and self.v2x_stat_code == 1:
             return 1
         elif name == 'vcu' and self.vcu_stat_code == 1:
-            return 1
+            return 2  # VCU life_count 결손 = 장치 고장 → 에러
         elif name == 'ipc' and self.ipc_swc_code == 1:
             return 1
         elif name == 'adcu' and self.adcu_swc_code == 1:
@@ -438,12 +468,14 @@ class HmiStateController(BaseHmiStateController, QObject):
     traffic_changed     = pyqtSignal(int, int)         # color (0-3), time_decisec
     diag_changed        = pyqtSignal(dict)             # {name: status}
     gps_changed         = pyqtSignal(int, float, float)  # rtk_code, lon_std, lat_std
+    gps_time_changed    = pyqtSignal(str)              # KST "HH:MM:SS" (NavPVT UTC+9)
     speed_limit_changed = pyqtSignal(int)
     link_lane_changed   = pyqtSignal(object, object)   # link_id, lane label
     odd_changed         = pyqtSignal(int, int)         # on_odd, road_state
     popup_changed       = pyqtSignal(str, str)         # text, severity
     bag_state_changed   = pyqtSignal(bool, str)        # recording, info
     topic_event         = pyqtSignal(str)              # key, for Hz tracking
+    arc_path_changed    = pyqtSignal(float, float, float)  # arc_len, arc_kappa, arc_ds
 
     def __init__(self, parent=None):
         QObject.__init__(self, parent)

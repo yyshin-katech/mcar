@@ -8,6 +8,7 @@ float64 east        # east [m]
 float64 north       # north [m]
 float64 yaw         # yaw [rad]
 float64 v           # velocity [m/s]
+float64 altitude    # MSL altitude [m] (ublox hMSL)
 
 float64 sig_east    # std of east [m]
 float64 sig_north   # std of north [m]

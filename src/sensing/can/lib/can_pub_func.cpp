@@ -716,10 +716,17 @@ void CHASSIS_CAN_READER(){
   msg_list.push_back(make_tuple((char*)"BrainState", vector<char*> {(char*)"life_count",\
                                                                     (char*)"brain_status"}));
 
-  msg_list.push_back(make_tuple((char*)"AutonomousState", vector<char*> {(char*)"operation_mode",\
+  msg_list.push_back(make_tuple((char*)"AutonomousState", vector<char*> {(char*)"life_count",\
+                                                                         (char*)"operation_mode",\
                                                                          (char*)"autonomous_mode",\
                                                                          (char*)"error_code",\
                                                                          (char*)"warning_code"}));
+
+  msg_list.push_back(make_tuple((char*)"from_Control", vector<char*> {(char*)"arc_len",\
+                                                                      (char*)"arc_kappa",\
+                                                                      (char*)"arc_ds",\
+                                                                      (char*)"AEB_flag",\
+                                                                      (char*)"LC_flag"}));
 
   katech_custom_msgs::ioniq5_ad_can_msg msg;
 
@@ -806,10 +813,27 @@ void CHASSIS_CAN_READER(){
               kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
 
               switch(i){
-                case(0): msg.operation_mode = (uint8_t)value; break;
-                case(1): msg.autonomous_mode = (uint8_t)value; break;
-                case(2): msg.error_code = (uint16_t)value; break;
-                case(3): msg.warning_code = (uint16_t)value; break;
+                case(0): msg.autonomous_life_count = (uint8_t)value; break;
+                case(1): msg.operation_mode = (uint8_t)value; break;
+                case(2): msg.autonomous_mode = (uint8_t)value; break;
+                case(3): msg.error_code = (uint16_t)value; break;
+                case(4): msg.warning_code = (uint16_t)value; break;
+              }
+            }
+            pub1.publish(msg);
+          break;
+
+          case(5): // from_Control
+            for(int i=0; i!=get<1>(msg_list[msg_idx]).size(); i++){
+              kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[i], &sh);
+              kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
+
+              switch(i){
+                case(0): msg.arc_len = value; break;
+                case(1): msg.arc_kappa = value; break;
+                case(2): msg.arc_ds = value; break;
+                case(3): msg.AEB_flag = (uint8_t)value; break;
+                case(4): msg.LC_flag = (uint8_t)value; break;
               }
             }
             pub1.publish(msg);

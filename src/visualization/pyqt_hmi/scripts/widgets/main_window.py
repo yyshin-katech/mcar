@@ -4,6 +4,7 @@
 import rospy
 import signal
 import os
+import re
 import subprocess
 import datetime
 from PyQt5.QtWidgets import *
@@ -13,7 +14,7 @@ from PyQt5.QtGui import *
 from std_msgs.msg import UInt8, Bool
 from katech_diagnostic_msgs.msg import *
 from katech_custom_msgs.msg import ioniq5_ad_can_msg, v_can_msg
-from mmc_msgs.msg import chassis_msg, to_control_team_from_local_msg
+from mmc_msgs.msg import chassis_msg, to_control_team_from_local_msg, gps_time_msg
 from v2x_msgs.msg import intersection_array_msg
 from perception_ros_msg.msg import object_array_msg
 
@@ -27,6 +28,7 @@ class MainDisplayWindow(QMainWindow):
     update_vehicle_signal = pyqtSignal()
     update_steering_signal = pyqtSignal(float)
     update_objects_signal = pyqtSignal(list)
+    update_planned_arc_signal = pyqtSignal(float, float, float)
     
     def __init__(self):
         super().__init__()
@@ -62,6 +64,22 @@ class MainDisplayWindow(QMainWindow):
         # bag 녹화 상태
         self.bag_process = None
         self.bag_recording = False
+        # 토글 OFF 시 녹화에서 제외할 LiDAR/인지 토픽 (용량 큰 토픽)
+        self.optional_record_topics = [
+            "/left/rslidar_packets_difop",
+            "/middle/rslidar_packets",
+            "/middle/rslidar_packets_difop",
+            "/percept_background_rviz",
+            "/percept_cluster_rviz",
+            "/percept_ground_rviz",
+            "/percept_non_ground_rviz",
+            "/percept_origin_rviz",
+            "/percept_sematic_rviz",
+            "/percept_topic",
+            "/perception_info_rviz",
+            "/perception_pre_known_rviz",
+            "/right/rslidar_packets_difop",
+        ]
         
         self.eps_status = 0
         self.traffic_light_color = 0
@@ -89,13 +107,26 @@ class MainDisplayWindow(QMainWindow):
         self.look_at_signal_group_id = 0
         self.traffic_light_color = 0   # 0=unknown, 1=green, 2=orange, 3=red
         self.traffic_light_time = 0
-        self.GPS_STD_WARN_M = 0.05  # 5cm 초과 시 정밀도 경고
+        self.GPS_STD_WARN_M = 0.05   # 5cm 초과 시 정밀도 경고
+        self.GPS_STD_ERROR_M = 0.15  # 15cm 초과 시 정밀도 고장
+        self.gps_time_str = "--:--:--"  # NavPVT(UTC)→KST 변환 시각 (CAN GPSTimestamp와 동일 소스)
 
         # UI 초기화
         self.init_ui()
         
-        # 지도 로딩
-        map_path = "/home/ads/mcar_v13/src/localization/gps_system_localizer/src/A2_LINK_epsg5179.shp"
+        # 지도 로딩 — 절대경로 하드코딩 대신 프로젝트(ROS 패키지) 경로 기준으로 해석
+        # (다른 PC/워크스페이스에 옮겨도 동작)
+        try:
+            import rospkg
+            map_path = os.path.join(
+                rospkg.RosPack().get_path('gps_system_localizer'),
+                'src', 'A2_LINK_epsg5179.shp')
+        except Exception:
+            # rospkg 미가용 시 이 파일 위치에서 프로젝트 루트 역산
+            map_path = os.path.abspath(os.path.join(
+                os.path.dirname(__file__), '..', '..', '..', '..',
+                'localization', 'gps_system_localizer', 'src',
+                'A2_LINK_epsg5179.shp'))
         if os.path.exists(map_path):
             self.vehicle_view.load_map(map_path)
             rospy.loginfo(f"Map loaded: {map_path}")
@@ -111,6 +142,7 @@ class MainDisplayWindow(QMainWindow):
         self.update_vehicle_signal.connect(self.update_vehicle_view)
         self.update_steering_signal.connect(self.vehicle_view.set_steering_angle)
         self.update_objects_signal.connect(self.vehicle_view.set_objects)
+        self.update_planned_arc_signal.connect(self.vehicle_view.set_planned_arc)
         
         # Ctrl+C 처리
         signal.signal(signal.SIGINT, self.signal_handler)
@@ -215,8 +247,35 @@ class MainDisplayWindow(QMainWindow):
         layout.addWidget(traffic_group)
 
         layout.addStretch()
+
+        # 주행경로(arc) 표출 On/Off 토글 (왼쪽 하단)
+        self.arc_toggle_button = QPushButton("주행경로 ON")
+        self.arc_toggle_button.setCheckable(True)
+        self.arc_toggle_button.setChecked(True)
+        self.arc_toggle_button.setMinimumHeight(44)
+        self.arc_toggle_button.setStyleSheet("""
+            QPushButton {
+                background-color: #3a3f47; color: #c8ccd2;
+                border: 2px solid #555; border-radius: 6px;
+                font-size: 15px; font-weight: bold;
+            }
+            QPushButton:checked {
+                background-color: #00b894; color: white;
+                border: 2px solid #00e6b4;
+            }
+        """)
+        # 초기 상태(setChecked) 반영 후 연결 → 생성 시 콜백이 vehicle_view 보다 먼저 호출되는 것 방지
+        self.arc_toggle_button.toggled.connect(self.on_arc_toggle)
+        layout.addWidget(self.arc_toggle_button)
+
         panel.setLayout(layout)
         return panel
+
+    def on_arc_toggle(self, checked):
+        """주행경로(arc) 표출 On/Off"""
+        self.arc_toggle_button.setText("주행경로 ON" if checked else "주행경로 OFF")
+        self.vehicle_view.set_arc_visible(checked)
+        self.vehicle_view.update()
     
     def create_mode_group(self):
         """모드 그룹 생성"""
@@ -490,9 +549,21 @@ class MainDisplayWindow(QMainWindow):
             }
         """)
 
+        self.gps_time_label = QLabel("GPS Time (KST): --:--:--")
+        self.gps_time_label.setStyleSheet("""
+            QLabel {
+                font-size: 16px;
+                font-weight: bold;
+                color: white;
+                background-color: transparent;
+                padding: 5px;
+            }
+        """)
+
         gps_layout.addWidget(self.lane_label)
         gps_layout.addWidget(self.gpsrtk_label)
         gps_layout.addWidget(self.gps_std_label)
+        gps_layout.addWidget(self.gps_time_label)
         gps_group.setLayout(gps_layout)
 
         return gps_group
@@ -594,10 +665,26 @@ class MainDisplayWindow(QMainWindow):
         """)
         self.bag_record_btn.clicked.connect(self.toggle_bag_recording)
 
+        # LiDAR/인지 토픽 포함 여부 토글 (ON: 같이 저장, OFF: 제외하고 저장)
+        self.lidar_topic_btn = QPushButton("LiDAR ON")
+        self.lidar_topic_btn.setCheckable(True)
+        self.lidar_topic_btn.setChecked(True)
+        self.lidar_topic_btn.setFixedSize(80, 28)
+        self.lidar_topic_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #6c757d; color: white; font-size: 12px;
+                font-weight: bold; border-radius: 4px; border: none;
+            }
+            QPushButton:checked { background-color: #28a745; }
+            QPushButton:hover { background-color: #5a6268; }
+        """)
+        self.lidar_topic_btn.toggled.connect(self.on_lidar_topic_toggle)
+
         self.bag_status_label = QLabel("Stopped")
         self.bag_status_label.setStyleSheet("color: #888; font-size: 11px; background: transparent;")
 
         btn_layout.addWidget(self.bag_record_btn)
+        btn_layout.addWidget(self.lidar_topic_btn)
         btn_layout.addWidget(self.bag_status_label)
         btn_layout.addStretch()
         bag_layout.addLayout(btn_layout)
@@ -610,6 +697,7 @@ class MainDisplayWindow(QMainWindow):
     def init_ros_subscribers(self):
         """ROS Subscriber 초기화"""
         rospy.Subscriber("/diagnostic/cpt7_gps", cpt7_gps_diagnostic_msg, self.gps_callback)
+        rospy.Subscriber("/localization/gps_time", gps_time_msg, self.gps_time_callback)
         rospy.Subscriber("/diagnostic/adcu", k_adcu_diagnostic_msg, self.adcu_callback)
         rospy.Subscriber("/diagnostic/lidar", lidar_diagnostic_msg, self.lidar_callback)
         rospy.Subscriber("/diagnostic/radar", radar_diagnostic_msg, self.radar_callback)
@@ -630,6 +718,21 @@ class MainDisplayWindow(QMainWindow):
         self.gps_rtk_code = msg.GPSRTK_StatCode
         self.gps_lon_std = msg.lon_std
         self.gps_lat_std = msg.lat_std
+
+    def gps_time_callback(self, msg):
+        # /localization/gps_time (gps_world_tf 발행) 의 UTC 분해값 → KST = UTC+9
+        # 콜백에서는 문자열만 계산해 저장하고, 라벨 갱신은 periodic_update(타이머)에서 처리
+        if not msg.valid:
+            self.gps_time_str = "--:--:--"
+            return
+        try:
+            utc = datetime.datetime(msg.year, msg.month, msg.day,
+                                    msg.hour, msg.minute, msg.second,
+                                    tzinfo=datetime.timezone.utc)
+            kst = utc + datetime.timedelta(hours=9)
+            self.gps_time_str = kst.strftime("%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            self.gps_time_str = "--:--:--"
 
     def adcu_callback(self, msg):
         self.diag_flags['adcu']['received'] = True
@@ -664,6 +767,7 @@ class MainDisplayWindow(QMainWindow):
         
     def ioniq5_ad_can_callback(self, msg):
         self.autonomous_mode = msg.autonomous_mode
+        self.update_planned_arc_signal.emit(msg.arc_len, msg.arc_kappa, msg.arc_ds)
 
     def v_can_callback(self, msg):
         self.update_steering_signal.emit(msg.steering_angle)
@@ -673,7 +777,9 @@ class MainDisplayWindow(QMainWindow):
         self.gear_status = msg.gear_status
 
     def chassis_callback(self, msg):
-        self.current_speed = getattr(msg, 'vehicle_speed', 0)
+        # 속도는 v_can 휠속도(v_can_callback)로만 구동한다.
+        # chassis_msg엔 vehicle_speed 필드가 없어 getattr가 0을 반환 → current_speed를
+        # 0으로 덮어써 v_can 값과 번갈아 표시되며 깜빡임/미표시가 발생했었음.
         self.aeb_flag = getattr(msg, 'AEB_flag', 0)
         
     def local_callback(self, msg):
@@ -762,9 +868,12 @@ class MainDisplayWindow(QMainWindow):
         # 메시지 수신 중 → StatCode 도메인 조건으로 warning 판정
         if name == 'gps':
             if self.gps_rtk_code < 2:
-                return 1  # No RTK or Float
-            if self.gps_lon_std > self.GPS_STD_WARN_M or self.gps_lat_std > self.GPS_STD_WARN_M:
-                return 1  # 정밀도 5cm 초과
+                return 2  # RTK Fixed 아님(No RTK/Float) → 고장
+            max_std = max(self.gps_lon_std, self.gps_lat_std)
+            if max_std > self.GPS_STD_ERROR_M:
+                return 2  # 정밀도 15cm 초과 → 고장
+            if max_std > self.GPS_STD_WARN_M:
+                return 1  # 정밀도 5cm 초과 → 경고
         elif name == 'lidar':
             if 1 in (self.lidar_center_code, self.lidar_right_code, self.lidar_left_code):
                 return 1
@@ -773,7 +882,7 @@ class MainDisplayWindow(QMainWindow):
                 return 1
         elif name == 'vcu':
             if self.vcu_stat_code == 1:
-                return 1
+                return 2  # VCU life_count 결손 = 장치 고장 → 에러
         elif name == 'ipc':
             if self.ipc_swc_code == 1:
                 return 1
@@ -873,6 +982,9 @@ class MainDisplayWindow(QMainWindow):
                 padding: 5px;
             }}
         """.format(color=std_color))
+
+        # GPS 시각 (KST)
+        self.gps_time_label.setText("GPS Time (KST): " + self.gps_time_str)
 
         # 센서 인디케이터 업데이트
         self.update_sensor_display()
@@ -996,6 +1108,9 @@ class MainDisplayWindow(QMainWindow):
         else:
             self.manual_button.setChecked(True)
 
+    def on_lidar_topic_toggle(self, checked):
+        self.lidar_topic_btn.setText("LiDAR ON" if checked else "LiDAR OFF")
+
     def toggle_bag_recording(self):
         if self.bag_recording:
             self.stop_bag_recording()
@@ -1011,12 +1126,17 @@ class MainDisplayWindow(QMainWindow):
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         prefix = os.path.join(bag_dir, timestamp)
 
-        self.bag_process = subprocess.Popen(
-            ["rosbag", "record", "-a", "--split", "--size=10240", "-o", prefix],
-            preexec_fn=os.setsid
-        )
+        cmd = ["rosbag", "record", "-a"]
+        # 토글 OFF면 LiDAR/인지 토픽을 제외 (-x 정규식). ON이면 전체(-a) 그대로 저장.
+        if not self.lidar_topic_btn.isChecked():
+            exclude_regex = "(" + "|".join(re.escape(t) + "$" for t in self.optional_record_topics) + ")"
+            cmd += ["-x", exclude_regex]
+        cmd += ["--split", "--size=10240", "-o", prefix]
+
+        self.bag_process = subprocess.Popen(cmd, preexec_fn=os.setsid)
         self.bag_recording = True
         self.bag_path_edit.setEnabled(False)
+        self.lidar_topic_btn.setEnabled(False)
         self.bag_record_btn.setText("STOP")
         self.bag_record_btn.setStyleSheet("""
             QPushButton {
@@ -1036,6 +1156,7 @@ class MainDisplayWindow(QMainWindow):
             self.bag_process = None
         self.bag_recording = False
         self.bag_path_edit.setEnabled(True)
+        self.lidar_topic_btn.setEnabled(True)
         self.bag_record_btn.setText("REC")
         self.bag_record_btn.setStyleSheet("""
             QPushButton {

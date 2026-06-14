@@ -24,6 +24,7 @@ uint8 lane_id
 float64 host_east   # global X [m]
 float64 host_north  # global Y [m]
 float64 host_yaw    # global yaw [rad]
+float64 host_altitude  # MSL altitude [m] (ublox hMSL)
 
 
 float64 station          # (s) station in current lane [m]

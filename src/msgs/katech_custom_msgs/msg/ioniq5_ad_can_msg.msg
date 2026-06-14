@@ -16,7 +16,15 @@ uint8 brain_life_count
 uint8 brain_status
 
 # AutonomousState (ID 16)
+uint8 autonomous_life_count
 uint8 operation_mode
 uint8 autonomous_mode
 uint16 error_code
 uint16 warning_code
+
+# from_Control (ID 512)
+float64 arc_len
+float64 arc_kappa
+float64 arc_ds
+uint8 AEB_flag
+uint8 LC_flag

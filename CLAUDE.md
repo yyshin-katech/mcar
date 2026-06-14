@@ -143,18 +143,24 @@ CAN readers → /sensors/* topics → diagnostic nodes → /diagnostic/* → sta
 
 로컬 메모리와 git 메모리를 항상 최신 상태로 유지해야 한다.
 
-- **로컬 메모리 (원본)**: `/home/ads/.claude/projects/-home-ads-mcar-v13/memory/`
-- **git 메모리 (동기화 대상)**: `/home/ads/mcar_v13/.claude/`
-- **대상 파일**: `MEMORY.md`, `can_package.md` (메모리 파일 추가 시 목록 갱신)
+- **로컬 메모리 (원본)**: `/home/yuyeong/.claude/projects/-home-yuyeong-mcar/memory/`
+- **git 메모리 (동기화 대상)**: `/home/yuyeong/mcar/.claude/`
+- **대상**: 로컬 메모리의 모든 `*.md` 파일. 단 git `.claude/`에는 다른 머신(katech NUC)의 큐레이션 메모리(`build-deps.md`, `can_channel_map.md`, `kvaser_driver_kernel.md`, `wifi_ax211.md`, `audio_setup.md`, `project_ioniq5_work.md`)도 함께 있으니 **덮어쓰지 말고 병합**한다. 파일명이 겹치는 건 `MEMORY.md` 뿐.
+- **MEMORY.md 병합 규칙**: git `MEMORY.md`는 큐레이션 프로젝트 개요 문서이고, 로컬 `MEMORY.md`는 불릿 인덱스다. 로컬 항목은 git `MEMORY.md`의 `### 개발 머신(WSL) auto-memory (yuyeong)` 소절에 반영한다 (로컬 인덱스를 git 문서로 통째 덮어쓰지 말 것).
 
 ### 커밋/푸시 시
 
-커밋 전 반드시 로컬 → git으로 최신 메모리 복사 후 함께 커밋:
+커밋 전 로컬 → git으로 최신 메모리 복사 후 함께 커밋 (`MEMORY.md`는 위 병합 규칙 적용):
 
 ```bash
-cp /home/ads/.claude/projects/-home-ads-mcar-v13/memory/MEMORY.md /home/ads/mcar_v13/.claude/
-cp /home/ads/.claude/projects/-home-ads-mcar-v13/memory/can_package.md /home/ads/mcar_v13/.claude/
-git add .claude/MEMORY.md .claude/can_package.md
+SRC=/home/yuyeong/.claude/projects/-home-yuyeong-mcar/memory
+# MEMORY.md 외 *.md 동기화 (큐레이션 메모리는 보존)
+for f in "$SRC"/*.md; do
+  [ "$(basename "$f")" = MEMORY.md ] && continue
+  cp "$f" /home/yuyeong/mcar/.claude/
+done
+# MEMORY.md 는 인덱스 항목을 git 문서의 WSL 소절에 수동 병합 후
+git add .claude/
 ```
 
 ### 새 대화 시작 시
@@ -162,8 +168,8 @@ git add .claude/MEMORY.md .claude/can_package.md
 git 메모리가 로컬보다 최신일 수 있으므로 (다른 환경에서 커밋된 경우) 비교 후 최신 버전으로 동기화:
 
 ```bash
-# 날짜 비교하여 최신 파일로 동기화
-diff /home/ads/.claude/projects/-home-ads-mcar-v13/memory/MEMORY.md /home/ads/mcar_v13/.claude/MEMORY.md
+# 개별 파일 날짜/내용 비교
+diff -rq /home/yuyeong/.claude/projects/-home-yuyeong-mcar/memory/ /home/yuyeong/mcar/.claude/
 ```
 
 - git 쪽이 최신이면: git → 로컬로 복사

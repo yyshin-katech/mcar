@@ -56,6 +56,8 @@ STAT_DISPLAY::STAT_DISPLAY()
     vcu_status = 2;
     cam_status = 2;
     ipc_status = 2;
+
+    last_spat_time_ = ros::Time(0);  // 첫 SPaT 수신 전까지 stale
 }
 
 STAT_DISPLAY::~STAT_DISPLAY()
@@ -65,6 +67,8 @@ STAT_DISPLAY::~STAT_DISPLAY()
 
 void STAT_DISPLAY::traffic_light_callback(const v2x_msgs::intersection_array_msg::ConstPtr& msg)
 {
+    last_spat_time_ = ros::Time::now();  // SPaT 수신 시각 기록 (staleness 판정용)
+
     uint16_t target_intersection_id = local_msg.look_at_IntersectionID;
     uint8_t target_signal_group_id = local_msg.look_at_signalGroupID;
     intersectionid = local_msg.look_at_IntersectionID;
@@ -269,18 +273,31 @@ void STAT_DISPLAY::GPS_Text_Gen()
 
     GPS_AliveCnt_Check(cpt7_msg.GPS_INS_AliveCnt);
 
-    if (gps_status == 1 || cpt7_msg.GPSRTK_StatCode < 2)
-    {   // 주황 warning (carrSoln: 0=No RTK, 1=Float)
-        state_color.r = 1;
-        state_color.g = 0.5;
+    // AliveCnt 단절이 아닐 때만 RTK/정밀도 조건으로 재판정
+    // (pyqt_hmi 기준과 동일: RTK Fixed 아님 또는 std>15cm → 고장, std>5cm → 경고)
+    if (gps_status == 0)
+    {
+        double max_std = (cpt7_msg.lon_std > cpt7_msg.lat_std) ? cpt7_msg.lon_std : cpt7_msg.lat_std;
+        if (cpt7_msg.GPSRTK_StatCode < 2)
+            gps_status = 2;  // RTK Fixed 아님(No RTK/Float) → 고장
+        else if (max_std > 0.15)
+            gps_status = 2;  // 정밀도 15cm 초과 → 고장
+        else if (max_std > 0.05)
+            gps_status = 1;  // 정밀도 5cm 초과 → 경고
+    }
+
+    if (gps_status == 0)
+    {   // 녹색 정상
+        state_color.r = 0;
+        state_color.g = 0.8;
         state_color.b = 0;
         state_color.a = 1;
         GPS_text.fg_color = state_color;
     }
-    else if (gps_status == 0)
-    {   //흰색 정상 
-        state_color.r = 0;
-        state_color.g = 0.8;
+    else if (gps_status == 1)
+    {   // 주황 warning
+        state_color.r = 1;
+        state_color.g = 0.5;
         state_color.b = 0;
         state_color.a = 1;
         GPS_text.fg_color = state_color;
@@ -620,22 +637,26 @@ void STAT_DISPLAY::V2X_Text_Gen()
     V2X_text.left = 20;
     V2X_text.top = 50+30+30+30;
 
-    V2X_AliveCnt_Check(v2x_msg.V2X_AliveCount);
+    // SPaT(/katri_v2x_node/katri_spat) 0.5s 이상 미수신 = 데이터 없음
+    bool spat_stale = (now - last_spat_time_).toSec() > 0.5;
+    // to_control_team: 현재 링크에서 신호등 정보가 필요한지 (look_at 값이 0이 아니면 필요)
+    bool tl_needed = (local_msg.look_at_signalGroupID != 0);
 
-    // v2x_status: AliveCount 기반 (0=정상, 2=노드 stale)
-    // V2X_StatCode: SPaT 콜백 기반 (0=정상, 1=SPaT 30틱 끊김)
-    // 노드 stale을 SPaT 끊김보다 심각도 높게 처리
-    if(v2x_status == 2)
-    {   // 빨강 error (노드 dead)
-        state_color.r = 1;
-        state_color.g = 0;
-        state_color.b = 0;
-        state_color.a = 1;
-        V2X_text.fg_color = state_color;
+    // 고장 판정: 신호등 정보가 필요한데 SPaT가 0.5s 안 들어오면 고장 → v2x_status=2 → TOR
+    // 신호등 불필요 구간의 SPaT 미수신은 고장 아님(데이터 없음 표시만)
+    if(tl_needed && spat_stale)
+    {
+        v2x_status = 2;
     }
-    else if(v2x_msg.V2X_StatCode == 1)
-    {   // 주황 warning (SPaT 끊김)
-        v2x_status = 1;
+    else
+    {
+        v2x_status = 0;
+    }
+
+    // 색상: SPaT 데이터 없음(또는 OBU ping 끊김)이면 주황, 정상 수신이면 초록
+    if(spat_stale || v2x_msg.V2X_StatCode == 1)
+    {   // 주황 warning (SPaT 데이터 없음 / OBU ping 끊김)
+        // v2x_status = 1;
         state_color.r = 1;
         state_color.g = 0.5;
         state_color.b = 0;
@@ -660,30 +681,6 @@ void STAT_DISPLAY::V2X_Text_Gen()
     v2x_pub.publish(V2X_text);
 
     katech_diag_msg.v2x_status = v2x_status;
-}
-
-void STAT_DISPLAY::V2X_AliveCnt_Check(uint8_t current_cnt)
-{
-    //ADCU AliveCount Check
-    current_v2x_cnt = current_cnt;
-    if(current_v2x_cnt == last_v2x_cnt)
-    {
-        unchanged_v2x_cnt++;
-    }
-    else
-    {
-        unchanged_v2x_cnt = 0;
-        last_v2x_cnt = current_v2x_cnt;
-    }
-
-    if(unchanged_v2x_cnt > 5)
-    {
-        v2x_status = 2;
-    }
-    else
-    {
-        v2x_status = 0;
-    }
 }
 
 void STAT_DISPLAY::HMI_Text_Gen()
@@ -1418,8 +1415,14 @@ void STAT_DISPLAY::GPS_STD_Text_Gen()
     GPS_STD_text.left = 20;
     GPS_STD_text.top = 380;
 
-    if (cpt7_msg.lon_std > 0.05 || cpt7_msg.lat_std > 0.05)
-    {   // 정밀도 나쁨: 주황
+    if (cpt7_msg.lon_std > 0.15 || cpt7_msg.lat_std > 0.15)
+    {   // 정밀도 고장: 빨강
+        state_color.r = 1.0;
+        state_color.g = 0.0;
+        state_color.b = 0.0;
+    }
+    else if (cpt7_msg.lon_std > 0.05 || cpt7_msg.lat_std > 0.05)
+    {   // 정밀도 경고: 주황
         state_color.r = 1.0;
         state_color.g = 0.5;
         state_color.b = 0.0;

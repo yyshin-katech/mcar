@@ -128,17 +128,17 @@ void KATRI_V2X::loop(void)
         msg1.time = ros::Time::now();
         for(i=0;i<5;i++)
         {
-            intersection_data.IntersectionID = sig_SPaT[i].Intersection_id;
-            str_msg.data = sig_SPaT[i].movementName[0];
+            intersection_data.IntersectionID = static_cast<uint16_t>(sig_SPaT[i].Intersection_id);
+            char buf[6] = {0};
+            memcpy(buf, sig_SPaT[i].movementName, 5);
+            str_msg.data = std::string(buf);
             intersection_data.Movements.MovementStateName = str_msg.data;
-            
-            intersection_data.Movements.SignalGroupID = sig_SPaT[i].signalGroup;
-            intersection_data.Movements.MovementPhaseStatus = sig_SPaT[i].eventState;
-            intersection_data.Movements.TimeChangeDetails = sig_SPaT[i].minEndTime;
+
+            intersection_data.Movements.SignalGroupID = static_cast<uint8_t>(sig_SPaT[i].signalGroup);
+            intersection_data.Movements.MovementPhaseStatus = static_cast<uint8_t>(sig_SPaT[i].eventState);
+            intersection_data.Movements.TimeChangeDetails = static_cast<int32_t>(sig_SPaT[i].minEndTime);
             
             msg1.data.push_back(intersection_data);
-
-            memset(&intersection_data, 0, sizeof(intersection_data));
         }
         
         

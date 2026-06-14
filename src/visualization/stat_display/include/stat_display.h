@@ -103,7 +103,7 @@ class STAT_DISPLAY{
         uint8_t lidar_status;
         uint8_t current_radar_cnt, last_radar_cnt, unchanged_radar_cnt;
         uint8_t radar_status;
-        uint8_t current_v2x_cnt, last_v2x_cnt, unchanged_v2x_cnt;
+        ros::Time last_spat_time_;   // 마지막 SPaT 수신 시각 (staleness 판정용)
         uint8_t v2x_status;
         uint8_t current_hmi_cnt, last_hmi_cnt, unchanged_hmi_cnt;
         uint8_t hmi_status;
@@ -178,7 +178,6 @@ class STAT_DISPLAY{
         void RADAR_AliveCnt_Check(uint8_t current_cnt);        
 
         void V2X_Text_Gen();
-        void V2X_AliveCnt_Check(uint8_t current_cnt);
 
         void HMI_Text_Gen();
         void HMI_AliveCnt_Check(uint8_t current_cnt);

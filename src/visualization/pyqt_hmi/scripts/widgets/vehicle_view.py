@@ -23,7 +23,11 @@ class VehicleViewWidget(QWidget):
         
         # 오브젝트 리스트
         self.objects = []
-        
+
+        # 계획 경로(arc): from_Control arc_len/arc_kappa/arc_ds
+        self.planned_arc = None  # (arc_len, arc_kappa, arc_ds)
+        self.arc_visible = True   # 주행경로(arc) 표출 On/Off
+
         # 스티어링 각도 (deg)
         self.steering_angle = 0.0
 
@@ -53,7 +57,13 @@ class VehicleViewWidget(QWidget):
 
     def set_objects(self, objects):
         self.objects = objects
-        
+
+    def set_planned_arc(self, arc_len, arc_kappa, arc_ds):
+        self.planned_arc = (arc_len, arc_kappa, arc_ds)
+
+    def set_arc_visible(self, on):
+        self.arc_visible = bool(on)
+
     def rotate_point(self, x, y, angle):
         """Rotate point by angle around origin"""
         cos_angle = math.cos(angle)
@@ -98,6 +108,9 @@ class VehicleViewWidget(QWidget):
         
         # 지도 그리기
         self.draw_map(painter)
+
+        # 계획 경로(arc) 그리기
+        self.draw_planned_arc(painter, center_x, center_y)
 
         # 자차 그리기
         self.draw_ego_vehicle(painter, center_x, center_y)
@@ -171,6 +184,41 @@ class VehicleViewWidget(QWidget):
 
             if valid_points >= 2:
                 painter.drawPath(path)
+
+    def draw_planned_arc(self, painter, cx, cy):
+        """계획 경로(arc) 그리기 - body frame(전방 x=위, 좌측 y+=왼쪽)"""
+        if not self.arc_visible or self.planned_arc is None:
+            return
+        arc_len, arc_kappa, arc_ds = self.planned_arc
+        if arc_len <= 0:
+            return
+
+        if arc_ds <= 0:
+            arc_ds = 0.5
+        n = int(round(arc_len / arc_ds)) + 1
+        n = max(2, min(400, n))
+
+        k = arc_kappa
+        path = QPainterPath()
+        for i in range(n):
+            s = arc_len * i / (n - 1)
+            if abs(k) < 1e-4:
+                x = s
+                y = 0.0
+            else:
+                x = math.sin(k * s) / k
+                y = (1.0 - math.cos(k * s)) / k
+            # body → 화면: 전방 x=위쪽, 좌측 y(+)=왼쪽 (draw_objects와 동일 규약)
+            screen_x = cx - y * self.scale
+            screen_y = cy - x * self.scale
+            if i == 0:
+                path.moveTo(screen_x, screen_y)
+            else:
+                path.lineTo(screen_x, screen_y)
+
+        painter.setPen(QPen(QColor(0, 230, 180), 3))
+        painter.setBrush(Qt.NoBrush)
+        painter.drawPath(path)
 
     def is_point_out_of_view(self, x, y, margin=0):
         """화면 밖 여부 확인"""
@@ -395,14 +443,22 @@ class VehicleViewWidget(QWidget):
         painter.drawText(x - 5, cy + r_outer + 18, f"Steer: {self.steering_angle:.1f}")
 
     def wheelEvent(self, event):
-        """마우스 휠로 줌 조정"""
+        """마우스 휠로 줌 조정 (창이 활성 + 커서가 위젯 위일 때만)"""
+        # WSLg/XWayland 는 wheel 을 키보드 포커스가 아닌 커서 위치 기준으로
+        # 전달해, 다른 창을 선택(Ctrl+Tab)해도 커서가 이 위에 있으면 줌이 먹는다.
+        # pyqt 창이 활성일 때만 줌 처리하고 그 외에는 이벤트를 넘긴다.
+        if not self.isActiveWindow():
+            event.ignore()
+            return
+
         delta = event.angleDelta().y()
         zoom_factor = 1.2
-        
+
         if delta > 0:
             self.scale /= zoom_factor
         else:
             self.scale *= zoom_factor
-        
+
         self.scale = max(1.0, min(50.0, self.scale))
         self.update()
+        event.accept()

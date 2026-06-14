@@ -27,7 +27,7 @@ from utils_cython import find_closest, compute_current_lane, xy2frenet_with_clos
 MAPFILE_PATH = rospy.get_param('MAPFILE_PATH')
 # MAPFILE_PATH = '/home/katech/mcar_v13/src/localization/gps_system_localizer/mapfiles/K_CITY_20251106'
 MIN_LANE_ID = 1
-MAX_LANE_ID = 79
+MAX_LANE_ID = 85
 
 ODD_CNT_THRESHOLD = 200
 ODD_OCCUPIED_OFFSET_THRESHOLD = 2.0
@@ -140,6 +140,30 @@ class DistanceCalculator(object):
                     #     min_abs_d = abs(d)
                     #     current_closest_waypoint_index = closest_waypoint
                             
+            # ── 겹침 구간 처리 (78·82 끝부분이 79·83과 물리적으로 겹침) ──
+            # 78/82는 끝부분(s≈27, 36~37m)에서 79, 83과 물리적으로 겹쳐, min-|d| 매처가
+            # 그 지점에서 79/83을 골라 78/82가 끝나기 전에 조기 전환(링크 번호 튐)된다.
+            # 직전 링크가 78/82이고 현재 79/83으로 매칭됐는데 직전 링크가 아직 유효 후보
+            # (끝 도달 전)면 직전 링크를 유지하여 링크 순서를 보장한다.
+            if current_lane_id >= 0 and self.old_lane_id in (78, 82) \
+                    and self.target_roads[current_lane_id]['LINK_ID'][0][0] in (79, 83):
+                # 유지 대상은 직전 링크(78 또는 82). 배열상 인접 보장이 없으므로 LINK_ID로 직접 찾는다
+                keep_link = self.old_lane_id
+                idx_keep = next((k for k in range(len(self.target_roads))
+                                 if self.target_roads[k]['LINK_ID'][0][0] == keep_link), -1)
+                if idx_keep >= 0 and distances[idx_keep] <= 3.0:
+                    maps_keep = self.target_roads[idx_keep]['station'][0]
+                    s_keep, d_keep = xy2frenet_with_closest_waypoint(
+                        e, n, indexs[idx_keep],
+                        self.target_roads[idx_keep]['east'][0],
+                        self.target_roads[idx_keep]['north'][0],
+                        maps_keep)
+                    if s_keep < maps_keep[-1]:  # 직전 링크 아직 안 끝남 → 유지
+                        current_lane_id = idx_keep
+                        current_s = s_keep
+                        current_d = d_keep
+                        current_closest_waypoint_index = indexs[idx_keep]
+
             ''' 가장 최근에 지난 waypoint index 던져주기'''
             if current_closest_waypoint_index > 0:
                 # matlab은 index가 1부터 시작하는 것에 조심하기
@@ -212,6 +236,7 @@ class DistanceCalculator(object):
         # n = 1916057.58
         yaw = msg.yaw
         # yaw = 1.2
+        alt = msg.altitude
 
         current_lane_id, current_lane_name, distance_to_entry_end, distance_to_exit_start, current_s, current_d, current_closest_waypoint_in_MATLAB = self.compute_my_lane_cy(e, n)
 
@@ -229,10 +254,6 @@ class DistanceCalculator(object):
         p.left_LaneChange_avail = self.target_roads[current_lane_id]['left_LaneChange_avail'][0][0]
         p.right_LaneChange_avail = self.target_roads[current_lane_id]['right_LaneChange_avail'][0][0]
         p.Speed_Limit = self.target_roads[current_lane_id]['Speed_Limit'][0][0]
-
-        if p.LINK_ID == 79 and p.waypoint_index > 87:
-            if self.old_lane_id == 78:
-                p.LINK_ID = 78
 
         p.distance_to_lane_end = self.target_roads[current_lane_id]['station'][0][-1] - current_s
 
@@ -356,8 +377,7 @@ class DistanceCalculator(object):
             p.yaw_error_size = yaw_error_size
 
             # # 현재 주행할 경로쪽으로 방향이 제대로 맞으면 오토모드 송출 아니면, 수동모드 송출 ##
-            # 자율주행 모드(ad_mode==1)일 때는 yaw 검사 skip (회전 중 오탈 방지)
-            if p.On_ODD == 0 and p.Road_State == 0 and self.ad_mode != 1:
+            if p.On_ODD == 0 and p.Road_State == 0:
                 if p.LINK_ID == 52 and p.distance_to_lane_end < 60.0:
                     p.Speed_Limit = 15
                     p.On_ODD = 0
@@ -365,7 +385,8 @@ class DistanceCalculator(object):
                 elif p.LINK_ID in [61, 34, 35, 36, 37, 53, 54, 55, 67, 68, 73]:
                     p.On_ODD = 1
                     p.Road_State = 2
-                else:
+                # 자율주행 모드(ad_mode==1)일 때는 yaw 검사 skip (회전 중 오탈 방지)
+                elif self.ad_mode != 1:
                     if yaw_error_size < ODD_YAW_ERR_THRESHOLD:
                         # rospy.loginfo("On ODD")
                         p.Wrong_Way_Warn = 0
@@ -386,6 +407,7 @@ class DistanceCalculator(object):
         p.host_east = e
         p.host_north = n
         p.host_yaw = yaw  # radian
+        p.host_altitude = alt  # MSL [m]
         p.waypoint_index = current_closest_waypoint_in_MATLAB
         p.station = current_s
         p.lateral_offset = current_d
@@ -402,15 +424,23 @@ class DistanceCalculator(object):
         elif p.LINK_ID == 38:
             p.Speed_Limit = 30
         else:
-            p.Speed_Limit = 15
+            p.Speed_Limit = 30
 
-        # speed limit 
-        if p.LINK_ID in [5, 8, 12, 15, 18, 24, 28, 58, 60, 63]:
-            p.Speed_Limit = 15
+        # 19번 링크: 정지선을 1로 전송하고, 남은거리 = 19번 남은거리 + 20번 링크 길이
+        # (교차로/시그널그룹 1300/3은 19번 맵에 이미 입력돼 있어 별도 전달 불필요)
+        if p.LINK_ID == 19:
+            p.is_stop_line = 1
+            p.distance_to_lane_end = p.distance_to_lane_end + (self.road_20['station'][0][-1] - self.road_20['station'][0][0])
 
         if p.LINK_ID == 20:
             p.look_at_signalGroupID = 3
             p.look_at_IntersectionID = 1300
+
+        # 22번 링크: 정지선을 1로 전송하고, 남은거리 = 22번 남은거리 + 23번 링크 길이
+        # (교차로/시그널그룹 700/4는 22번 맵에 이미 있어 별도 전달 불필요)
+        if p.LINK_ID == 22:
+            p.is_stop_line = 1
+            p.distance_to_lane_end = p.distance_to_lane_end + (self.road_23['station'][0][-1] - self.road_23['station'][0][0])
 
         if p.LINK_ID in [4, 48, 49, 50, 51]:
             p.NEXT_LINK_ID = 0
@@ -419,9 +449,6 @@ class DistanceCalculator(object):
             p.On_ODD = 0
             p.Road_State = 1
         
-        if p.LINK_ID in [12, 65, 76, 77, 78, 79]:
-            p.Speed_Limit = 10
-
         # if p.LINK_ID in [49, 50, 51]:
         #     p.have_to_LangeChange_right = 1
         

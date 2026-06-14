@@ -3,4 +3,11 @@
   <node name="pyqt_hmi" pkg="pyqt_hmi" type="main_display.py" output="screen">
     <env name="PYTHONPATH" value="$(find pyqt_hmi)/scripts:$(env PYTHONPATH)" />
   </node>
+
+  <!-- 블랙박스: Take_Over_Request 트리거 시 [이전 10s, 이후 2s] 자동 저장 (자율주행 ON 한정) -->
+  <node name="blackbox_recorder" pkg="pyqt_hmi" type="blackbox_recorder.py" output="screen">
+    <param name="pre_seconds"  value="10.0" />
+    <param name="post_seconds" value="2.0" />
+    <param name="output_dir"   value="~/bag_data/blackbox" />
+  </node>
 </launch>

@@ -18,7 +18,7 @@
 #include <std_msgs/String.h>
 
 #include <katech_diagnostic_msgs/vcu_diagnostic_msg.h>
-#include <katech_custom_msgs/v_can_msg.h>
+#include <katech_custom_msgs/ioniq5_ad_can_msg.h>
 
 class VCU_DIAGNOSTIC_PUB
 {
@@ -36,11 +36,13 @@ class VCU_DIAGNOSTIC_PUB
 
         katech_diagnostic_msgs::vcu_diagnostic_msg vcu_msg;
 
+        // AutonomousState(ID 16) life_count staleness + error_code 로 VCU 고장 판정
         uint8_t life_count_cur, life_count_old;
-        bool msg_received;
+        ros::Time last_change_time;
+        uint16_t error_code_cur;
 
         void timer_callback(const ros::TimerEvent&);
-        void vcu_callback(const katech_custom_msgs::v_can_msg::ConstPtr& msg);
+        void vcu_callback(const katech_custom_msgs::ioniq5_ad_can_msg::ConstPtr& msg);
 };
 
 #endif

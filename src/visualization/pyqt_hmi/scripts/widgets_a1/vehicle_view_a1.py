@@ -11,7 +11,7 @@ from PyQt5.QtCore import Qt, QPointF, QRectF
 from PyQt5.QtGui import (QBrush, QColor, QFont, QLinearGradient, QPainter,
                          QPainterPath, QPen, QTransform)
 
-from utils.theme import (AMBER_0, BG_0, TEXT_3, mono_font)
+from utils.theme import (AMBER_0, BG_0, GREEN, TEXT_3, mono_font)
 from widgets.vehicle_view import VehicleViewWidget
 
 
@@ -30,6 +30,17 @@ class VehicleViewA1(VehicleViewWidget):
         palette = self.palette()
         palette.setColor(self.backgroundRole(), BG_0)
         self.setPalette(palette)
+
+        # planned arc (from_Control) — independent of parent impl
+        self._arc_len = 0.0
+        self._arc_kappa = 0.0
+        self._arc_ds = 0.0
+
+    # ─── planned arc slot (from_Control) ─────────────────────────
+    def set_planned_arc(self, arc_len, arc_kappa, arc_ds):
+        self._arc_len = arc_len
+        self._arc_kappa = arc_kappa
+        self._arc_ds = arc_ds
 
     # ─── paintEvent: world tilted, HUD upright ───
     def paintEvent(self, _event):
@@ -52,6 +63,7 @@ class VehicleViewA1(VehicleViewWidget):
         self._draw_rings(p, cx, cy)
         self._draw_detection_cones(p, cx, cy)
         self.draw_map(p)
+        self.draw_planned_arc(p, cx, cy)
         self.draw_objects(p, cx, cy)
         self._draw_ego_a1(p, cx, cy)
         p.restore()
@@ -68,6 +80,40 @@ class VehicleViewA1(VehicleViewWidget):
 
         # steering icon bottom-left
         self.draw_steering_icon(p, 10, self.height() - 140)
+
+    # ─── planned arc (from_Control) ──────────────────────────────
+    def draw_planned_arc(self, p, cx, cy):
+        if self._arc_len <= 0:
+            return
+
+        arc_ds = self._arc_ds if self._arc_ds > 0 else 0.5
+        n = int(round(self._arc_len / arc_ds)) + 1
+        n = max(2, min(400, n))
+        k = self._arc_kappa
+
+        path = QPainterPath()
+        for i in range(n):
+            s = self._arc_len * i / (n - 1)
+            if abs(k) < 1e-4:
+                fwd = s        # x: forward [m]
+                lft = 0.0      # y: left(+) [m]
+            else:
+                fwd = math.sin(k * s) / k
+                lft = (1.0 - math.cos(k * s)) / k
+            # ego frame → screen (same mapping as draw_objects):
+            # forward(x)=up, left(y)=screen-left
+            sx = cx - lft * self.scale
+            sy = cy - fwd * self.scale
+            if i == 0:
+                path.moveTo(sx, sy)
+            else:
+                path.lineTo(sx, sy)
+
+        p.save()
+        p.setBrush(Qt.NoBrush)
+        p.setPen(QPen(GREEN, 2.5, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+        p.drawPath(path)
+        p.restore()
 
     # ─── A-1 range rings (replaces draw_grid) ────────────────────
     def _draw_rings(self, p, cx, cy):

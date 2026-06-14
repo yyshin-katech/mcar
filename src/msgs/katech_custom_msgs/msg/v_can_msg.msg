@@ -1,24 +1,26 @@
-# life_count (from any V_CAN message)
-uint8 life_count
-
 # GearInfo (ID 117)
+uint8 life_count_gearinfo
 uint8 gear_status
 
 # TurnSignalInfo (ID 116)
+uint8 life_count_turnsignalinfo
 uint8 turn_signal_status
 
 # LongitudinalInfo (ID 115)
+uint8 life_count_longitudinalinfo
 float64 motor_rpm
 float64 acceleration_pedal_pos
 float64 brake_pedal_pos
 float64 brake_pressure
 
 # SteeringInfo (ID 114)
+uint8 life_count_steeringinfo
 float64 steering_angle
 float64 steering_torque
 float64 steering_angle_rate
 
 # WheelInfo (ID 113, CAN FD)
+uint8 life_count_wheelinfo
 uint8 wheel_dir_fl
 uint8 wheel_dir_fr
 uint8 wheel_dir_rl
@@ -33,6 +35,7 @@ float64 wheel_speed_rl
 float64 wheel_speed_rr
 
 # DynamicInfo (ID 112, CAN FD)
+uint8 life_count_dynamicinfo
 float64 long_acceleration
 float64 lat_acceleration
 float64 roll_rate
