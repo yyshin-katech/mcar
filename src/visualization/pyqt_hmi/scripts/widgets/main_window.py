@@ -1097,6 +1097,12 @@ class MainDisplayWindow(QMainWindow):
         elif abnormal_count >= 2:
             popup_text = " 시스템 고장 (" + str(abnormal_count) + "개 시스템 오류)"
             popup_color = "rgba(200, 30, 30, 220)"
+        elif self.link_id == 61:
+            popup_text = "어린이 보호구역입니다! 주의하세요!"
+            popup_color = "rgba(200, 140, 0, 220)"
+        elif self.link_id in (59, 60):
+            popup_text = "잠시 후 어린이 보호구역입니다"
+            popup_color = "rgba(200, 140, 0, 220)"
         elif self.road_state == 1:
             popup_text = "전방 ODD 이탈 경고"
             popup_color = "rgba(200, 140, 0, 220)"

@@ -1052,12 +1052,21 @@ void STAT_DISPLAY::system_status_check()
        this->sound_play("ADS");
     }
     else if (local_msg.LINK_ID == 61)
-    {   // 링크 61: ODD 이탈 경고 대신 어린이 보호구역 안내 (ODD 이탈 사운드)
-        oss << "어린이 보호구역";
+    {   // 링크 61: 어린이 보호구역 진입 — 경고 팝업 + guardzonewarnning.mp3 반복
+        oss << "어린이 보호구역입니다! 주의하세요!";
 
         std::string str = oss.str();
 
-        this->sound_play("outofODD");
+        this->sound_play("GUARDZONE");
+        this->POPUP_Text_Gen(str);
+    }
+    else if (local_msg.LINK_ID == 59 || local_msg.LINK_ID == 60)
+    {   // 링크 59/60: 어린이 보호구역 전방 안내 + nexttoguardzone.mp3 반복
+        oss << "잠시 후 어린이 보호구역입니다";
+
+        std::string str = oss.str();
+
+        this->sound_play("NEXTGUARDZONE");
         this->POPUP_Text_Gen(str);
     }
     else if (local_msg.Road_State == 1)
@@ -1119,6 +1128,8 @@ void STAT_DISPLAY::sound_play(const std::string& sensor_name)
     else if (sensor_name == "IPC") path = base_path + "percept_warning.mp3";
     else if (sensor_name == "AEB") path = base_path + "aeb_warning.mp3";
     else if (sensor_name == "outofODD") path = base_path + "outofodd.mp3";
+    else if (sensor_name == "GUARDZONE") path = base_path + "guardzonewarnning.mp3";
+    else if (sensor_name == "NEXTGUARDZONE") path = base_path + "nexttoguardzone.mp3";
     else path = base_path + "ad_system_warning.mp3";  // fallback
 
     sound_msg.arg = path;
