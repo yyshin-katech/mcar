@@ -1223,6 +1223,11 @@ void STAT_DISPLAY::MODE_Text_Gen()
     // vcu_EPS_Status 값에 따라 텍스트 결정
     int8_t cur_auto_mode = (lo_chassis_msg.vcu_EPS_Status == 2) ? 1 : 0;
 
+    // VCU 고장 시 AD CAN 자율주행모드 메시지가 끊겨 EPS 상태가 마지막 값에
+    // 멈춘다 → 자율→수동 전환으로 간주하여 강제 MANUAL. 아래 전환음 로직이
+    // 1→0 전환을 감지해 changetodriver.mp3 를 1회 재생한다.
+    if(vcu_status != 0) cur_auto_mode = 0;
+
     // 모드 전환음 (각 1회): 수동→자율 changetosystem, 자율→수동 changetodriver
     if(prev_auto_mode != -1 && cur_auto_mode != prev_auto_mode)
     {

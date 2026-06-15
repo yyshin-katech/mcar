@@ -923,7 +923,9 @@ class MainDisplayWindow(QMainWindow):
         mode_msg.data = self.selected_mode
         self.mode_command_pub.publish(mode_msg)
         
-        if self.autonomous_mode == 1:
+        # VCU 고장 시 AD CAN 자율주행모드 메시지가 끊겨 autonomous_mode가
+        # 마지막 값에 멈춘다 → 자율→수동 전환으로 간주하여 Manual로 표시.
+        if self.autonomous_mode == 1 and self.vcu_status == 0:
             self.mode_display_label.setText("Autonomous")
             self.mode_display_label.setStyleSheet("""
                 QLabel {
