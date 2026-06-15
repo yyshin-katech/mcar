@@ -28,3 +28,7 @@ float64 arc_kappa
 float64 arc_ds
 uint8 AEB_flag
 uint8 LC_flag
+
+# TimeRangeSetting (ID 514) — override 시계 anchor (KST 시:분). 0/0=override 없음
+uint8 time_range_hour
+uint8 time_range_minute

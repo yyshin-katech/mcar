@@ -18,6 +18,8 @@ import pyproj
 from katech_diagnostic_msgs.msg import katech_diagnostic_msg
 from mmc_msgs.msg import localization2D_msg, to_control_team_from_local_msg, chassis_msg
 from sensor_msgs.msg import NavSatFix
+from ublox_msgs.msg import NavPVT
+from katech_custom_msgs.msg import ioniq5_ad_can_msg
 from utils import distance2curve
 
 from utils_cython import find_closest, compute_current_lane, xy2frenet_with_closest_waypoint_loop, xy2frenet_with_closest_waypoint
@@ -32,6 +34,12 @@ MAX_LANE_ID = 85
 ODD_CNT_THRESHOLD = 200
 ODD_OCCUPIED_OFFSET_THRESHOLD = 2.0
 ODD_YAW_ERR_THRESHOLD = np.deg2rad(50)
+
+# 안전 취약시간대 (KST, [시작,끝) — 시작 포함, 끝 미포함)
+VULNERABLE_WINDOWS = [(7*3600 + 30*60, 9*3600),      # 07:30 ~ 09:00
+                      (13*3600,        17*3600)]     # 13:00 ~ 17:00
+SCHOOL_ZONE_LINK_ID = 61
+SCHOOL_ZONE_SPEED_LIMIT = 20  # km/h
 
 class DistanceCalculator(object):
     def __init__(self):
@@ -68,13 +76,26 @@ class DistanceCalculator(object):
         self.occupied_count = 0
         self.previous_index = np.zeros((4,), dtype=np.int32)
 
+        # ─ effective time (KST) 상태 ─
+        # navpvt
+        self.gps_kst_seconds = None      # 자정기준 초 (0~86399), None=미수신/무효
+        self.gps_time_valid = False
+        # TimeRangeSetting override (free-run)
+        self.last_tr_hour = 0
+        self.last_tr_minute = 0
+        self.override_active = False
+        self.override_anchor_seconds = None   # 자정기준 초
+        self.override_anchor_walltime = None  # rospy.Time
+
     def set_subscriber(self):
         # localization 정보 들어오면 바로 control team에 필요한 메세지 publish
         # callback 안에 publish 명령어까지 같이 들어있음
         rospy.Subscriber('/localization/pose_2d_gps', localization2D_msg, self.pose_2d_cb, queue_size=1)
         rospy.Subscriber('/diagnostic/system', katech_diagnostic_msg, self.diag_cb, queue_size=1)
         rospy.Subscriber('/sensors/chassis', chassis_msg, self.chasis_cb, queue_size=1)
-        
+        rospy.Subscriber('/ublox/navpvt', NavPVT, self.navpvt_cb, queue_size=1)
+        rospy.Subscriber('/sensors/ioniq5_ad_can', ioniq5_ad_can_msg, self.time_range_cb, queue_size=1)
+
     def set_publisher(self):
         self.to_control_team_pub = rospy.Publisher('/localization/to_control_team', to_control_team_from_local_msg, queue_size=1)
 
@@ -191,6 +212,51 @@ class DistanceCalculator(object):
     def chasis_cb(self, msg):
         self.LC_flag = msg.LC_flag
         self.ad_mode = msg.vcu_ADMDStatus  # 0=Manual, 1=Autonomous
+
+    def navpvt_cb(self, msg):
+        # NavPVT: UTC 분해값. VALID_DATE|VALID_TIME 확인 후 KST(UTC+9) 자정기준 초로 보관.
+        valid = bool(msg.valid & (NavPVT.VALID_DATE | NavPVT.VALID_TIME))
+        if not valid:
+            self.gps_time_valid = False
+            return
+        utc_sec = msg.hour * 3600 + msg.min * 60 + msg.sec
+        self.gps_kst_seconds = (utc_sec + 9 * 3600) % 86400  # KST = UTC+9
+        self.gps_time_valid = True
+
+    def time_range_cb(self, msg):
+        # TimeRangeSetting (ioniq5_ad_can) → free-run override 시계 anchor.
+        # 0/0 → override 비활성(GPS 실시간). 비0 → 전이 시 anchor 갱신.
+        cur = (int(msg.time_range_hour), int(msg.time_range_minute))
+        if cur == (0, 0):
+            self.override_active = False
+        else:
+            if cur != (self.last_tr_hour, self.last_tr_minute):
+                # 전이: anchor 재설정 (이 시:분으로 점프 후 실경과만큼 흐름)
+                self.override_anchor_seconds = cur[0] * 3600 + cur[1] * 60
+                self.override_anchor_walltime = rospy.Time.now()
+            self.override_active = True
+        self.last_tr_hour, self.last_tr_minute = cur
+
+    def compute_effective_seconds(self):
+        # 반환: (eff_seconds 또는 None, time_source)
+        #   override 활성 → free-run, time_source=1
+        #   아니면 GPS 실시간(유효 시) → time_source=0
+        #   GPS 무효/미수신이고 override 도 없으면 → (None, 0)  [안전: 미적용]
+        if self.override_active and self.override_anchor_seconds is not None:
+            elapsed = (rospy.Time.now() - self.override_anchor_walltime).to_sec()
+            eff = (self.override_anchor_seconds + int(elapsed)) % 86400
+            return eff, 1
+        if self.gps_time_valid and self.gps_kst_seconds is not None:
+            return self.gps_kst_seconds, 0
+        return None, 0
+
+    def in_vulnerable_window(self, eff_seconds):
+        if eff_seconds is None:
+            return False  # 시각 미확정 → 취약시간대 미적용(안전)
+        for start, end in VULNERABLE_WINDOWS:
+            if start <= eff_seconds < end:   # [시작, 끝)
+                return True
+        return False
 
     def diag_cb(self, msg):
         statuses = [
@@ -516,6 +582,21 @@ class DistanceCalculator(object):
             p.Take_Over_Request = 1
         else:
             p.Take_Over_Request = 0
+
+        # ─ 안전 취약시간대(KST) → 어린이보호구역(링크61) 속도 20 ─
+        eff_seconds, time_source = self.compute_effective_seconds()
+        vulnerable = self.in_vulnerable_window(eff_seconds)
+        if p.LINK_ID == SCHOOL_ZONE_LINK_ID and vulnerable:
+            p.Speed_Limit = SCHOOL_ZONE_SPEED_LIMIT   # 20
+        # effective time 발행 (HMI 표시용)
+        if eff_seconds is None:
+            p.effective_hour = 0
+            p.effective_minute = 0
+        else:
+            p.effective_hour = (eff_seconds // 3600) % 24
+            p.effective_minute = (eff_seconds % 3600) // 60
+        p.safety_vulnerable_time = 1 if vulnerable else 0
+        p.time_source = time_source
 
         self.to_control_team_pub.publish(p)
 

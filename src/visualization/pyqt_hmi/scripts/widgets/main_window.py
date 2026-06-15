@@ -110,6 +110,10 @@ class MainDisplayWindow(QMainWindow):
         self.GPS_STD_WARN_M = 0.05   # 5cm 초과 시 정밀도 경고
         self.GPS_STD_ERROR_M = 0.15  # 15cm 초과 시 정밀도 고장
         self.gps_time_str = "--:--:--"  # NavPVT(UTC)→KST 변환 시각 (CAN GPSTimestamp와 동일 소스)
+        self.effective_hour = 0          # to_control_team effective time (KST)
+        self.effective_minute = 0
+        self.safety_vulnerable_time = 0  # 0/1
+        self.time_source = 0             # 0=GPS, 1=override
 
         # UI 초기화
         self.init_ui()
@@ -560,10 +564,22 @@ class MainDisplayWindow(QMainWindow):
             }
         """)
 
+        self.effective_time_label = QLabel("Eff Time (KST): --:--")
+        self.effective_time_label.setStyleSheet("""
+            QLabel {
+                font-size: 16px;
+                font-weight: bold;
+                color: white;
+                background-color: transparent;
+                padding: 5px;
+            }
+        """)
+
         gps_layout.addWidget(self.lane_label)
         gps_layout.addWidget(self.gpsrtk_label)
         gps_layout.addWidget(self.gps_std_label)
         gps_layout.addWidget(self.gps_time_label)
+        gps_layout.addWidget(self.effective_time_label)
         gps_group.setLayout(gps_layout)
 
         return gps_group
@@ -790,6 +806,10 @@ class MainDisplayWindow(QMainWindow):
         self.link_id = msg.LINK_ID
         self.look_at_intersection_id = msg.look_at_IntersectionID
         self.look_at_signal_group_id = msg.look_at_signalGroupID
+        self.effective_hour = msg.effective_hour
+        self.effective_minute = msg.effective_minute
+        self.safety_vulnerable_time = msg.safety_vulnerable_time
+        self.time_source = msg.time_source
         self.update_sensors_signal.emit()
 
         ego_x = msg.host_east
@@ -985,6 +1005,29 @@ class MainDisplayWindow(QMainWindow):
 
         # GPS 시각 (KST)
         self.gps_time_label.setText("GPS Time (KST): " + self.gps_time_str)
+
+        # effective time (KST) + 안전 취약시간대
+        src = "OVR" if self.time_source == 1 else "GPS"
+        self.effective_time_label.setText(
+            "Eff Time (KST): {:02d}:{:02d} [{}]".format(
+                self.effective_hour, self.effective_minute, src))
+        if self.safety_vulnerable_time == 1:
+            self.effective_time_label.setText(
+                "안전취약시간대 {:02d}:{:02d} [{}]".format(
+                    self.effective_hour, self.effective_minute, src))
+            self.effective_time_label.setStyleSheet("""
+                QLabel {
+                    font-size: 16px; font-weight: bold;
+                    color: #ff8800; background-color: transparent; padding: 5px;
+                }
+            """)
+        else:
+            self.effective_time_label.setStyleSheet("""
+                QLabel {
+                    font-size: 16px; font-weight: bold;
+                    color: white; background-color: transparent; padding: 5px;
+                }
+            """)
 
         # 센서 인디케이터 업데이트
         self.update_sensor_display()
