@@ -1151,6 +1151,19 @@ void STAT_DISPLAY::sound_play(const std::string& sensor_name)
     }
 }
 
+void STAT_DISPLAY::play_sound_once(const std::string& filename)
+{
+    // throttle 없이 즉시 1회 재생 (sound_play 의 play_count 누적과 무관)
+    static std::string base_path = ros::package::getPath("stat_display") + "/sound_files/";
+    sound_play::SoundRequest sound_msg;
+    sound_msg.sound = sound_play::SoundRequest::PLAY_FILE;    // 6
+    sound_msg.command = sound_play::SoundRequest::PLAY_ONCE;  // 1
+    sound_msg.volume = 1.0;
+    sound_msg.arg = base_path + filename;
+    sound_msg.arg2 = "";
+    sound_pub.publish(sound_msg);
+}
+
 void STAT_DISPLAY::Local_Text_Gen()
 {
     ros::Time now = ros::Time::now();
@@ -1197,7 +1210,17 @@ void STAT_DISPLAY::Local_Text_Gen()
 void STAT_DISPLAY::MODE_Text_Gen()
 {
     // vcu_EPS_Status 값에 따라 텍스트 결정
-    if(lo_chassis_msg.vcu_EPS_Status == 2)
+    int8_t cur_auto_mode = (lo_chassis_msg.vcu_EPS_Status == 2) ? 1 : 0;
+
+    // 모드 전환음 (각 1회): 수동→자율 changetosystem, 자율→수동 changetodriver
+    if(prev_auto_mode != -1 && cur_auto_mode != prev_auto_mode)
+    {
+        if(cur_auto_mode == 1) this->play_sound_once("changetosystem.mp3");
+        else                   this->play_sound_once("changetodriver.mp3");
+    }
+    prev_auto_mode = cur_auto_mode;
+
+    if(cur_auto_mode == 1)
     {
         MANUAL_text.text = "AUTO";
     }
