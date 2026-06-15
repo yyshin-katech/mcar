@@ -382,7 +382,11 @@ class DistanceCalculator(object):
                     p.Speed_Limit = 15
                     p.On_ODD = 0
                     p.Road_State = 0
-                elif p.LINK_ID in [61, 34, 35, 36, 37, 53, 54, 55, 67, 68, 73]:
+                elif p.LINK_ID == 61:
+                    # 링크 61: take_over_req 미발행, stat_display "전방 ODD 이탈 경고"만 (Road_State=1)
+                    p.On_ODD = 0
+                    p.Road_State = 1
+                elif p.LINK_ID in [34, 35, 36, 37, 53, 54, 55, 67, 68, 73]:
                     p.On_ODD = 1
                     p.Road_State = 2
                 # 자율주행 모드(ad_mode==1)일 때는 yaw 검사 skip (회전 중 오탈 방지)

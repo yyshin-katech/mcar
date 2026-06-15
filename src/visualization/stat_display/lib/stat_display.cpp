@@ -1051,6 +1051,15 @@ void STAT_DISPLAY::system_status_check()
        this->POPUP_Text_Gen(str);
        this->sound_play("ADS");
     }
+    else if (local_msg.LINK_ID == 61)
+    {   // 링크 61: ODD 이탈 경고 대신 어린이 보호구역 안내 (ODD 이탈 사운드)
+        oss << "어린이 보호구역";
+
+        std::string str = oss.str();
+
+        this->sound_play("outofODD");
+        this->POPUP_Text_Gen(str);
+    }
     else if (local_msg.Road_State == 1)
     {
         oss << "전방 ODD 이탈 경고";
