@@ -32,7 +32,7 @@ MIN_LANE_ID = 1
 MAX_LANE_ID = 85
 
 ODD_CNT_THRESHOLD = 200
-ODD_OCCUPIED_OFFSET_THRESHOLD = 2.0
+ODD_OCCUPIED_OFFSET_THRESHOLD = 1.5
 ODD_YAW_ERR_THRESHOLD = np.deg2rad(5)
 
 # 안전 취약시간대 (KST, [시작,끝) — 시작 포함, 끝 미포함)
@@ -135,7 +135,7 @@ class DistanceCalculator(object):
             
             for i, (dist, closest_waypoint) in enumerate(zip(distances, indexs)):
                 
-                if dist > 3.0:
+                if dist > 1.8:
                     continue
                 else:
                     mapx = self.target_roads[i]['east'][0]
@@ -161,30 +161,6 @@ class DistanceCalculator(object):
                     #     min_abs_d = abs(d)
                     #     current_closest_waypoint_index = closest_waypoint
                             
-            # ── 겹침 구간 처리 (78·82 끝부분이 79·83과 물리적으로 겹침) ──
-            # 78/82는 끝부분(s≈27, 36~37m)에서 79, 83과 물리적으로 겹쳐, min-|d| 매처가
-            # 그 지점에서 79/83을 골라 78/82가 끝나기 전에 조기 전환(링크 번호 튐)된다.
-            # 직전 링크가 78/82이고 현재 79/83으로 매칭됐는데 직전 링크가 아직 유효 후보
-            # (끝 도달 전)면 직전 링크를 유지하여 링크 순서를 보장한다.
-            if current_lane_id >= 0 and self.old_lane_id in (78, 82) \
-                    and self.target_roads[current_lane_id]['LINK_ID'][0][0] in (79, 83):
-                # 유지 대상은 직전 링크(78 또는 82). 배열상 인접 보장이 없으므로 LINK_ID로 직접 찾는다
-                keep_link = self.old_lane_id
-                idx_keep = next((k for k in range(len(self.target_roads))
-                                 if self.target_roads[k]['LINK_ID'][0][0] == keep_link), -1)
-                if idx_keep >= 0 and distances[idx_keep] <= 3.0:
-                    maps_keep = self.target_roads[idx_keep]['station'][0]
-                    s_keep, d_keep = xy2frenet_with_closest_waypoint(
-                        e, n, indexs[idx_keep],
-                        self.target_roads[idx_keep]['east'][0],
-                        self.target_roads[idx_keep]['north'][0],
-                        maps_keep)
-                    if s_keep < maps_keep[-1]:  # 직전 링크 아직 안 끝남 → 유지
-                        current_lane_id = idx_keep
-                        current_s = s_keep
-                        current_d = d_keep
-                        current_closest_waypoint_index = indexs[idx_keep]
-
             ''' 가장 최근에 지난 waypoint index 던져주기'''
             if current_closest_waypoint_index > 0:
                 # matlab은 index가 1부터 시작하는 것에 조심하기
