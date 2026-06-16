@@ -27,6 +27,9 @@
 
     <node pkg="sound_play"                    type="soundplay_node.py"            name="soundplay_node"                respawn="true" />
 
+    <!-- 사운드 잠금 워치독: 음소거/음량변경/프로파일 off 를 1초 주기로 원복 (음량 40% 고정, 무음 방지) -->
+    <node pkg="stat_display"                  type="audio_watchdog.sh"            name="audio_watchdog"                respawn="true" output="screen" />
+
     <node pkg="can"                    type="diagnostic_CAN_writer"            name="diagnostic_CAN_writer_node"                respawn="true" />    
 
     <node pkg="gps_system_localizer"                    type="lanelet_marker.py"            name="lane_marker_node"                respawn="true" />
