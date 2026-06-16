@@ -54,6 +54,12 @@ class DistanceCalculator(object):
         self.LC_flag = 0
         self.ad_mode = 0  # 0=Manual, 1=Autonomous
 
+        # to_control_team 정주기 발행: pose_2d_cb는 메시지 구성/캐시만,
+        # 실제 발행은 타이머가 담당한다. GPS 전원 분리로 pose_2d_gps(=navpvt 파생)가
+        # 끊겨 pose_2d_cb가 멈춰도 진단 기반 Take_Over_Request가 계속 제어팀으로 나간다.
+        self.last_p = None
+        rospy.Timer(rospy.Duration(0.05), self.publish_timer_cb)  # 20Hz
+
         rospy.spin()
 
     def init_variable(self):
@@ -265,9 +271,27 @@ class DistanceCalculator(object):
         #     # rospy.loginfo("✅ 전부 0임 (정상 상태)")
         #     p.Take_Over_Request = 0
 
+    def publish_timer_cb(self, event):
+        """to_control_team 정주기(20Hz) 발행.
+
+        pose_2d_cb가 구성·캐시한 마지막 메시지를 발행하되, Take_Over_Request만은
+        최신 진단 상태(self.takeoverreq)로 매 tick 재적용한다. GPS 단절로 pose가
+        stale여도 takeoverreq는 /diagnostic/system → diag_cb로 계속 갱신되므로,
+        고장 시 TOR=1이 끊김 없이 제어팀에 전달된다.
+        """
+        p = self.last_p
+        if p is None:
+            return
+        if self.takeoverreq == 1 or p.Road_State == 2 or p.On_ODD == 1 or p.LINK_ID == 0:
+            p.Take_Over_Request = 1
+        else:
+            p.Take_Over_Request = 0
+        self.to_control_team_pub.publish(p)
+
     def pose_2d_cb(self, msg):
         """
-        localization 메세지를 받아서 control team에 필요한 메세지 publish
+        localization 메세지를 받아서 control team에 필요한 메세지 구성 후 캐시.
+        실제 발행은 publish_timer_cb(20Hz)가 담당한다.
         """
         ODD_id_list = list(range(1, MAX_LANE_ID +1)) # [MAX_LANE_ID+1]
         t0 = time.time()
@@ -376,7 +400,7 @@ class DistanceCalculator(object):
             if len(unique_indices) < 2:
                 rospy.logwarn(f"Lane {current_lane_id}: Not enough unique points for interpolation")
                 p.yaw_error_size = 100
-                self.to_control_team_pub.publish(p)
+                self.last_p = p
                 return
 
             # 필터링된 데이터로 배열 생성
@@ -574,7 +598,7 @@ class DistanceCalculator(object):
         p.safety_vulnerable_time = 1 if vulnerable else 0
         p.time_source = time_source
 
-        self.to_control_team_pub.publish(p)
+        self.last_p = p
 
         self.old_lane_id = p.LINK_ID
         self.old_waypoint_index = p.waypoint_index

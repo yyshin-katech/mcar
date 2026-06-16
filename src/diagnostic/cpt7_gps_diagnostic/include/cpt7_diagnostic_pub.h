@@ -44,6 +44,7 @@ class CPT7_DIAGNOSTIC_PUB
 
         unsigned char alive_cnt;
         bool msg_received;
+        unsigned char navpvt_miss_cnt;  // NavPVT 연속 미수신 timer tick 수
 
         std::atomic<bool> network_failed;
         std::atomic<bool> ping_thread_stop;
