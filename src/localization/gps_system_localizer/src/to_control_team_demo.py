@@ -32,7 +32,7 @@ MIN_LANE_ID = 1
 MAX_LANE_ID = 85
 
 ODD_CNT_THRESHOLD = 200
-ODD_OCCUPIED_OFFSET_THRESHOLD = 1.5
+ODD_OCCUPIED_OFFSET_THRESHOLD = 2.0
 ODD_YAW_ERR_THRESHOLD = np.deg2rad(5)
 
 # 안전 취약시간대 (KST, [시작,끝) — 시작 포함, 끝 미포함)
@@ -135,7 +135,7 @@ class DistanceCalculator(object):
             
             for i, (dist, closest_waypoint) in enumerate(zip(distances, indexs)):
                 
-                if dist > 1.8:
+                if dist > 3.0:
                     continue
                 else:
                     mapx = self.target_roads[i]['east'][0]
