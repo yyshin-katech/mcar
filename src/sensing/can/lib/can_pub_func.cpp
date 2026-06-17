@@ -728,6 +728,9 @@ void CHASSIS_CAN_READER(){
                                                                       (char*)"AEB_flag",\
                                                                       (char*)"LC_flag"}));
 
+  msg_list.push_back(make_tuple((char*)"TimeRangeSetting", vector<char*> {(char*)"TimeRange_Hour",\
+                                                                          (char*)"TimeRange_Minute"}));
+
   katech_custom_msgs::ioniq5_ad_can_msg msg;
 
   ros::Rate rate(freq_for_channel_0);
@@ -834,6 +837,19 @@ void CHASSIS_CAN_READER(){
                 case(2): msg.arc_ds = value; break;
                 case(3): msg.AEB_flag = (uint8_t)value; break;
                 case(4): msg.LC_flag = (uint8_t)value; break;
+              }
+            }
+            pub1.publish(msg);
+          break;
+
+          case(6): // TimeRangeSetting (ID 514) — override 시계 anchor
+            for(int i=0; i!=get<1>(msg_list[msg_idx]).size(); i++){
+              kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[i], &sh);
+              kvaDbRetrieveSignalValuePhys(sh, &value, &can_data, sizeof(can_data));
+
+              switch(i){
+                case(0): msg.time_range_hour = (uint8_t)value; break;
+                case(1): msg.time_range_minute = (uint8_t)value; break;
               }
             }
             pub1.publish(msg);

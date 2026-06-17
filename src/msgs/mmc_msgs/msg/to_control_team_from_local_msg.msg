@@ -38,3 +38,9 @@ float32 yaw_error_size # [radian]
 int8 On_ODD
 int8 Road_State
 float32 distance_out_of_ODD # [m]
+
+# 안전 취약시간대 (KST) — to_control_team_demo 가 navpvt+TimeRangeSetting 으로 중앙계산
+uint8 effective_hour          # 판정에 쓴 KST 시(0-23)
+uint8 effective_minute        # 판정에 쓴 KST 분(0-59)
+uint8 safety_vulnerable_time  # 0/1 (1=취약시간대)
+uint8 time_source             # 0=GPS, 1=manual override(TimeRangeSetting)

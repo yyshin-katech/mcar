@@ -1051,6 +1051,24 @@ void STAT_DISPLAY::system_status_check()
        this->POPUP_Text_Gen(str);
        this->sound_play("ADS");
     }
+    else if (local_msg.LINK_ID == 61)
+    {   // 링크 61: 어린이 보호구역 진입 — 경고 팝업 + guardzonewarnning.mp3 반복
+        oss << "어린이 보호구역입니다! 주의하세요!";
+
+        std::string str = oss.str();
+
+        this->sound_play("GUARDZONE");
+        this->POPUP_Text_Gen(str);
+    }
+    else if (local_msg.LINK_ID == 59 || local_msg.LINK_ID == 60)
+    {   // 링크 59/60: 어린이 보호구역 전방 안내 + nexttoguardzone.mp3 반복
+        oss << "잠시 후 어린이 보호구역입니다";
+
+        std::string str = oss.str();
+
+        this->sound_play("NEXTGUARDZONE");
+        this->POPUP_Text_Gen(str);
+    }
     else if (local_msg.Road_State == 1)
     {
         oss << "전방 ODD 이탈 경고";
@@ -1110,6 +1128,8 @@ void STAT_DISPLAY::sound_play(const std::string& sensor_name)
     else if (sensor_name == "IPC") path = base_path + "percept_warning.mp3";
     else if (sensor_name == "AEB") path = base_path + "aeb_warning.mp3";
     else if (sensor_name == "outofODD") path = base_path + "outofodd.mp3";
+    else if (sensor_name == "GUARDZONE") path = base_path + "guardzonewarnning.mp3";
+    else if (sensor_name == "NEXTGUARDZONE") path = base_path + "nexttoguardzone.mp3";
     else path = base_path + "ad_system_warning.mp3";  // fallback
 
     sound_msg.arg = path;
@@ -1140,6 +1160,19 @@ void STAT_DISPLAY::sound_play(const std::string& sensor_name)
             play_count++;
         }
     }
+}
+
+void STAT_DISPLAY::play_sound_once(const std::string& filename)
+{
+    // throttle 없이 즉시 1회 재생 (sound_play 의 play_count 누적과 무관)
+    static std::string base_path = ros::package::getPath("stat_display") + "/sound_files/";
+    sound_play::SoundRequest sound_msg;
+    sound_msg.sound = sound_play::SoundRequest::PLAY_FILE;    // 6
+    sound_msg.command = sound_play::SoundRequest::PLAY_ONCE;  // 1
+    sound_msg.volume = 1.0;
+    sound_msg.arg = base_path + filename;
+    sound_msg.arg2 = "";
+    sound_pub.publish(sound_msg);
 }
 
 void STAT_DISPLAY::Local_Text_Gen()
@@ -1188,7 +1221,22 @@ void STAT_DISPLAY::Local_Text_Gen()
 void STAT_DISPLAY::MODE_Text_Gen()
 {
     // vcu_EPS_Status 값에 따라 텍스트 결정
-    if(lo_chassis_msg.vcu_EPS_Status == 2)
+    int8_t cur_auto_mode = (lo_chassis_msg.vcu_EPS_Status == 2) ? 1 : 0;
+
+    // VCU 고장 시 AD CAN 자율주행모드 메시지가 끊겨 EPS 상태가 마지막 값에
+    // 멈춘다 → 자율→수동 전환으로 간주하여 강제 MANUAL. 아래 전환음 로직이
+    // 1→0 전환을 감지해 changetodriver.mp3 를 1회 재생한다.
+    if(vcu_status != 0) cur_auto_mode = 0;
+
+    // 모드 전환음 (각 1회): 수동→자율 changetosystem, 자율→수동 changetodriver
+    if(prev_auto_mode != -1 && cur_auto_mode != prev_auto_mode)
+    {
+        if(cur_auto_mode == 1) this->play_sound_once("changetosystem.mp3");
+        else                   this->play_sound_once("changetodriver.mp3");
+    }
+    prev_auto_mode = cur_auto_mode;
+
+    if(cur_auto_mode == 1)
     {
         MANUAL_text.text = "AUTO";
     }

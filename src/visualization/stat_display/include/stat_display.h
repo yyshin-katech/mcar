@@ -128,6 +128,7 @@ class STAT_DISPLAY{
 
         mmc_msgs::to_control_team_from_local_msg local_msg;
         mmc_msgs::chassis_msg lo_chassis_msg;
+        int8_t prev_auto_mode = -1;   // 이전 AUTO/MANUAL 상태 (-1=미확정, 0=MANUAL, 1=AUTO). 모드 전환음용
 
         // visualization_msgs::Marker GPS_text;
 
@@ -194,6 +195,7 @@ class STAT_DISPLAY{
         void system_status_check();
 
         void sound_play(const std::string& sensor_name);
+        void play_sound_once(const std::string& filename);   // throttle 없이 1회 재생 (모드 전환음)
 
         void Local_Text_Gen();
 

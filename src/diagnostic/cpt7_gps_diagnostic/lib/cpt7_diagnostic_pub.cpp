@@ -11,6 +11,7 @@ CPT7_DIAGNOSTIC_PUB::CPT7_DIAGNOSTIC_PUB()
 
     alive_cnt = 0;
     msg_received = false;
+    navpvt_miss_cnt = 0;
 
     cpt7_msg.IMU_StatCode = 0;
     cpt7_msg.GPS_StatCode = 0;
@@ -79,8 +80,23 @@ void CPT7_DIAGNOSTIC_PUB::timerCallback(const ros::TimerEvent&)
     if(!msg_received)
     {
         cpt7_msg.GPS_INS_SolutionStat = 0x01;  // no data
+        if(navpvt_miss_cnt < 255) navpvt_miss_cnt++;
+    }
+    else
+    {
+        navpvt_miss_cnt = 0;
     }
     msg_received = false;
+
+    // GPS 전원 분리 등으로 NavPVT가 끊겨도 이 타이머는 계속 돌며 AliveCnt를 올리고
+    // GPSRTK_StatCode/std는 navpvt_callback에서만 갱신돼 마지막 정상값으로 freeze된다.
+    // 그러면 소비자(stat_display/pyqt_hmi)가 단절을 감지 못 하므로, NavPVT가 일정 시간
+    // (3 tick = 300ms) 끊기면 소비자가 동일하게 보는 GPSRTK_StatCode를 No RTK(0)로 내려
+    // gps_status=2(고장)로 표출되게 한다. NavPVT는 20Hz라 정상 시 오판 없음.
+    if(navpvt_miss_cnt >= 3)
+    {
+        cpt7_msg.GPSRTK_StatCode = 0;
+    }
 
     pub.publish(cpt7_msg);
 }

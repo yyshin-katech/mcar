@@ -794,6 +794,7 @@ button.act.toggle.on { background: #a6e3a1; color: #1e1e2e; border-color: #a6e3a
       <div class="legend-item"><div class="legend-color" style="background:#94e2d5"></div> NEXT_LINK_ID=0 (다음 링크 없음)</div>
       <div class="legend-item"><div class="legend-color" style="background:#a6e3a1; border-radius:50%; width:10px; height:10px;"></div> 선택 링크 시작점 (●)</div>
       <div class="legend-item"><div class="legend-color" style="background:#f38ba8; border-radius:50%; width:10px; height:10px;"></div> 선택 링크 끝점 (●)</div>
+      <div class="legend-item"><div class="legend-color" style="background:#ffffff; border:1px dashed #11111b;"></div> 횡단보도 영역 (ped detector) — 클릭 시 꼭지점 좌표</div>
     </div>
   </div>
 </div>
@@ -1119,6 +1120,87 @@ map.on('click', clearSelection);
   });
   wpGroup.addTo(map);
   window.__waypointGroup = wpGroup;
+})();
+
+// === 횡단보도 영역 (katech_ped_detector.py, EPSG:5179 → WGS84) ===
+(function() {
+  var CROSSWALKS = [
+    {id:1,vertices:[{e:935593.811,n:1916121.684,lat:37.241738,lon:126.7738402},{e:935600.279,n:1916121.868,lat:37.2417401,lon:126.7739131},{e:935600.438,n:1916108.782,lat:37.2416222,lon:126.7739161},{e:935593.871,n:1916108.678,lat:37.2416208,lon:126.773842}]},
+    {id:2,vertices:[{e:935580.172,n:1916230.692,lat:37.2427196,lon:126.773677},{e:935587.949,n:1916230.925,lat:37.2427222,lon:126.7737647},{e:935588.054,n:1916224.268,lat:37.2426622,lon:126.7737665},{e:935580.215,n:1916224.132,lat:37.2426604,lon:126.7736781}]},
+    {id:3,vertices:[{e:935572.064,n:1916238.492,lat:37.2427893,lon:126.773585},{e:935578.646,n:1916238.706,lat:37.2427917,lon:126.7736591},{e:935578.913,n:1916231.077,lat:37.242723,lon:126.7736628},{e:935572.099,n:1916230.883,lat:37.2427207,lon:126.773586}]},
+    {id:4,vertices:[{e:935574.207,n:1915939.449,lat:37.2400941,lon:126.773635},{e:935583.407,n:1915934.473,lat:37.2400499,lon:126.7737391},{e:935578.784,n:1915926.912,lat:37.2399814,lon:126.7736877},{e:935569.83,n:1915931.697,lat:37.2400239,lon:126.7735863}]},
+    {id:5,vertices:[{e:935588.578,n:1915935.994,lat:37.2400639,lon:126.7737973},{e:935594.119,n:1915946.447,lat:37.2401585,lon:126.7738589},{e:935601.739,n:1915942.714,lat:37.2401254,lon:126.7739451},{e:935596.34,n:1915932.532,lat:37.2400333,lon:126.7738851}]},
+    {id:6,vertices:[{e:935615.269,n:1915987.706,lat:37.2405319,lon:126.7740937},{e:935621.14,n:1915985.019,lat:37.2405081,lon:126.7741602},{e:935618.446,n:1915979.562,lat:37.2404587,lon:126.7741303},{e:935612.497,n:1915982.516,lat:37.2404849,lon:126.7740629}]},
+    {id:7,vertices:[{e:935607.013,n:1916003.867,lat:37.240677,lon:126.7739993},{e:935616.553,n:1915998.97,lat:37.2406335,lon:126.7741072},{e:935612.581,n:1915991.078,lat:37.2405621,lon:126.7740631},{e:935603.036,n:1915996.268,lat:37.2406082,lon:126.7739551}]}
+  ];
+
+  var cwGroup = L.layerGroup();
+  var cwVertexLayer = L.layerGroup().addTo(map);
+  var cwPolys = {};
+  var selectedCw = null;
+
+  function cwStyle(sel) {
+    return sel
+      ? { color: '#e64980', weight: 4, opacity: 1, fillColor: '#f5c2e7', fillOpacity: 0.45 }
+      : { color: '#11111b', weight: 2, opacity: 0.9, fillColor: '#ffffff', fillOpacity: 0.35, dashArray: '4,3' };
+  }
+
+  function vertexTable(cw) {
+    var rows = cw.vertices.map(function(v, i) {
+      return '<tr><td style="text-align:center;">' + (i+1) + '</td>'
+        + '<td>' + v.lat.toFixed(7) + ', ' + v.lon.toFixed(7) + '</td>'
+        + '<td>' + v.e.toFixed(2) + ', ' + v.n.toFixed(2) + '</td></tr>';
+    }).join('');
+    return '<div style="font-size:12px;">'
+      + '<b>횡단보도 ' + cw.id + '</b> (꼭지점 ' + cw.vertices.length + '개)'
+      + '<table style="border-collapse:collapse;margin-top:4px;">'
+      + '<thead><tr><th>#</th><th>lat, lon (WGS84)</th><th>east, north (EPSG:5179)</th></tr></thead>'
+      + '<tbody>' + rows + '</tbody></table></div>';
+  }
+
+  function clearCwSelection() {
+    if (selectedCw && cwPolys[selectedCw]) cwPolys[selectedCw].setStyle(cwStyle(false));
+    selectedCw = null;
+    cwVertexLayer.clearLayers();
+  }
+
+  CROSSWALKS.forEach(function(cw) {
+    var latlngs = cw.vertices.map(function(v) { return [v.lat, v.lon]; });
+    var poly = L.polygon(latlngs, cwStyle(false));
+    cwPolys[cw.id] = poly;
+    poly.bindPopup(vertexTable(cw), {maxWidth: 380});
+    poly.on('click', function(e) {
+      L.DomEvent.stopPropagation(e);
+      clearCwSelection();
+      selectedCw = cw.id;
+      poly.setStyle(cwStyle(true));
+      cw.vertices.forEach(function(v, i) {
+        L.circleMarker([v.lat, v.lon], {
+          radius: 5, color: '#e64980', weight: 2, fillColor: '#ffffff', fillOpacity: 1, zIndexOffset: 1100
+        }).bindTooltip(
+          'P' + (i+1) + '<br>lat ' + v.lat.toFixed(7) + ', lon ' + v.lon.toFixed(7)
+          + '<br>E ' + v.e.toFixed(2) + ', N ' + v.n.toFixed(2),
+          {permanent: true, direction: 'top'}
+        ).addTo(cwVertexLayer);
+      });
+    });
+    poly.addTo(cwGroup);
+    var c = poly.getBounds().getCenter();
+    L.marker(c, {
+      icon: L.divIcon({
+        className: 'cw-label',
+        html: '<div style="background:#e64980;color:#fff;border-radius:50%;width:20px;height:20px;'
+          + 'line-height:20px;text-align:center;font-size:12px;font-weight:bold;'
+          + 'border:2px solid #fff;box-shadow:0 0 3px rgba(0,0,0,0.5);">' + cw.id + '</div>',
+        iconSize: [22, 22], iconAnchor: [11, 11]
+      }),
+      interactive: false, keyboard: false, zIndexOffset: 850
+    }).addTo(cwGroup);
+  });
+
+  cwGroup.addTo(map);
+  map.on('click', clearCwSelection);
+  window.__crosswalkGroup = cwGroup;
 })();
 </script>
 </body>

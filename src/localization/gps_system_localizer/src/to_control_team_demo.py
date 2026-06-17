@@ -18,6 +18,8 @@ import pyproj
 from katech_diagnostic_msgs.msg import katech_diagnostic_msg
 from mmc_msgs.msg import localization2D_msg, to_control_team_from_local_msg, chassis_msg
 from sensor_msgs.msg import NavSatFix
+from ublox_msgs.msg import NavPVT
+from katech_custom_msgs.msg import ioniq5_ad_can_msg
 from utils import distance2curve
 
 from utils_cython import find_closest, compute_current_lane, xy2frenet_with_closest_waypoint_loop, xy2frenet_with_closest_waypoint
@@ -31,7 +33,13 @@ MAX_LANE_ID = 85
 
 ODD_CNT_THRESHOLD = 200
 ODD_OCCUPIED_OFFSET_THRESHOLD = 2.0
-ODD_YAW_ERR_THRESHOLD = np.deg2rad(50)
+ODD_YAW_ERR_THRESHOLD = np.deg2rad(5)
+
+# 안전 취약시간대 (KST, [시작,끝) — 시작 포함, 끝 미포함)
+VULNERABLE_WINDOWS = [(7*3600 + 30*60, 9*3600),      # 07:30 ~ 09:00
+                      (13*3600,        17*3600)]     # 13:00 ~ 17:00
+SCHOOL_ZONE_LINK_ID = 61
+SCHOOL_ZONE_SPEED_LIMIT = 20  # km/h
 
 class DistanceCalculator(object):
     def __init__(self):
@@ -45,6 +53,12 @@ class DistanceCalculator(object):
         self.takeoverreq = 0
         self.LC_flag = 0
         self.ad_mode = 0  # 0=Manual, 1=Autonomous
+
+        # to_control_team 정주기 발행: pose_2d_cb는 메시지 구성/캐시만,
+        # 실제 발행은 타이머가 담당한다. GPS 전원 분리로 pose_2d_gps(=navpvt 파생)가
+        # 끊겨 pose_2d_cb가 멈춰도 진단 기반 Take_Over_Request가 계속 제어팀으로 나간다.
+        self.last_p = None
+        rospy.Timer(rospy.Duration(0.05), self.publish_timer_cb)  # 20Hz
 
         rospy.spin()
 
@@ -68,13 +82,26 @@ class DistanceCalculator(object):
         self.occupied_count = 0
         self.previous_index = np.zeros((4,), dtype=np.int32)
 
+        # ─ effective time (KST) 상태 ─
+        # navpvt
+        self.gps_kst_seconds = None      # 자정기준 초 (0~86399), None=미수신/무효
+        self.gps_time_valid = False
+        # TimeRangeSetting override (free-run)
+        self.last_tr_hour = 0
+        self.last_tr_minute = 0
+        self.override_active = False
+        self.override_anchor_seconds = None   # 자정기준 초
+        self.override_anchor_walltime = None  # rospy.Time
+
     def set_subscriber(self):
         # localization 정보 들어오면 바로 control team에 필요한 메세지 publish
         # callback 안에 publish 명령어까지 같이 들어있음
         rospy.Subscriber('/localization/pose_2d_gps', localization2D_msg, self.pose_2d_cb, queue_size=1)
         rospy.Subscriber('/diagnostic/system', katech_diagnostic_msg, self.diag_cb, queue_size=1)
         rospy.Subscriber('/sensors/chassis', chassis_msg, self.chasis_cb, queue_size=1)
-        
+        rospy.Subscriber('/ublox/navpvt', NavPVT, self.navpvt_cb, queue_size=1)
+        rospy.Subscriber('/sensors/ioniq5_ad_can', ioniq5_ad_can_msg, self.time_range_cb, queue_size=1)
+
     def set_publisher(self):
         self.to_control_team_pub = rospy.Publisher('/localization/to_control_team', to_control_team_from_local_msg, queue_size=1)
 
@@ -140,30 +167,6 @@ class DistanceCalculator(object):
                     #     min_abs_d = abs(d)
                     #     current_closest_waypoint_index = closest_waypoint
                             
-            # ── 겹침 구간 처리 (78·82 끝부분이 79·83과 물리적으로 겹침) ──
-            # 78/82는 끝부분(s≈27, 36~37m)에서 79, 83과 물리적으로 겹쳐, min-|d| 매처가
-            # 그 지점에서 79/83을 골라 78/82가 끝나기 전에 조기 전환(링크 번호 튐)된다.
-            # 직전 링크가 78/82이고 현재 79/83으로 매칭됐는데 직전 링크가 아직 유효 후보
-            # (끝 도달 전)면 직전 링크를 유지하여 링크 순서를 보장한다.
-            if current_lane_id >= 0 and self.old_lane_id in (78, 82) \
-                    and self.target_roads[current_lane_id]['LINK_ID'][0][0] in (79, 83):
-                # 유지 대상은 직전 링크(78 또는 82). 배열상 인접 보장이 없으므로 LINK_ID로 직접 찾는다
-                keep_link = self.old_lane_id
-                idx_keep = next((k for k in range(len(self.target_roads))
-                                 if self.target_roads[k]['LINK_ID'][0][0] == keep_link), -1)
-                if idx_keep >= 0 and distances[idx_keep] <= 3.0:
-                    maps_keep = self.target_roads[idx_keep]['station'][0]
-                    s_keep, d_keep = xy2frenet_with_closest_waypoint(
-                        e, n, indexs[idx_keep],
-                        self.target_roads[idx_keep]['east'][0],
-                        self.target_roads[idx_keep]['north'][0],
-                        maps_keep)
-                    if s_keep < maps_keep[-1]:  # 직전 링크 아직 안 끝남 → 유지
-                        current_lane_id = idx_keep
-                        current_s = s_keep
-                        current_d = d_keep
-                        current_closest_waypoint_index = indexs[idx_keep]
-
             ''' 가장 최근에 지난 waypoint index 던져주기'''
             if current_closest_waypoint_index > 0:
                 # matlab은 index가 1부터 시작하는 것에 조심하기
@@ -191,6 +194,51 @@ class DistanceCalculator(object):
     def chasis_cb(self, msg):
         self.LC_flag = msg.LC_flag
         self.ad_mode = msg.vcu_ADMDStatus  # 0=Manual, 1=Autonomous
+
+    def navpvt_cb(self, msg):
+        # NavPVT: UTC 분해값. VALID_DATE|VALID_TIME 확인 후 KST(UTC+9) 자정기준 초로 보관.
+        valid = bool(msg.valid & (NavPVT.VALID_DATE | NavPVT.VALID_TIME))
+        if not valid:
+            self.gps_time_valid = False
+            return
+        utc_sec = msg.hour * 3600 + msg.min * 60 + msg.sec
+        self.gps_kst_seconds = (utc_sec + 9 * 3600) % 86400  # KST = UTC+9
+        self.gps_time_valid = True
+
+    def time_range_cb(self, msg):
+        # TimeRangeSetting (ioniq5_ad_can) → free-run override 시계 anchor.
+        # 0/0 → override 비활성(GPS 실시간). 비0 → 전이 시 anchor 갱신.
+        cur = (int(msg.time_range_hour), int(msg.time_range_minute))
+        if cur == (0, 0):
+            self.override_active = False
+        else:
+            if cur != (self.last_tr_hour, self.last_tr_minute):
+                # 전이: anchor 재설정 (이 시:분으로 점프 후 실경과만큼 흐름)
+                self.override_anchor_seconds = cur[0] * 3600 + cur[1] * 60
+                self.override_anchor_walltime = rospy.Time.now()
+            self.override_active = True
+        self.last_tr_hour, self.last_tr_minute = cur
+
+    def compute_effective_seconds(self):
+        # 반환: (eff_seconds 또는 None, time_source)
+        #   override 활성 → free-run, time_source=1
+        #   아니면 GPS 실시간(유효 시) → time_source=0
+        #   GPS 무효/미수신이고 override 도 없으면 → (None, 0)  [안전: 미적용]
+        if self.override_active and self.override_anchor_seconds is not None:
+            elapsed = (rospy.Time.now() - self.override_anchor_walltime).to_sec()
+            eff = (self.override_anchor_seconds + int(elapsed)) % 86400
+            return eff, 1
+        if self.gps_time_valid and self.gps_kst_seconds is not None:
+            return self.gps_kst_seconds, 0
+        return None, 0
+
+    def in_vulnerable_window(self, eff_seconds):
+        if eff_seconds is None:
+            return False  # 시각 미확정 → 취약시간대 미적용(안전)
+        for start, end in VULNERABLE_WINDOWS:
+            if start <= eff_seconds < end:   # [시작, 끝)
+                return True
+        return False
 
     def diag_cb(self, msg):
         statuses = [
@@ -223,9 +271,27 @@ class DistanceCalculator(object):
         #     # rospy.loginfo("✅ 전부 0임 (정상 상태)")
         #     p.Take_Over_Request = 0
 
+    def publish_timer_cb(self, event):
+        """to_control_team 정주기(20Hz) 발행.
+
+        pose_2d_cb가 구성·캐시한 마지막 메시지를 발행하되, Take_Over_Request만은
+        최신 진단 상태(self.takeoverreq)로 매 tick 재적용한다. GPS 단절로 pose가
+        stale여도 takeoverreq는 /diagnostic/system → diag_cb로 계속 갱신되므로,
+        고장 시 TOR=1이 끊김 없이 제어팀에 전달된다.
+        """
+        p = self.last_p
+        if p is None:
+            return
+        if self.takeoverreq == 1 or p.Road_State == 2 or p.On_ODD == 1 or p.LINK_ID == 0:
+            p.Take_Over_Request = 1
+        else:
+            p.Take_Over_Request = 0
+        self.to_control_team_pub.publish(p)
+
     def pose_2d_cb(self, msg):
         """
-        localization 메세지를 받아서 control team에 필요한 메세지 publish
+        localization 메세지를 받아서 control team에 필요한 메세지 구성 후 캐시.
+        실제 발행은 publish_timer_cb(20Hz)가 담당한다.
         """
         ODD_id_list = list(range(1, MAX_LANE_ID +1)) # [MAX_LANE_ID+1]
         t0 = time.time()
@@ -334,7 +400,7 @@ class DistanceCalculator(object):
             if len(unique_indices) < 2:
                 rospy.logwarn(f"Lane {current_lane_id}: Not enough unique points for interpolation")
                 p.yaw_error_size = 100
-                self.to_control_team_pub.publish(p)
+                self.last_p = p
                 return
 
             # 필터링된 데이터로 배열 생성
@@ -382,7 +448,11 @@ class DistanceCalculator(object):
                     p.Speed_Limit = 15
                     p.On_ODD = 0
                     p.Road_State = 0
-                elif p.LINK_ID in [61, 34, 35, 36, 37, 53, 54, 55, 67, 68, 73]:
+                elif p.LINK_ID == 61:
+                    # 링크 61: take_over_req 미발행, stat_display "전방 ODD 이탈 경고"만 (Road_State=1)
+                    p.On_ODD = 0
+                    p.Road_State = 1
+                elif p.LINK_ID in [34, 35, 36, 37, 53, 54, 55, 67, 68, 73]:
                     p.On_ODD = 1
                     p.Road_State = 2
                 # 자율주행 모드(ad_mode==1)일 때는 yaw 검사 skip (회전 중 오탈 방지)
@@ -513,7 +583,22 @@ class DistanceCalculator(object):
         else:
             p.Take_Over_Request = 0
 
-        self.to_control_team_pub.publish(p)
+        # ─ 안전 취약시간대(KST) → 어린이보호구역(링크61) 속도 20 ─
+        eff_seconds, time_source = self.compute_effective_seconds()
+        vulnerable = self.in_vulnerable_window(eff_seconds)
+        if p.LINK_ID == SCHOOL_ZONE_LINK_ID and vulnerable:
+            p.Speed_Limit = SCHOOL_ZONE_SPEED_LIMIT   # 20
+        # effective time 발행 (HMI 표시용)
+        if eff_seconds is None:
+            p.effective_hour = 0
+            p.effective_minute = 0
+        else:
+            p.effective_hour = (eff_seconds // 3600) % 24
+            p.effective_minute = (eff_seconds % 3600) // 60
+        p.safety_vulnerable_time = 1 if vulnerable else 0
+        p.time_source = time_source
+
+        self.last_p = p
 
         self.old_lane_id = p.LINK_ID
         self.old_waypoint_index = p.waypoint_index

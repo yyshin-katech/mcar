@@ -27,15 +27,20 @@
 
     <node pkg="sound_play"                    type="soundplay_node.py"            name="soundplay_node"                respawn="true" />
 
+    <!-- 사운드 잠금 워치독: 음소거/음량변경/프로파일 off 를 1초 주기로 원복 (음량 40% 고정, 무음 방지) -->
+    <node pkg="stat_display"                  type="audio_watchdog.sh"            name="audio_watchdog"                respawn="true" output="screen" />
+
     <node pkg="can"                    type="diagnostic_CAN_writer"            name="diagnostic_CAN_writer_node"                respawn="true" />    
 
     <node pkg="gps_system_localizer"                    type="lanelet_marker.py"            name="lane_marker_node"                respawn="true" />
 
     <!-- 블랙박스: Take_Over_Request 트리거 시 [이전 10s, 이후 2s] 자동 저장 (자율주행 ON 한정) -->
+    <!-- 블랙박스 비활성화 (요청에 의해 주석처리)
     <node pkg="pyqt_hmi"                    type="blackbox_recorder.py"            name="blackbox_recorder"                respawn="true" output="screen" >
         <param name="pre_seconds"  value="10.0" />
         <param name="post_seconds" value="2.0" />
         <param name="output_dir"   value="~/bag_data/blackbox" />
     </node>
+    -->
 
 </launch>

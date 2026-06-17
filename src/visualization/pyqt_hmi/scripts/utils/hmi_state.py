@@ -65,6 +65,7 @@ class BaseHmiStateController:
         self.current_speed = 0.0
         self.gear_status = 0
         self.autonomous_mode = 0
+        self.display_mode = 0  # 표시용 모드: VCU 고장 시 manual로 강제
         self.aeb_flag = 0
         self.steering_angle = 0.0
 
@@ -216,9 +217,8 @@ class BaseHmiStateController:
 
     # ─── vehicle / sensors callbacks ─────────────────────────────
     def _cb_ad_can(self, msg):
-        if msg.autonomous_mode != self.autonomous_mode:
-            self.autonomous_mode = msg.autonomous_mode
-            self._emit('mode_changed', self.autonomous_mode)
+        self.autonomous_mode = msg.autonomous_mode
+        self._refresh_display_mode()
 
         self.arc_len = float(msg.arc_len)
         self.arc_kappa = float(msg.arc_kappa)
@@ -316,6 +316,14 @@ class BaseHmiStateController:
         self.objects = objects
         self._emit('objects_changed', objects)
 
+    def _refresh_display_mode(self):
+        # VCU 고장 시 AD CAN 자율주행모드 메시지가 끊겨 autonomous_mode가
+        # 마지막 값에 멈춘다 → 자율→수동 전환으로 간주하여 manual(0)로 표시.
+        effective = 0 if self.diag_status.get('vcu', 0) != 0 else self.autonomous_mode
+        if effective != self.display_mode:
+            self.display_mode = effective
+            self._emit('mode_changed', effective)
+
     # ─── periodic update — diagnostic + popup ─────────────────────
     def _evaluate_diag(self, name, received):
         d = self.diag_flags[name]
@@ -362,6 +370,9 @@ class BaseHmiStateController:
         if changed:
             self._emit('diag_changed', dict(self.diag_status))
 
+        # VCU 고장이면 AD CAN 모드 메시지가 끊겨도 manual로 표시되도록 갱신
+        self._refresh_display_mode()
+
         # selected mode publish (1 s pulse semantics maintained in pulse method)
         m = UInt8()
         m.data = self.selected_mode
@@ -383,6 +394,12 @@ class BaseHmiStateController:
         elif n >= 2:
             text = f"시스템 고장 ({n}개 시스템 오류)"
             sev = "error"
+        elif self.link_id == 61:
+            text = "어린이 보호구역입니다! 주의하세요!"
+            sev = "warn"
+        elif self.link_id in (59, 60):
+            text = "잠시 후 어린이 보호구역입니다"
+            sev = "warn"
         elif self.road_state == 1:
             text = "전방 ODD 이탈 경고"
             sev = "warn"
