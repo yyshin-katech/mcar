@@ -116,6 +116,10 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg 
           temp_intersection_id = msg.data[i].IntersectionID;
 
           switch(temp_intersection_id){
+            case(100):
+              temp_intersection_id_msg = 1;
+              break;
+
             case(200):
               temp_intersection_id_msg = 2;
               break;
@@ -134,6 +138,10 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg 
 
             case(700):
               temp_intersection_id_msg = 7;
+              break;
+
+            case(1500):
+              temp_intersection_id_msg = 15;
               break;
 
             default:

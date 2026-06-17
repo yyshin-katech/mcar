@@ -34,6 +34,7 @@
 - [project_blackbox_recorder.md](project_blackbox_recorder.md) — pyqt_hmi blackbox_recorder 노드. TOR 트리거 시 [이전10s,이후2s] 저장(LiDAR/인지 13토픽 제외). 경량 모니터+C++ rosbag record 롤링버퍼(Python 전토픽 버퍼링은 실차부하에 막힘). 합성 하네스 PASS, 실차 종단검증 권장
 - [project_altitude_can_flow.md](project_altitude_can_flow.md) — 2026-06 hMSL→host_altitude→CAR_EGO_A_Ex.ALTITUDE(id1830, 32bit float byte4-7, DLC4→8). DBC v7 신설(파일별 분리 관례), writer+reader 둘 다 v7. local_CAN_writer는 dlc=8 고정 송신. 실차/CANoe rate·timing 미검증
 - [project_gps_status_takeover.md](project_gps_status_takeover.md) — 2026-06-10 GPS 고장 기준 통일(RTK Fixed 아님/std>15cm=고장, >5cm=경고; pyqt 기본·A-1 + stat_display). TOR는 stat_display→/diagnostic/system→to_control_team_demo 경유(pyqt는 표시 전용). any(s!=0)이라 경고도 TOR 유발(현행 유지). 발행 1s 주기·RTK 플랩핑 false TOR 주의
+- [project_spat_can_writer_switch.md](project_spat_can_writer_switch.md) — 2026-06-17 spat_CAN_writer 교차로 처리 구조. switch(intersection_id)는 temp_intersection_id_msg=교차로ID/100 설정하나 dead store(미사용). 실제 (교차로,그룹) 발화는 look_at_IntersectionID/signalGroupID(to_control_team) 매칭으로 결정. case(100)→1, case(1500)→15 추가. signalGroup 16/10은 switch 무관, look_at 경유
 
 ## Project Overview
 - ROS Noetic catkin workspace for autonomous driving (KATECH)
