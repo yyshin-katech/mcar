@@ -29,7 +29,7 @@ from utils_cython import find_closest, compute_current_lane, xy2frenet_with_clos
 MAPFILE_PATH = rospy.get_param('MAPFILE_PATH')
 # MAPFILE_PATH = '/home/katech/mcar_v13/src/localization/gps_system_localizer/mapfiles/K_CITY_20251106'
 MIN_LANE_ID = 1
-MAX_LANE_ID = 85
+MAX_LANE_ID = 88
 
 ODD_CNT_THRESHOLD = 200
 ODD_OCCUPIED_OFFSET_THRESHOLD = 2.0
