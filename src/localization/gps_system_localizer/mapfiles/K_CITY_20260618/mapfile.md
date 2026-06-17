@@ -1,0 +1,17 @@
+## shp파일에서 mat 파일로 변환
+- 하네스로 작업
+- 좌표계는 EPSG5179
+- ~/mcar/src/localization/gps_system_localizer/mapfiles/K_CITY_20260608 경로에 있는 mat 파일들과 동일한 형태로 생성
+- 생성된 mat 파일은 ~/shp_file 경로에 저장
+- ~/shp_file 경로의 A2_LINK 링크 정보들 활용
+- A2_LINK 데이터에서 ID 필드 값이 A2256W000085, A2256W000229, A2256W000231, A2256W000327의 링크를 4개의 mat 파일로 변환
+- 포인트는 시작점 기준 2m 간격으로 생성
+- 링크의 시작점과 마지막 종료지점은 포인트 생성
+- 연결 링크 참조하여 NEXT_LINK_ID 저장
+- 기존 link_61.mat 파일을 대신해서 4개 mat 파일 생성하는데, 파일명은 순서대로 61, 86, 87, 88로 부여할것
+- 이 파일명 넘버링이 LINK_ID 값으로 사용
+- 제한속도 30km/h
+- A2256W000327으로 생성된 mat 파일은 is_stop_line = 1 적용
+- A2256W000231으로 생성된 mat 파일은 is_stop_line = 1 적용
+- A2256W000327으로 생성된 mat 파일에서 look_at_intersection id = 100, signalgourpid = 16
+- A2256W000231으로 생성된 mat 파일에서 look_at_intersection id = 1500, signalgourpid = 10
