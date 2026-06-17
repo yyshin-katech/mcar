@@ -27,6 +27,7 @@
 - [project_v2x_spat_topic.md](project_v2x_spat_topic.md) — SPaT 활성 토픽 브랜치마다 정반대: ioniq5_hmi_dev=`/katri_v2x_node/katri_spat`(katri_obu_interface 활성), siheung_dev=`/siheung_spat`. 점검 전 git branch 확인. MovementStateName은 소비자 없음
 - [reference_decode_md_spat_patch.md](reference_decode_md_spat_patch.md) — ~/decode_md/spat_udp_decode.py preprocess 보강 (ENUMERATED 두 번째 ... + trailing comma) + Windows Python 실행 필요
 - [feedback_wsl_rostopic_hz.md](feedback_wsl_rostopic_hz.md) — hz 가 Terminated 만 떠도 토픽은 흐를 수 있음. echo -n N 카운트 / tcpdump 로 cross-check
+- [project_k_city_20260618.md](project_k_city_20260618.md) — shp→mat 변환(EPSG:32652→5179), link_61교체+86/87/88추가, MAX_LANE_ID=88
 - [feedback_wslg_wheel_input.md](feedback_wslg_wheel_input.md) — WSLg는 wheel/클릭을 커서 위치 기준 전달. PyQt wheelEvent에 isActiveWindow 가드 필요(다른 창 선택해도 줌 먹는 증상)
 - [reference_diag_replay_harness.md](reference_diag_replay_harness.md) — ~/diag_replay_sample, CANoe mat(v7.3/h5py)→rosbag, vcu_diagnostic 검증(make_vcan_bag.py=구 v_can / make_adcan_bag.py=현행 AutonomousState) + 슈퍼바이저/종/횡 고장구간 라벨링
 - [project_control_fault_not_displayed.md](project_control_fault_not_displayed.md) — 슈퍼바이저/횡/종 error_code 표출 경로. 2026-06-09 vcu_diagnostic을 AutonomousState(life_count staleness OR error_code≠0) 기반으로 교체 → VCU 슬롯 표출
@@ -43,7 +44,7 @@
 - sudo password: `1`
 
 ## Branch별 지도/설정
-- **ioniq5_hmi_dev** (2026-06 현행 HMI 작업 브랜치): MAPFILE_PATH=`mapfiles/K_CITY_20260608` (katech_test.launch)
+- **ioniq5_hmi_dev** (2026-06 현행 HMI 작업 브랜치): MAPFILE_PATH=`mapfiles/K_CITY_20260618` (katech_test.launch, 2026-06-18 갱신)
 - **ioniq5**: MAPFILE_PATH=`mapfiles/K_CITY_20251201` (K-City 지도)
 - **siheung_dev**: MAPFILE_PATH=`mapfiles/$(arg scenario)` (senario1/senario3 선택), SHP_MAP_PATH=`src/shp_map/$(arg scenario)`
   - `scenario` arg: `senario1`(기본) 또는 `senario3`
@@ -83,6 +84,7 @@
 - **통일 좌표계: EPSG:5179** (Korea 2000 / Unified CS)
 - `to_control_team_demo.py`: .mat file based, Frenet coordinate, ODD判定
   - **gotcha**: mat의 Speed_Limit·신호정보·is_stop_line을 읽은 뒤 LINK_ID별 하드코딩 분기로 덮어씀 → mat만 바꿔선 안 바뀜. 속도제한 등은 코드 분기 먼저 확인 (else 기본 30, 2026-06-01)
+  - `MAX_LANE_ID = 88` (2026-06-18, link_86/87/88 추가로 85→88 갱신). `range(MIN_LANE_ID, MAX_LANE_ID+1)` 로 mat 로드
   - 링크 매칭은 frenet min-|d|. 물리적 겹침 링크(78↔79, 78 끝 s≈27·36~37m)는 old_lane_id 기반 hysteresis로 조기전환 방지 (2026-06-02)
 - `to_control_team_demo_shp.py`: .shp file based (siheung_dev)
 - Key msgs: `localization2D_msg`, `to_control_team_from_local_msg`, `chassis_msg`
