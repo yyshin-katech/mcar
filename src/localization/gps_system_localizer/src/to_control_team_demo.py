@@ -38,7 +38,7 @@ ODD_YAW_ERR_THRESHOLD = np.deg2rad(5)
 # 안전 취약시간대 (KST, [시작,끝) — 시작 포함, 끝 미포함)
 VULNERABLE_WINDOWS = [(7*3600 + 30*60, 9*3600),      # 07:30 ~ 09:00
                       (13*3600,        17*3600)]     # 13:00 ~ 17:00
-SCHOOL_ZONE_LINK_ID = 61
+SCHOOL_ZONE_LINK_ID = [61, 88, 86, 87]
 SCHOOL_ZONE_SPEED_LIMIT = 20  # km/h
 
 class DistanceCalculator(object):
@@ -586,7 +586,7 @@ class DistanceCalculator(object):
         # ─ 안전 취약시간대(KST) → 어린이보호구역(링크61) 속도 20 ─
         eff_seconds, time_source = self.compute_effective_seconds()
         vulnerable = self.in_vulnerable_window(eff_seconds)
-        if p.LINK_ID == SCHOOL_ZONE_LINK_ID and vulnerable:
+        if p.LINK_ID in SCHOOL_ZONE_LINK_ID and vulnerable:
             p.Speed_Limit = SCHOOL_ZONE_SPEED_LIMIT   # 20
         # effective time 발행 (HMI 표시용)
         if eff_seconds is None:
