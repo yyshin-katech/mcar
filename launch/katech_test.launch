@@ -7,11 +7,16 @@
   <!-- 맵 경로 설정 -->
   <param name="MAPFILE_PATH" 
         value="$(find gps_system_localizer)/mapfiles/K_CITY_20260618" />
-23
+
   <node pkg="tf2_ros"                 type="static_transform_publisher" name="gps2base_link" args="0.0 0.0 -1.5 0.0 0.0 0.0 gps base_link" />
 
   <!-- for MGI-2000 -->
-  <include file="$(find ublox_gps)/launch/ublox_device.launch"> </include>
+  <include file="$(find ublox_gps)/launch/ublox_device.launch">
+    <!-- GPS 전원 재인가 시 빠른 재기동: 좀비 노드 kill 후 respawn 지연 단축 -->
+    <arg name="respawn_delay" value="3" />
+  </include>
+  <!-- GPS 전원 재인가 자동복구 워치독: ttyACM0 복귀 + navpvt STALE 시 ublox 재기동 -->
+  <node pkg="gps_system_localizer" type="gps_ublox_watchdog.py" name="gps_ublox_watchdog" respawn="true" output="screen"/>
   <!-- for gps/ins 50hz -->
   <node name="gps_to_pose_2d_node"               type="gps_world_tf_node_send_host_gps" pkg="gps_world_tf" respawn="true"/>
   <!-- <node pkg="gps_world_tf"            type="sat_to_rviz"                  name="sat_pub"                   respawn="true"/> -->
