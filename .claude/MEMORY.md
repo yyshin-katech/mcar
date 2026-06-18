@@ -27,7 +27,7 @@
 - [project_v2x_spat_topic.md](project_v2x_spat_topic.md) — SPaT 활성 토픽 브랜치마다 정반대: ioniq5_hmi_dev=`/katri_v2x_node/katri_spat`(katri_obu_interface 활성), siheung_dev=`/siheung_spat`. 점검 전 git branch 확인. MovementStateName은 소비자 없음
 - [reference_decode_md_spat_patch.md](reference_decode_md_spat_patch.md) — ~/decode_md/spat_udp_decode.py preprocess 보강 (ENUMERATED 두 번째 ... + trailing comma) + Windows Python 실행 필요
 - [feedback_wsl_rostopic_hz.md](feedback_wsl_rostopic_hz.md) — hz 가 Terminated 만 떠도 토픽은 흐를 수 있음. echo -n N 카운트 / tcpdump 로 cross-check
-- [project_k_city_20260618.md](project_k_city_20260618.md) — shp→mat 변환(EPSG:32652→5179), link_61교체+86/87/88추가, MAX_LANE_ID=88
+- [project_k_city_20260618.md](project_k_city_20260618.md) — shp→mat 변환(EPSG:32652→5179), link_61교체+86/87/88추가, MAX_LANE_ID=88. gotcha: convert_links.py가 이전 링크 NEXT 미갱신→link_60 NEXT 61→88 수동수정(2026-06-18, commit 9729337). 학교구역 경고 61→61/86/87/88 확대(LINK_ID 분기, Road_State==1보다 우선, 음성은 stat_display GUARDZONE만)
 - [feedback_wslg_wheel_input.md](feedback_wslg_wheel_input.md) — WSLg는 wheel/클릭을 커서 위치 기준 전달. PyQt wheelEvent에 isActiveWindow 가드 필요(다른 창 선택해도 줌 먹는 증상)
 - [reference_diag_replay_harness.md](reference_diag_replay_harness.md) — ~/diag_replay_sample, CANoe mat(v7.3/h5py)→rosbag, vcu_diagnostic 검증(make_vcan_bag.py=구 v_can / make_adcan_bag.py=현행 AutonomousState) + 슈퍼바이저/종/횡 고장구간 라벨링
 - [project_control_fault_not_displayed.md](project_control_fault_not_displayed.md) — 슈퍼바이저/횡/종 error_code 표출 경로. 2026-06-09 vcu_diagnostic을 AutonomousState(life_count staleness OR error_code≠0) 기반으로 교체 → VCU 슬롯 표출
