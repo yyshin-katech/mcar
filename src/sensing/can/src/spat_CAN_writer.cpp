@@ -27,7 +27,7 @@
 
 using namespace std;
 
-#define MAX_SPAT_MSG 5
+#define MAX_SPAT_MSG 7
 
 class SPAT_CAN_WRITER{
   public:
