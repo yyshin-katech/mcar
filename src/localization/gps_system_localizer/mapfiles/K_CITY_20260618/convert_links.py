@@ -70,18 +70,20 @@ def main():
         mat_data = {
             'east':                     east,
             'north':                    north,
-            'LINK_ID':                  np.array([[cfg['link_id']]], dtype=np.float64),
-            'NEXT_LINK_ID':             np.array([[cfg['next_id']]], dtype=np.float64),
-            'have_to_LangeChange_right': np.array([[0]], dtype=np.float64),
-            'have_to_LangeChange_left':  np.array([[0]], dtype=np.float64),
-            'left_LaneChange_avail':     np.array([[0]], dtype=np.float64),
-            'right_LaneChange_avail':    np.array([[0]], dtype=np.float64),
-            'RIGHT_LINK_ID':             np.array([[0]], dtype=np.float64),
-            'LEFT_LINK_ID':              np.array([[0]], dtype=np.float64),
-            'is_stop_line':              np.array([[cfg['is_stop']]], dtype=np.float64),
-            'Speed_Limit':               np.array([[SPEED_LIMIT]], dtype=np.float64),
-            'look_at_signalGroupID':     np.array([[cfg['sgid']]], dtype=np.float64),
-            'look_at_IntersectionID':    np.array([[cfg['iid']]], dtype=np.float64),
+            # 정수 필드는 uint8 (기존 정상 링크 link_*.mat 와 동일, genpy 직렬화 호환).
+            # look_at_IntersectionID 만 값이 255 초과(예 1500)라 msg 정의대로 uint16.
+            'LINK_ID':                  np.array([[cfg['link_id']]], dtype=np.uint8),
+            'NEXT_LINK_ID':             np.array([[cfg['next_id']]], dtype=np.uint8),
+            'have_to_LangeChange_right': np.array([[0]], dtype=np.uint8),
+            'have_to_LangeChange_left':  np.array([[0]], dtype=np.uint8),
+            'left_LaneChange_avail':     np.array([[0]], dtype=np.uint8),
+            'right_LaneChange_avail':    np.array([[0]], dtype=np.uint8),
+            'RIGHT_LINK_ID':             np.array([[0]], dtype=np.uint8),
+            'LEFT_LINK_ID':              np.array([[0]], dtype=np.uint8),
+            'is_stop_line':              np.array([[cfg['is_stop']]], dtype=np.uint8),
+            'Speed_Limit':               np.array([[SPEED_LIMIT]], dtype=np.uint8),
+            'look_at_signalGroupID':     np.array([[cfg['sgid']]], dtype=np.uint8),
+            'look_at_IntersectionID':    np.array([[cfg['iid']]], dtype=np.uint16),
             'station':                   station,
         }
 
