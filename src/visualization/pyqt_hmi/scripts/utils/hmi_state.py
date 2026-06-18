@@ -394,7 +394,7 @@ class BaseHmiStateController:
         elif n >= 2:
             text = f"시스템 고장 ({n}개 시스템 오류)"
             sev = "error"
-        elif self.link_id == 61:
+        elif self.link_id in (61, 86, 87, 88):
             text = "어린이 보호구역입니다! 주의하세요!"
             sev = "warn"
         elif self.link_id in (59, 60):

@@ -1051,8 +1051,8 @@ void STAT_DISPLAY::system_status_check()
        this->POPUP_Text_Gen(str);
        this->sound_play("ADS");
     }
-    else if (local_msg.LINK_ID == 61)
-    {   // 링크 61: 어린이 보호구역 진입 — 경고 팝업 + guardzonewarnning.mp3 반복
+    else if (local_msg.LINK_ID == 61 || local_msg.LINK_ID == 86 || local_msg.LINK_ID == 87 || local_msg.LINK_ID == 88)
+    {   // 링크 61/86/87/88: 어린이 보호구역 진입 — 경고 팝업 + guardzonewarnning.mp3 반복
         oss << "어린이 보호구역입니다! 주의하세요!";
 
         std::string str = oss.str();
