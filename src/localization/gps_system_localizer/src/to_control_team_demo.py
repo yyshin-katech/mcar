@@ -116,8 +116,8 @@ class DistanceCalculator(object):
             
             self.map_loaded = True
 
-        except Execption as e:
-            rospy.logerr(f"Error loading centerline amp: {e}")
+        except Exception as e:
+            rospy.logerr(f"Error loading centerline map: {e}")
 
     def compute_my_lane_cy(self, e, n):
         ''' cython 버전 '''
