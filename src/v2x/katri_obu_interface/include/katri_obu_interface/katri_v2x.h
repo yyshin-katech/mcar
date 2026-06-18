@@ -39,7 +39,7 @@ class KATRI_V2X{
 
         ros::Publisher pub;
 
-        SIG_SPAT sig_SPaT[5];
+        SIG_SPAT sig_SPaT[7];
 
         struct sockaddr_in local_addr;
         struct sockaddr_in from_local_addr;

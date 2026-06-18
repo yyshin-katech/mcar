@@ -42,7 +42,7 @@ KATRI_V2X::KATRI_V2X()
         exit(0);
     }
 
-    memset(&sig_SPaT, 0, sizeof(SIG_SPAT) * 5);
+    memset(&sig_SPaT, 0, sizeof(SIG_SPAT) * 7);
     
 }
 KATRI_V2X::~KATRI_V2X()
@@ -97,10 +97,10 @@ void KATRI_V2X::loop(void)
         {
             void *p;
 
-            p = malloc(sizeof(SIG_SPAT) * 5);
-            memcpy(p, buffer, sizeof(SIG_SPAT) * 5);
+            p = malloc(sizeof(SIG_SPAT) * 7);
+            memcpy(p, buffer, sizeof(SIG_SPAT) * 7);
             // memcpy(sig_SPaT, p, sizeof(SIG_SPAT) * 10);
-            memcpy(sig_SPaT, (SIG_SPAT *)buffer, sizeof(SIG_SPAT) * 5);
+            memcpy(sig_SPaT, (SIG_SPAT *)buffer, sizeof(SIG_SPAT) * 7);
 
             // ROS_INFO("%d",((SIG_SPAT *)p + 8)->Intersection_id);
             // ROS_INFO("%d",((SIG_SPAT *)p + 8)->signalGroup);
@@ -111,7 +111,7 @@ void KATRI_V2X::loop(void)
             free(p);
         }
 
-        for(i=0;i<5;i++)
+        for(i=0;i<7;i++)
         {
             	ROS_INFO("Intersection ID : %d", sig_SPaT[i].Intersection_id);
 				ROS_INFO("signalGroup : %d", sig_SPaT[i].signalGroup);
@@ -126,7 +126,7 @@ void KATRI_V2X::loop(void)
         std_msgs::String str_msg;
 
         msg1.time = ros::Time::now();
-        for(i=0;i<5;i++)
+        for(i=0;i<7;i++)
         {
             intersection_data.IntersectionID = static_cast<uint16_t>(sig_SPaT[i].Intersection_id);
             char buf[6] = {0};
