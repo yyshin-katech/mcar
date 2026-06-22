@@ -46,6 +46,7 @@ link_directories(
 add_executable(${PROJECT_NAME}_node
   src/j2735_decode.cpp
   src/sdsm_decode.cpp
+  src/tim_publish.cpp
   src/ffasn1-j2735-2026-KSR1600.c
 )
 target_link_libraries(${PROJECT_NAME}_node
@@ -53,6 +54,7 @@ target_link_libraries(${PROJECT_NAME}_node
   ffasn1-base
   ffasn1-j2735-2020
 )
+add_dependencies(${PROJECT_NAME}_node ${catkin_EXPORTED_TARGETS})
 
 add_executable(j2735_universal_node src/j2735_universal_decoder.cpp)
 target_link_libraries(j2735_universal_node
@@ -65,6 +67,7 @@ target_link_libraries(j2735_universal_node
 ## OBU UDP packet -> J2735 UPER decode -> v2x_go_ahead/pedes_assist topics
 add_executable(j2735_TIM_rx_node
   src/j2735_TIM_rx_node.cpp
+  src/tim_publish.cpp
   src/ffasn1-j2735-2026-KSR1600.c
 )
 target_link_libraries(j2735_TIM_rx_node

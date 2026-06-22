@@ -18,13 +18,20 @@
 
 #include <v2x_msgs/intersection_msg.h>
 #include <v2x_msgs/intersection_array_msg.h>
+#include <v2x_msgs/v2x_tim_total_msg.h>
+#include <v2x_msgs/v2x_pedes_assist_msg.h>
+#include <v2x_msgs/v2x_tim_can_go_msg.h>
 #include <j3224_msgs/sdsm.h>
 #include <mmc_msgs/to_control_team_from_local_msg.h>
 
 #include "siheung_v2x/sdsm_decode.h"
+#include "siheung_v2x/tim_publish.h"
 
 #define UDP_PORT 9999
 #define BUF_SIZE 4096
+
+// J2735 messageId
+#define J2735_MSG_ID_TIM 31
 
 // OBU 헤더 (5 bytes)
 // [0] Frame Type   : 0=OBU→PC, 1=PC→OBU
@@ -177,7 +184,8 @@ class SpatDecoder{
         }
 
         // 메인 디코드 함수
-        void decode(const ReceivedMsg* rmsg, ros::Publisher& spat_pub, ros::Publisher& sdsm_pub)
+        void decode(const ReceivedMsg* rmsg, ros::Publisher& spat_pub, ros::Publisher& sdsm_pub,
+                    ros::Publisher& tim_pub, ros::Publisher& pedes_pub, ros::Publisher& go_ahead_pub)
         {
             const uint8_t* raw = rmsg->data.data();
             size_t raw_len = rmsg->len;
@@ -240,6 +248,33 @@ class SpatDecoder{
 
                         if (spat_standalone)
                             asn1_free_value(asn1_type_j2735SPAT, spat_standalone);
+                        asn1_free_value(asn1_type_j2735MessageFrame, frame_msg);
+                        return;
+                    }
+                    else if (frame->messageId == J2735_MSG_ID_TIM)
+                    {
+                        // TIM 처리 (OBU → PC). 발행 로직은 tim_publish 공유 모듈 사용.
+                        j2735TravelerInformation* tim = nullptr;
+                        void* tim_standalone = nullptr;
+
+                        if (frame->value.type != nullptr)
+                        {
+                            tim = (j2735TravelerInformation*)frame->value.u.data;
+                        }
+                        else
+                        {
+                            ASN1String* raw_bytes = &frame->value.u.octet_string;
+                            asn1_ssize_t tim_ret = asn1_uper_decode(&tim_standalone, asn1_type_j2735TravelerInformation,
+                                                                     raw_bytes->buf, raw_bytes->len, &err);
+                            if (tim_ret > 0 && tim_standalone)
+                                tim = (j2735TravelerInformation*)tim_standalone;
+                        }
+
+                        if (tim)
+                            tim_publish::publish(tim, tim_pub, pedes_pub, go_ahead_pub);
+
+                        if (tim_standalone)
+                            asn1_free_value(asn1_type_j2735TravelerInformation, tim_standalone);
                         asn1_free_value(asn1_type_j2735MessageFrame, frame_msg);
                         return;
                     }
@@ -312,8 +347,17 @@ int main(int argc, char** argv)
     pnh.param<std::string>("bind_ip", bind_ip, "0.0.0.0");
     pnh.param<int>("bind_port", bind_port, UDP_PORT);
 
+    // TIM 발행 토픽 (OBU TIM → PC). launch 에서 override 가능.
+    std::string tim_topic, tim_pedes_topic, tim_go_ahead_topic;
+    pnh.param<std::string>("tim_topic", tim_topic, "/v2x/tim_message");
+    pnh.param<std::string>("tim_pedes_topic", tim_pedes_topic, "/obu/v2x_pedes_assistance");
+    pnh.param<std::string>("tim_go_ahead_topic", tim_go_ahead_topic, "/v2x/tim_message/can_go_status");
+
     ros::Publisher spat_pub = nh.advertise<v2x_msgs::intersection_array_msg>("/siheung_spat", 1);
     ros::Publisher sdsm_pub = nh.advertise<j3224_msgs::sdsm>("/obu/sdsm", 1);
+    ros::Publisher tim_pub = nh.advertise<v2x_msgs::v2x_tim_total_msg>(tim_topic, 1);
+    ros::Publisher pedes_pub = nh.advertise<v2x_msgs::v2x_pedes_assist_msg>(tim_pedes_topic, 1);
+    ros::Publisher go_ahead_pub = nh.advertise<v2x_msgs::v2x_tim_can_go_msg>(tim_go_ahead_topic, 1);
     ros::Subscriber ctrl_sub = nh.subscribe("/localization/to_control_team", 1, toControlTeamCallback);
 
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -354,7 +398,8 @@ int main(int argc, char** argv)
     std::thread recv_thread(udpReceiverThread, sockfd, std::ref(queue));
     ros::Rate loop_rate(1000);
 
-    ROS_INFO("[siheung_v2x] started - SPaT(KSR1600) + SDSM(2020), publishing /siheung_spat, /obu/sdsm");
+    ROS_INFO("[siheung_v2x] started - SPaT(KSR1600) + SDSM(2020) + TIM, publishing /siheung_spat, /obu/sdsm, %s",
+             tim_topic.c_str());
     ROS_INFO("[siheung_v2x] UDP port=%d, OBU header=%d bytes", UDP_PORT, OBU_HEADER_SIZE);
 
     while (ros::ok())
@@ -362,7 +407,7 @@ int main(int argc, char** argv)
         ReceivedMsg msg;
         if (queue.pop(msg))
         {
-            decoder.decode(&msg, spat_pub, sdsm_pub);
+            decoder.decode(&msg, spat_pub, sdsm_pub, tim_pub, pedes_pub, go_ahead_pub);
         }
         ros::spinOnce();
         loop_rate.sleep();

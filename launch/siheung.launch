@@ -44,29 +44,18 @@
     <arg name="obu_bind_ip"   default="0.0.0.0" />
     <arg name="obu_bind_port" default="9999" />
 
-    <!-- J2735 TIM RX (OBU → PC, UDP 9999, SPaT 노드와 동일 포트 공유) -->
-    <arg name="tim_topic"          default="/obu/tim" />
+    <!-- OBU TIM 발행 토픽. SPaT/SDSM/TIM 모두 siheung_v2x_node 가 UDP 9999 단일 수신 후 messageId 로 분기 -->
+    <arg name="tim_topic"          default="/v2x/tim_message" />
     <arg name="tim_pedes_topic"    default="/obu/v2x_pedes_assistance" />
-    <arg name="go_ahead_topic"     default="/v2x/go_ahead" />
-    <arg name="allow_raw_tim"      default="false" />
-    <!-- 31=TIM. SPaT-path 진단 시에만 19 사용 -->
-    <arg name="tim_target_msg_id"  default="31" />
+    <arg name="tim_go_ahead_topic" default="/v2x/tim_message/can_go_status" />
 
-    <!-- V2X RX (OBU → PC, UDP 9999) -->
-    <node name="siheung_v2x_node"       type="siheung_v2x_node"     pkg="siheung_v2x"  respawn="true">
+    <!-- V2X RX (OBU → PC, UDP 9999): SPaT(19) / SDSM(41) / TIM(31) 단일 수신 + messageId 분기 -->
+    <node name="siheung_v2x_node"       type="siheung_v2x_node"     pkg="siheung_v2x"  respawn="true" output="screen">
         <param name="bind_ip"   value="$(arg obu_bind_ip)" />
         <param name="bind_port" value="$(arg obu_bind_port)" />
-    </node>
-
-    <!-- J2735 TIM RX (OBU → PC, UDP 9999) → go_ahead / pedes_assist 토픽 -->
-    <node name="j2735_TIM_rx_node" type="j2735_TIM_rx_node" pkg="siheung_v2x" output="screen">
-        <param name="bind_ip"       value="$(arg obu_bind_ip)" />
-        <param name="bind_port"     value="$(arg obu_bind_port)" />
-        <param name="topic"         value="$(arg tim_topic)" />
-        <param name="pedes_topic"   value="$(arg tim_pedes_topic)" />
-        <param name="go_ahead_topic" value="$(arg go_ahead_topic)" />
-        <param name="allow_raw_tim" value="$(arg allow_raw_tim)" />
-        <param name="target_msg_id" value="$(arg tim_target_msg_id)" />
+        <param name="tim_topic"          value="$(arg tim_topic)" />
+        <param name="tim_pedes_topic"    value="$(arg tim_pedes_topic)" />
+        <param name="tim_go_ahead_topic" value="$(arg tim_go_ahead_topic)" />
     </node>
 
     <!-- V2X TX BSM (PC → OBU, UDP 6666) -->
