@@ -1,7 +1,11 @@
 #include <ros/ros.h>
-#include <std_msgs/String.h>
-#include <v2x_msgs/v2x_go_ahead_msg.h>
 #include <v2x_msgs/v2x_pedes_assist_msg.h>
+#include <v2x_msgs/v2x_tim_can_go_msg.h>
+#include <v2x_msgs/v2x_tim_content_msg.h>
+#include <v2x_msgs/v2x_tim_dataframe_msg.h>
+#include <v2x_msgs/v2x_tim_region_msg.h>
+#include <v2x_msgs/v2x_tim_regional_msg.h>
+#include <v2x_msgs/v2x_tim_total_msg.h>
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -180,6 +184,14 @@ static std::string bytesToHex(const uint8_t* data, size_t len)
         ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(data[i]);
     }
     return ss.str();
+}
+
+static std::string bitStringToHex(const ASN1BitString& value)
+{
+    const size_t byte_len = (value.len + 7) / 8;
+    if (!value.buf || byte_len == 0)
+        return "";
+    return bytesToHex(value.buf, byte_len);
 }
 
 static std::string jsonEscape(const std::string& input)
@@ -775,7 +787,7 @@ public:
         {
             ROS_INFO_THROTTLE(2.0,
                               "[TIM] valid J2735 received but not target msgId=%d(%s): msgId=%d(%s), offset=%zu. "
-                              "If /obu/tim is empty, OBU/RSU may be forwarding another service payload.",
+                              "If /v2x/tim_message is empty, OBU/RSU may be forwarding another service payload.",
                               target_msg_id_,
                               j2735MessageName(target_msg_id_),
                               first_non_tim_msg_id,
@@ -977,54 +989,227 @@ private:
         return true;
     }
 
-    std::vector<uint16_t> extractLinkList(const j2735TravelerInformation& tim) const
-    {
-        std::vector<uint16_t> links;
-
-        for (size_t i = 0; i < tim.dataFrames.count; ++i)
-        {
-            const auto& frame = tim.dataFrames.tab[i];
-            for (size_t j = 0; j < frame.regions.count; ++j)
-            {
-                const auto& region = frame.regions.tab[j];
-                if (!region.id_option)
-                    continue;
-
-                int id = region.id.id;
-                if (id < 0 || id > 65535)
-                {
-                    ROS_WARN_THROTTLE(2.0,
-                                      "[TIM-OBU] link id out of uint16 range: %d",
-                                      id);
-                    continue;
-                }
-
-                links.push_back(static_cast<uint16_t>(id));
-            }
-        }
-
-        return links;
-    }
-
     void publishGoAhead(const j2735TravelerInformation& tim,
                         ros::Publisher& go_ahead_pub,
                         const std::string& packet_id)
     {
-        const std::vector<uint16_t> link_list = extractLinkList(tim);
-        const bool blocked = (packet_id == "RNST00012");
+        if (packet_id.rfind("RNST", 0) != 0)
+            return;
 
-        v2x_msgs::v2x_go_ahead_msg msg;
-        msg.go_ahead = !blocked;
-        if (blocked)
-            msg.link_list = link_list;
+        PedesAssistanceData data;
+        updatePedesAssistanceFromRegional(tim, data);
+
+        v2x_msgs::v2x_tim_can_go_msg msg;
+        msg.standard_time = data.standard_time_valid ? data.standard_time : "";
+        msg.rsu_latitude = data.rsu_latitude_valid ? data.rsu_latitude : 0.0;
+        msg.rsu_longitude = data.rsu_longitude_valid ? data.rsu_longitude : 0.0;
+        msg.do_not_go_forward = true;
 
         go_ahead_pub.publish(msg);
 
         ROS_INFO_THROTTLE(1.0,
-                          "[TIM-OBU] published go_ahead=%s packetID=%s links=%zu",
-                          msg.go_ahead ? "true" : "false",
+                          "[TIM-OBU] published do_not_go_forward=true packetID=%s standard_time=%s rsu=(%.9f, %.9f)",
                           packet_id.c_str(),
-                          msg.link_list.size());
+                          msg.standard_time.c_str(),
+                          msg.rsu_latitude,
+                          msg.rsu_longitude);
+    }
+
+    template <typename ContentList>
+    void appendContentItems(v2x_msgs::v2x_tim_dataframe_msg& frame_msg,
+                            const ContentList& list,
+                            int32_t content_choice)
+    {
+        for (size_t i = 0; i < list.count; ++i)
+        {
+            const auto& item = list.tab[i].item;
+            v2x_msgs::v2x_tim_content_msg content_msg;
+            content_msg.content_index = static_cast<uint32_t>(i);
+            content_msg.content_choice = content_choice;
+            content_msg.item_choice = static_cast<int32_t>(item.choice);
+
+            if (static_cast<int32_t>(item.choice) == 0)
+            {
+                content_msg.itis = static_cast<int32_t>(item.u.itis);
+                content_msg.text = "";
+            }
+            else
+            {
+                content_msg.itis = 0;
+                content_msg.text = asn1StringToString(item.u.text, true);
+            }
+
+            frame_msg.contents.push_back(content_msg);
+        }
+    }
+
+    void appendFrameContent(v2x_msgs::v2x_tim_dataframe_msg& frame_msg,
+                            const j2735TravelerDataFrame& frame)
+    {
+        const int32_t content_choice = static_cast<int32_t>(frame.content.choice);
+        switch (frame.content.choice)
+        {
+            case j2735TravelerDataFrame_3_advisory:
+                appendContentItems(frame_msg, frame.content.u.advisory, content_choice);
+                break;
+            case j2735TravelerDataFrame_3_workZone:
+                appendContentItems(frame_msg, frame.content.u.workZone, content_choice);
+                break;
+            case j2735TravelerDataFrame_3_genericSign:
+                appendContentItems(frame_msg, frame.content.u.genericSign, content_choice);
+                break;
+            case j2735TravelerDataFrame_3_speedLimit:
+                appendContentItems(frame_msg, frame.content.u.speedLimit, content_choice);
+                break;
+            case j2735TravelerDataFrame_3_exitService:
+                appendContentItems(frame_msg, frame.content.u.exitService, content_choice);
+                break;
+        }
+    }
+
+    v2x_msgs::v2x_tim_region_msg buildRegionMsg(const j2735GeographicalPath& region,
+                                                uint32_t region_index)
+    {
+        v2x_msgs::v2x_tim_region_msg region_msg;
+        region_msg.region_index = region_index;
+
+        region_msg.name_present = region.name_option;
+        region_msg.name = asn1StringToString(region.name, region.name_option);
+
+        region_msg.id_present = region.id_option;
+        region_msg.id_region_present = region.id_option && region.id.region_option;
+        region_msg.id_region = (region.id_option && region.id.region_option) ? region.id.region : 0;
+        region_msg.id = region.id_option ? region.id.id : 0;
+
+        region_msg.anchor_present = region.anchor_option;
+        region_msg.anchor_lat = region.anchor_option ? region.anchor.lat : 0;
+        region_msg.anchor_long = region.anchor_option ? region.anchor.Long : 0;
+        region_msg.anchor_elevation_present = region.anchor_option && region.anchor.elevation_option;
+        region_msg.anchor_elevation = (region.anchor_option && region.anchor.elevation_option) ? region.anchor.elevation : 0;
+
+        region_msg.lane_width_present = region.laneWidth_option;
+        region_msg.lane_width = region.laneWidth_option ? region.laneWidth : 0;
+        region_msg.directionality_present = region.directionality_option;
+        region_msg.directionality = region.directionality_option ? static_cast<int32_t>(region.directionality) : 0;
+        region_msg.closed_path_present = region.closedPath_option;
+        region_msg.closed_path = region.closedPath_option ? region.closedPath : false;
+        region_msg.direction_present = region.direction_option;
+        region_msg.direction_hex = region.direction_option ? bitStringToHex(region.direction) : "";
+        region_msg.direction_bits = region.direction_option ? static_cast<uint32_t>(region.direction.len) : 0;
+        region_msg.description_present = region.description_option;
+        region_msg.description_choice = region.description_option ? static_cast<int32_t>(region.description.choice) : -1;
+        region_msg.regional_count = region.regional_option ? static_cast<uint32_t>(region.regional.count) : 0;
+
+        return region_msg;
+    }
+
+    v2x_msgs::v2x_tim_dataframe_msg buildFrameMsg(const j2735TravelerDataFrame& frame,
+                                                  uint32_t frame_index)
+    {
+        v2x_msgs::v2x_tim_dataframe_msg frame_msg;
+        frame_msg.frame_index = frame_index;
+        frame_msg.not_used = static_cast<uint8_t>(frame.notUsed);
+        frame_msg.frame_type = static_cast<int32_t>(frame.frameType);
+        frame_msg.msg_id_choice = static_cast<uint8_t>(frame.msgId.choice);
+
+        const bool has_road_sign = frame.msgId.choice == j2735TravelerDataFrame_1_roadSignID;
+        frame_msg.further_info_id = frame.msgId.choice == j2735TravelerDataFrame_1_furtherInfoID
+                                        ? asn1StringToString(frame.msgId.u.furtherInfoID, true)
+                                        : "";
+        frame_msg.road_sign_id_present = has_road_sign;
+        frame_msg.road_sign_lat = has_road_sign ? frame.msgId.u.roadSignID.position.lat : 0;
+        frame_msg.road_sign_long = has_road_sign ? frame.msgId.u.roadSignID.position.Long : 0;
+        frame_msg.road_sign_elevation_present = has_road_sign && frame.msgId.u.roadSignID.position.elevation_option;
+        frame_msg.road_sign_elevation = (has_road_sign && frame.msgId.u.roadSignID.position.elevation_option)
+                                            ? frame.msgId.u.roadSignID.position.elevation
+                                            : 0;
+        frame_msg.road_sign_view_angle_hex = has_road_sign ? bitStringToHex(frame.msgId.u.roadSignID.viewAngle) : "";
+        frame_msg.road_sign_view_angle_bits = has_road_sign ? static_cast<uint32_t>(frame.msgId.u.roadSignID.viewAngle.len) : 0;
+        frame_msg.road_sign_mutcd_code_present = has_road_sign && frame.msgId.u.roadSignID.mutcdCode_option;
+        frame_msg.road_sign_mutcd_code = (has_road_sign && frame.msgId.u.roadSignID.mutcdCode_option)
+                                             ? static_cast<int32_t>(frame.msgId.u.roadSignID.mutcdCode)
+                                             : 0;
+
+        frame_msg.start_year_present = frame.startYear_option;
+        frame_msg.start_year = frame.startYear_option ? static_cast<uint16_t>(frame.startYear) : 0;
+        frame_msg.start_time = static_cast<uint32_t>(frame.startTime);
+        frame_msg.duration_time = static_cast<uint16_t>(frame.durationTime);
+        frame_msg.priority = static_cast<int32_t>(frame.priority);
+        frame_msg.not_used1 = static_cast<uint8_t>(frame.notUsed1);
+        frame_msg.not_used2 = static_cast<uint8_t>(frame.notUsed2);
+        frame_msg.not_used3 = static_cast<uint8_t>(frame.notUsed3);
+        frame_msg.content_choice = static_cast<int32_t>(frame.content.choice);
+        frame_msg.url_present = frame.url_option;
+        frame_msg.url = asn1StringToString(frame.url, frame.url_option);
+
+        for (size_t i = 0; i < frame.regions.count; ++i)
+            frame_msg.regions.push_back(buildRegionMsg(frame.regions.tab[i], static_cast<uint32_t>(i)));
+
+        appendFrameContent(frame_msg, frame);
+        return frame_msg;
+    }
+
+    void appendRegionalExtensions(v2x_msgs::v2x_tim_total_msg& msg,
+                                  const j2735TravelerInformation& tim)
+    {
+        if (!tim.regional_option)
+            return;
+
+        for (size_t i = 0; i < tim.regional.count; ++i)
+        {
+            const auto& regional = tim.regional.tab[i];
+            const ASN1OpenType& value = regional.regExtValue;
+            const ASN1String& raw = value.u.octet_string;
+            const bool has_raw_octets = value.type == nullptr && raw.buf && raw.len > 0;
+
+            v2x_msgs::v2x_tim_regional_msg regional_msg;
+            regional_msg.regional_index = static_cast<uint32_t>(i);
+            regional_msg.region_id = static_cast<int32_t>(regional.regionId);
+            regional_msg.octet_string = has_raw_octets ? openTypeOctetString(value) : "";
+            regional_msg.hex = has_raw_octets ? bytesToHex(reinterpret_cast<const uint8_t*>(raw.buf), raw.len) : "";
+            regional_msg.length = has_raw_octets ? static_cast<uint32_t>(raw.len) : 0;
+            msg.regional.push_back(regional_msg);
+        }
+    }
+
+    v2x_msgs::v2x_tim_total_msg buildTimTotalMsg(const j2735TravelerInformation& tim,
+                                                 const std::string& packet_id)
+    {
+        v2x_msgs::v2x_tim_total_msg msg;
+        msg.header.stamp = ros::Time::now();
+        msg.header.frame_id = "j2735_tim";
+        msg.message_id = J2735_MSG_ID_TIM;
+        msg.msg_cnt = static_cast<uint8_t>(tim.msgCnt);
+        msg.time_stamp_present = tim.timeStamp_option;
+        msg.time_stamp = tim.timeStamp_option ? static_cast<uint32_t>(tim.timeStamp) : 0;
+        msg.packet_id_present = tim.packetID_option;
+        msg.packet_id = packet_id;
+        msg.url_b_present = tim.urlB_option;
+        msg.url_b = asn1StringToString(tim.urlB, tim.urlB_option);
+
+        for (size_t i = 0; i < tim.dataFrames.count; ++i)
+            msg.data_frames.push_back(buildFrameMsg(tim.dataFrames.tab[i], static_cast<uint32_t>(i)));
+
+        appendRegionalExtensions(msg, tim);
+
+        PedesAssistanceData pedes_data;
+        updatePedesAssistanceFromRegional(tim, pedes_data);
+        msg.standard_time_present = pedes_data.standard_time_valid;
+        msg.standard_time = pedes_data.standard_time_valid ? pedes_data.standard_time : "";
+        msg.rsu_latitude_present = pedes_data.rsu_latitude_valid;
+        msg.rsu_latitude = pedes_data.rsu_latitude_valid ? pedes_data.rsu_latitude : 0.0;
+        msg.rsu_longitude_present = pedes_data.rsu_longitude_valid;
+        msg.rsu_longitude = pedes_data.rsu_longitude_valid ? pedes_data.rsu_longitude : 0.0;
+        msg.north_pedes_present = pedes_data.north_pedes_valid;
+        msg.north_pedes = pedes_data.north_pedes_valid ? pedes_data.north_pedes : false;
+        msg.east_pedes_present = pedes_data.east_pedes_valid;
+        msg.east_pedes = pedes_data.east_pedes_valid ? pedes_data.east_pedes : false;
+        msg.south_pedes_present = pedes_data.south_pedes_valid;
+        msg.south_pedes = pedes_data.south_pedes_valid ? pedes_data.south_pedes : false;
+        msg.west_pedes_present = pedes_data.west_pedes_valid;
+        msg.west_pedes = pedes_data.west_pedes_valid ? pedes_data.west_pedes : false;
+
+        return msg;
     }
 
     void publishTim(j2735TravelerInformation* tim,
@@ -1034,55 +1219,7 @@ private:
     {
         const std::string packet_id = asn1StringToString(tim->packetID, tim->packetID_option);
 
-        std_msgs::String msg;
-        std::ostringstream ss;
-
-        ss << "{";
-        ss << "\"msg\":\"TIM\",";
-        ss << "\"msgCnt\":" << tim->msgCnt << ",";
-        ss << "\"timeStamp\":";
-        appendOptionalInt(ss, tim->timeStamp_option, tim->timeStamp);
-        ss << ",";
-        ss << "\"packetID\":\"" << jsonEscape(packet_id) << "\",";
-        ss << "\"urlB\":\"" << jsonEscape(asn1StringToString(tim->urlB, tim->urlB_option)) << "\",";
-        ss << "\"dataFrameCount\":" << tim->dataFrames.count << ",";
-        ss << "\"dataFrames\":[";
-
-        const size_t frame_limit = std::min(tim->dataFrames.count, static_cast<size_t>(32));
-        for (size_t i = 0; i < frame_limit; ++i)
-        {
-            const auto& frame = tim->dataFrames.tab[i];
-            if (i > 0)
-                ss << ",";
-
-            ss << "{";
-            ss << "\"frameType\":" << frame.frameType << ",";
-            ss << "\"startYear\":";
-            appendOptionalInt(ss, frame.startYear_option, frame.startYear);
-            ss << ",";
-            ss << "\"startTime\":" << frame.startTime << ",";
-            ss << "\"durationTime\":" << frame.durationTime << ",";
-            ss << "\"priority\":" << frame.priority << ",";
-            ss << "\"regionCount\":" << frame.regions.count << ",";
-            ss << "\"contentType\":" << frame.content.choice;
-
-            if (frame.content.choice == j2735TravelerDataFrame_3_advisory)
-                appendAdvisory(ss, frame.content.u.advisory);
-
-            ss << "}";
-        }
-        ss << "]";
-
-        if (tim->dataFrames.count > frame_limit)
-            ss << ",\"truncatedDataFrames\":" << (tim->dataFrames.count - frame_limit);
-
-        ss << ",\"regionalCount\":";
-        ss << (tim->regional_option ? tim->regional.count : 0);
-        appendTimRegional(ss, *tim);
-
-        ss << "}";
-        msg.data = ss.str();
-        tim_pub.publish(msg);
+        tim_pub.publish(buildTimTotalMsg(*tim, packet_id));
         publishPedesAssistance(*tim, pedes_pub);
         publishGoAhead(*tim, go_ahead_pub, packet_id);
 
@@ -1126,76 +1263,10 @@ private:
 
     void publishSpatProbe(j2735SPAT* spat, ros::Publisher& tim_pub)
     {
-        std_msgs::String msg;
-        std::ostringstream ss;
-
-        ss << "{";
-        ss << "\"msg\":\"SPaT-probe\",";
-        ss << "\"note\":\"target_msg_id is 19; this is not TIM\",";
-        ss << "\"timeStamp\":";
-        appendOptionalInt(ss, spat->timeStamp_option, spat->timeStamp);
-        ss << ",";
-        ss << "\"intersectionCount\":" << spat->intersections.count << ",";
-        ss << "\"intersections\":[";
-
-        const size_t intersection_limit = std::min(spat->intersections.count, static_cast<size_t>(8));
-        for (size_t i = 0; i < intersection_limit; ++i)
-        {
-            const auto& intersection = spat->intersections.tab[i];
-            if (i > 0)
-                ss << ",";
-
-            ss << "{";
-            ss << "\"id\":" << intersection.id.id << ",";
-            ss << "\"region\":";
-            appendOptionalInt(ss, intersection.id.region_option, intersection.id.region);
-            ss << ",";
-            ss << "\"revision\":" << intersection.revision << ",";
-            ss << "\"moy\":";
-            appendOptionalInt(ss, intersection.moy_option, intersection.moy);
-            ss << ",";
-            ss << "\"dSecond\":";
-            appendOptionalInt(ss, intersection.timeStamp_option, intersection.timeStamp);
-            ss << ",";
-            ss << "\"stateCount\":" << intersection.states.count << ",";
-            ss << "\"states\":[";
-
-            const size_t state_limit = std::min(intersection.states.count, static_cast<size_t>(16));
-            for (size_t j = 0; j < state_limit; ++j)
-            {
-                const auto& movement = intersection.states.tab[j];
-                if (j > 0)
-                    ss << ",";
-
-                ss << "{";
-                ss << "\"signalGroup\":" << movement.signalGroup;
-                if (movement.state_time_speed.count > 0)
-                {
-                    const auto& event = movement.state_time_speed.tab[0];
-                    ss << ",\"eventState\":" << event.eventState;
-                    if (event.timing_option)
-                        ss << ",\"minEndTime\":" << event.timing.minEndTime;
-                }
-                ss << "}";
-            }
-            ss << "]";
-
-            if (intersection.states.count > state_limit)
-                ss << ",\"truncatedStates\":" << (intersection.states.count - state_limit);
-
-            ss << "}";
-        }
-        ss << "]";
-
-        if (spat->intersections.count > intersection_limit)
-            ss << ",\"truncatedIntersections\":" << (spat->intersections.count - intersection_limit);
-
-        ss << "}";
-        msg.data = ss.str();
-        tim_pub.publish(msg);
+        (void)tim_pub;
 
         ROS_INFO_THROTTLE(1.0,
-                          "[TIM-OBU] published SPaT probe intersections=%zu target_msg_id=%d",
+                          "[TIM-OBU] decoded SPaT probe intersections=%zu target_msg_id=%d; /v2x/tim_message publishes TIM total messages only",
                           spat->intersections.count,
                           target_msg_id_);
     }
@@ -1261,15 +1332,15 @@ int main(int argc, char** argv)
     int target_msg_id = J2735_MSG_ID_TIM;
     pnh.param<std::string>("bind_ip", bind_ip, "0.0.0.0");
     pnh.param<int>("bind_port", bind_port, DEFAULT_TIM_UDP_PORT);
-    pnh.param<std::string>("topic", topic, "/obu/tim");
+    pnh.param<std::string>("topic", topic, "/v2x/tim_message");
     pnh.param<std::string>("pedes_topic", pedes_topic, "/obu/v2x_pedes_assistance");
-    pnh.param<std::string>("go_ahead_topic", go_ahead_topic, "/v2x/go_ahead");
+    pnh.param<std::string>("go_ahead_topic", go_ahead_topic, "/v2x/tim_message/can_go_status");
     pnh.param<bool>("allow_raw_tim", allow_raw_tim, false);
     pnh.param<int>("target_msg_id", target_msg_id, J2735_MSG_ID_TIM);
 
-    ros::Publisher tim_pub = nh.advertise<std_msgs::String>(topic, 1);
+    ros::Publisher tim_pub = nh.advertise<v2x_msgs::v2x_tim_total_msg>(topic, 1);
     ros::Publisher pedes_pub = nh.advertise<v2x_msgs::v2x_pedes_assist_msg>(pedes_topic, 1);
-    ros::Publisher go_ahead_pub = nh.advertise<v2x_msgs::v2x_go_ahead_msg>(go_ahead_topic, 1);
+    ros::Publisher go_ahead_pub = nh.advertise<v2x_msgs::v2x_tim_can_go_msg>(go_ahead_topic, 1);
 
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd < 0)

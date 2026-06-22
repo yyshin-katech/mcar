@@ -15,6 +15,12 @@ add_message_files(
  movement_msg.msg
  v2x_go_ahead_msg.msg
  v2x_pedes_assist_msg.msg
+ v2x_tim_content_msg.msg
+ v2x_tim_region_msg.msg
+ v2x_tim_dataframe_msg.msg
+ v2x_tim_regional_msg.msg
+ v2x_tim_can_go_msg.msg
+ v2x_tim_total_msg.msg
 )
 
 
