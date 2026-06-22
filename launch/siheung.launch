@@ -69,6 +69,19 @@
         <param name="vehicle_id"        value="EV01" />
     </node>
 
+    <!-- SPaT 병합: OBU(/siheung_spat) + MQTT(/siheung_v2x/mqtt_spat) 를 교차로(IID)
+         단위 OBU 우선으로 병합 → /spat_merged. OBU 가 안 싣는 교차로(예: 302) 는 MQTT 로
+         채워져 HMI/CAN(spat_CAN_writer·stat_display·pyqt/web hmi) 에 전달된다. -->
+    <node name="spat_merge_node" type="spat_merge_node" pkg="siheung_v2x"
+          respawn="true" output="screen">
+        <param name="obu_topic"            value="/siheung_spat" />
+        <param name="mqtt_topic"           value="/siheung_v2x/mqtt_spat" />
+        <param name="merged_topic"         value="/spat_merged" />
+        <param name="obu_priority_timeout" value="2.0" />
+        <param name="entry_ttl"            value="3.0" />
+        <param name="publish_rate"         value="10.0" />
+    </node>
+
     <!-- V2X RX via MQTT (Cloud V2N → PC). mqtt_server arg 로 test/prod 전환 -->
     <node name="mqtt_spat_rx_node" type="mqtt_spat_rx_node" pkg="siheung_v2x"
           respawn="true" output="screen">

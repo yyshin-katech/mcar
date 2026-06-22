@@ -284,9 +284,10 @@ int main(int argc, char **argv){
 
   can_status = SPaTCW.OPEN_CAN_CHANNEL_AND_READ_DB(channel_num, filename, init_access_flag);
 
-  ros::Subscriber sub1 = node.subscribe("/siheung_spat", 1, &SPAT_CAN_WRITER::CALLBACK_SPAT, &SPaTCW);
+  // OBU/MQTT 병합 스트림(/spat_merged) 단일 구독. 교차로 단위 OBU 우선 병합은
+  // spat_merge_node 가 처리하므로 여기서는 소스 구분 없이 그대로 CAN write.
+  ros::Subscriber sub1 = node.subscribe("/spat_merged", 1, &SPAT_CAN_WRITER::CALLBACK_SPAT, &SPaTCW);
   ros::Subscriber sub2 = node.subscribe("/localization/to_control_team", 1, &SPAT_CAN_WRITER::CALLBACK_LOCAL, &SPaTCW);
-  ros::Subscriber sub3 = node.subscribe("/siheung_v2x/mqtt_spat", 1, &SPAT_CAN_WRITER::CALLBACK_MQTT_SPAT, &SPaTCW);
 
   ros::waitForShutdown();
   canBusOff(hCAN);

@@ -122,3 +122,10 @@ target_link_libraries(mqtt_bsm_tx_node
   ffasn1-base
   ffasn1-j2735-2020
 )
+
+## spat_merge_node: OBU + MQTT SPaT 를 교차로(IID) 단위 OBU 우선으로 병합 → /spat_merged
+add_executable(spat_merge_node src/spat_merge_node.cpp)
+target_link_libraries(spat_merge_node
+  ${catkin_LIBRARIES}
+)
+add_dependencies(spat_merge_node ${catkin_EXPORTED_TARGETS})

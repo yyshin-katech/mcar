@@ -599,7 +599,7 @@ class MainDisplayWindow(QMainWindow):
         rospy.Subscriber("/sensors/ioniq5_ad_can", ioniq5_ad_can_msg, self.ioniq5_ad_can_callback)
         rospy.Subscriber("/sensors/v_can", v_can_msg, self.v_can_callback)
         rospy.Subscriber("/localization/to_control_team", to_control_team_from_local_msg, self.local_callback)
-        rospy.Subscriber("/siheung_spat", intersection_array_msg, self.traffic_light_callback)
+        rospy.Subscriber("/spat_merged", intersection_array_msg, self.traffic_light_callback)
         rospy.Subscriber("/track_Multi_RS", object_array_msg, self.track_objects_callback)
         
     def gps_callback(self, msg):

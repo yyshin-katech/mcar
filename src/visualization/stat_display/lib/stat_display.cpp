@@ -41,7 +41,7 @@ STAT_DISPLAY::STAT_DISPLAY()
     chassis_sub_node = nh.subscribe("/sensors/chassis", 1, &STAT_DISPLAY::chassis_callback_func, this);
 
     // 신호등 Subscriber 추가 (토픽 이름은 실제 사용하는 것으로 변경)
-    traffic_light_sub = nh.subscribe("/siheung_spat", 1, &STAT_DISPLAY::traffic_light_callback, this);
+    traffic_light_sub = nh.subscribe("/spat_merged", 1, &STAT_DISPLAY::traffic_light_callback, this);
     
     timer_ = nh.createTimer(ros::Duration(1.0), &STAT_DISPLAY::timerCallback, this);
     diag_timer_ = nh.createTimer(ros::Duration(0.1), &STAT_DISPLAY::diag_timerCallback, this);

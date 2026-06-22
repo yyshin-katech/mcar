@@ -6,6 +6,10 @@
     <arg name="mat_scenario" default="senario" />
     <arg name="shp_scenario" default="HDMap_Oido_New" />
 
+    <!-- MQTT broker 선택: prod = 시흥시 VPN 사설망 실제 서버, test = 인터넷 테스트 서버.
+         siheung.launch 로 그대로 전달. 예) roslaunch launch/katech_test.launch mqtt_server:=prod -->
+    <arg name="mqtt_server" default="prod" />
+
     <param name="EPSG" value="5179" />
 
     <!-- 맵 경로 설정 (각 arg에 따라 자동 변경) -->
@@ -46,7 +50,9 @@
 
   <!-- KATRI에서는 OFF-->
   <!-- siheung_v2x_node + bsm_tx_node 는 siheung.launch 로 분리 -->
-  <include file="$(dirname)/siheung.launch" />
+  <include file="$(dirname)/siheung.launch">
+    <arg name="mqtt_server" value="$(arg mqtt_server)" />
+  </include>
 
   <node pkg="can"          type="katech_ped_detector.py"          name="katech_ped_detector_node"             respawn="true" />
   <node name="katech_ped_detector_can_writer_node"       type="ped_detector_can_writer"     pkg="can"  respawn="true" />
