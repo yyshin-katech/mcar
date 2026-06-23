@@ -390,45 +390,35 @@ class DistanceCalculator(object):
         p.have_to_LangeChange_left = 0
         p.have_to_LangeChange_right = 0
 
-        # 다음 링크가 정지선 링크이고 길이가 15m 이하이면, 현재 링크에서 미리 정지선 정보 반영
+        # N-step look-ahead 정지선 전파:
+        # 현재 링크 다음부터 NEXT_LINK_ID 체인을 따라가며 링크 총길이를 누적한다.
+        # 누적 거리(= 현재 링크 끝부터 정지선 링크 끝까지)가 50m 미만인 정지선 링크를
+        # 만나면, 현재 링크에서 미리 정지선 정보(look_at/MANUAVER)를 반영하고 남은
+        # 거리를 (현재 링크 남은거리 + 누적 길이)로 출력한다.
+        #  - 다음 1개 링크가 정지선이고 50m 미만 → 1단계 전파
+        #  - 2개(그 이상) 링크 총 길이가 50m 미만이면 그 이전 링크부터 동일 방식 전파
+        # 누적 거리가 50m 이상이 되면 정지선이 너무 멀므로 더 이상 보지 않는다.
         if p.is_stop_line == 0 and p.NEXT_LINK_ID != 0:
-            for road in self.target_roads:
-                if int(road['LINK_ID'][0][0]) == p.NEXT_LINK_ID:
-                    next_is_stop = int(road['is_stop_line'][0][0])
-                    next_link_length = road['station'][0][-1]
-                    if next_is_stop == 1 and next_link_length <= 30.0:
-                        p.is_stop_line = 1
-                        p.look_at_signalGroupID = road['look_at_signalGroupID'][0][0]
-                        p.look_at_IntersectionID = road['look_at_IntersectionID'][0][0]
-                        p.MANUAVER = int(road.get('MANUAVER', [[0]])[0][0])
-                        p.distance_to_lane_end = p.distance_to_lane_end + next_link_length
+            roads_by_id = {int(r['LINK_ID'][0][0]): r for r in self.target_roads}
+            accum = 0.0
+            walk = int(p.NEXT_LINK_ID)
+            visited = set()
+            while walk != 0 and walk not in visited:
+                visited.add(walk)
+                road = roads_by_id.get(walk)
+                if road is None:
                     break
-
-        # 2-step look-ahead: NEXT가 정지선이 아니고, NEXT_NEXT가 정지선이면서 길이 30m 이하이면
-        # 현재 링크에서 미리 정지선 정보 반영 + NEXT + NEXT_NEXT 길이까지 거리 합산
-        # (1-step에서 이미 처리됐다면 p.is_stop_line == 1이라 이 블록 skip)
-        if p.is_stop_line == 0 and p.NEXT_LINK_ID != 0:
-            for road in self.target_roads:
-                if int(road['LINK_ID'][0][0]) == p.NEXT_LINK_ID:
-                    next_is_stop = int(road['is_stop_line'][0][0])
-                    # NEXT가 정지선이면 그 너머는 보지 않음 (1-step의 책임 영역)
-                    if next_is_stop != 0:
-                        break
-                    next_link_length = road['station'][0][-1]
-                    next_next_link_id = int(road['NEXT_LINK_ID'][0][0])
-                    if next_next_link_id != 0:
-                        for road2 in self.target_roads:
-                            if int(road2['LINK_ID'][0][0]) == next_next_link_id:
-                                next_next_is_stop = int(road2['is_stop_line'][0][0])
-                                next_next_link_length = road2['station'][0][-1]
-                                if next_next_is_stop == 1 and next_next_link_length <= 30.0:
-                                    p.is_stop_line = 1
-                                    p.look_at_signalGroupID = road2['look_at_signalGroupID'][0][0]
-                                    p.look_at_IntersectionID = road2['look_at_IntersectionID'][0][0]
-                                    p.MANUAVER = int(road2.get('MANUAVER', [[0]])[0][0])
-                                    p.distance_to_lane_end += next_link_length + next_next_link_length
-                                break
+                accum += road['station'][0][-1]
+                if accum >= 50.0:   # 정지선이 50m 이상 멀다 — 미리 반영하지 않음
                     break
+                if int(road['is_stop_line'][0][0]) == 1:
+                    p.is_stop_line = 1
+                    p.look_at_signalGroupID = road['look_at_signalGroupID'][0][0]
+                    p.look_at_IntersectionID = road['look_at_IntersectionID'][0][0]
+                    p.MANUAVER = int(road.get('MANUAVER', [[0]])[0][0])
+                    p.distance_to_lane_end += accum
+                    break
+                walk = int(road['NEXT_LINK_ID'][0][0])
 
         if p.LINK_ID == 61 or p.LINK_ID == 219:
             p.Speed_Limit = 30
