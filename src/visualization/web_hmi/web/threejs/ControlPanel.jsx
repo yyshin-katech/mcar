@@ -45,6 +45,7 @@ function ControlPanel({
   showHeading, onShowHeading,
   showClouds, onShowClouds,
   pointSize, onPointSize,
+  nearestOnly, onNearestOnly, nearestN,
   cameraMode, onCameraMode,
 }) {
   const layerStyles = window.LAYER_STYLE || {};
@@ -56,6 +57,10 @@ function ControlPanel({
       <Toggle label="Bounding boxes" checked={showBoxes} onChange={onShowBoxes} />
       <Toggle label="Heading arrows" checked={showHeading} onChange={onShowHeading} />
       <Toggle label="Point clouds" checked={showClouds} onChange={onShowClouds} />
+      {onNearestOnly && (
+        <Toggle label={`Nearest ${nearestN || 5} only`}
+                checked={nearestOnly} onChange={onNearestOnly} />
+      )}
       <label>
         Point size&nbsp;
         <input type="range" min="0.02" max="0.5" step="0.02"

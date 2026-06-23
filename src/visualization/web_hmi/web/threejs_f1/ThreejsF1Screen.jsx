@@ -162,6 +162,8 @@ function ThreejsF1Screen() {
   const [showClouds,  setShowClouds]  = React.useState(true);
   const [pointSize,   setPointSize]   = React.useState(0.08);
   const [cameraMode,  setCameraMode]  = React.useState('iso');
+  const [nearestOnly, setNearestOnly] = React.useState(false);
+  const NEAREST_N = 5;
 
   const onLayerVis = React.useCallback((name, val) => {
     setLayerVis((prev) => ({ ...prev, [name]: val }));
@@ -172,8 +174,10 @@ function ThreejsF1Screen() {
     <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: "#04060a" }}>
       <window.ThreeScene>
         <window.MapLayers layerVisibility={layerVis} />
-        <window.TrackBoxes showBoxes={showBoxes} showHeading={showHeading} showIds={false} />
-        <window.TrackPointClouds showClouds={showClouds} pointSize={pointSize} />
+        <window.TrackBoxes showBoxes={showBoxes} showHeading={showHeading} showIds={false}
+                           nearestOnly={nearestOnly} nearestN={NEAREST_N} />
+        <window.TrackPointClouds showClouds={showClouds} pointSize={pointSize}
+                           nearestOnly={nearestOnly} nearestN={NEAREST_N} />
         <window.EgoMesh />
         <window.CameraController mode={cameraMode} />
       </window.ThreeScene>
@@ -192,6 +196,7 @@ function ThreejsF1Screen() {
           showHeading={showHeading} onShowHeading={setShowHeading}
           showClouds={showClouds} onShowClouds={setShowClouds}
           pointSize={pointSize} onPointSize={setPointSize}
+          nearestOnly={nearestOnly} onNearestOnly={setNearestOnly} nearestN={NEAREST_N}
           cameraMode={cameraMode} onCameraMode={setCameraMode} />
       </div>
     </div>

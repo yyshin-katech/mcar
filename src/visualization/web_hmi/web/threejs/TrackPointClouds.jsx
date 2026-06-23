@@ -37,7 +37,7 @@ function disposeSlot(parent, slot) {
   if (slot.points.material) slot.points.material.dispose();
 }
 
-function TrackPointClouds({ showClouds, pointSize }) {
+function TrackPointClouds({ showClouds, pointSize, nearestOnly, nearestN }) {
   const three = useThree();
   const tracks = useJsonTopic('/hmi/threejs/tracks', null);
   const slotsRef = React.useRef(new Map());   // track id → slot
@@ -72,6 +72,11 @@ function TrackPointClouds({ showClouds, pointSize }) {
     if (!parent || !tracks || !tracks.tracks) return undefined;
     const palette = window.OBJ_PALETTE || {};
     const seen = new Set();
+    // Match TrackBoxes: when "nearest N only" is on, hide clouds of tracks
+    // outside the N closest to ego (slots kept so re-enabling is instant).
+    const allowed = window.__nearestTrackIds
+      ? window.__nearestTrackIds(tracks.tracks, nearestOnly, nearestN)
+      : null;
 
     tracks.tracks.forEach((trk) => {
       seen.add(trk.id);
@@ -118,6 +123,7 @@ function TrackPointClouds({ showClouds, pointSize }) {
       }
       slot.points.geometry.setDrawRange(0, numPoints);
       slot.points.geometry.attributes.position.needsUpdate = true;
+      slot.points.visible = !allowed || allowed.has(trk.id);
     });
 
     // Drop slots whose track id disappeared.
@@ -128,7 +134,7 @@ function TrackPointClouds({ showClouds, pointSize }) {
       }
     }
     return undefined;
-  }, [tracks, pointSize]);
+  }, [tracks, pointSize, nearestOnly, nearestN]);
 
   return null;
 }
