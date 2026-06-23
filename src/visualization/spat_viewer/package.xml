@@ -13,6 +13,7 @@
   <exec_depend>rosapi</exec_depend>
   <exec_depend>v2x_msgs</exec_depend>
   <exec_depend>mmc_msgs</exec_depend>
+  <exec_depend>siheung_v2x</exec_depend>
 
   <export>
   </export>

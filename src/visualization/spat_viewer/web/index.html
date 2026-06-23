@@ -194,15 +194,13 @@
 
   function renderIntersectionList() {
     const ids = Object.keys(intersectionMarkers).map(Number).sort((a, b) => a - b);
+    // SG 컬럼 제거: 신호 컬럼이 라이브 cache 에서 관측된 모든 SG 를 dot+잔여시간으로 표시
     const rows = ids.map(iid => {
-      const meta = intersectionMeta[iid];
-      const sgs = (meta && meta.signal_groups && meta.signal_groups.length)
-                  ? meta.signal_groups.join(',') : '-';
-      return '<tr id="row-iid-' + iid + '"><td>' + iid + '</td><td>' + sgs
+      return '<tr id="row-iid-' + iid + '"><td>' + iid
            + '</td><td id="cell-phase-' + iid + '">-</td></tr>';
     }).join('');
     document.getElementById('intersection-list').innerHTML =
-      '<table><thead><tr><th>IID</th><th>SG</th><th>phase</th></tr></thead><tbody>'
+      '<table><thead><tr><th>IID</th><th>신호(SG/잔여)</th></tr></thead><tbody>'
       + rows + '</tbody></table>';
   }
 
@@ -399,15 +397,36 @@
       }
       marker.setPopupContent(popup_lines.join('<br>'));
 
-      // sidebar table
+      // 마커 영구 tooltip: 모든 SG 를 작은 dot 배열로 요약 (마커 fillColor 는 primary 유지)
+      if (sgMap && sgMap.size > 0) {
+        const dots = Array.from(sgMap.values())
+          .sort((a, b) => a.sg - b.sg)
+          .map(e => '<span class="dot' + (PHASE_BLINK.has(e.phase) ? ' blink' : '')
+                  + '" style="width:9px;height:9px;margin-right:2px;background:'
+                  + (PHASE_COLOR[e.phase] || '#808080') + '"></span>').join('');
+        marker.setTooltipContent('IID ' + iid + '<br>' + dots);
+      } else {
+        marker.setTooltipContent('IID ' + iid);
+      }
+
+      // sidebar table: 해당 IID 의 모든 SG 를 dot+잔여시간(정수초)으로 나열
       const cell = document.getElementById('cell-phase-' + iid);
       if (cell) {
-        const lbl = PHASE_LABEL[primary_phase] !== undefined
-                    ? PHASE_LABEL[primary_phase] : '?';
-        const color = PHASE_COLOR[primary_phase] || '#808080';
-        cell.innerHTML = '<span style="display:inline-block;width:10px;height:10px;'
-                       + 'background:' + color + ';border-radius:50%;margin-right:4px;'
-                       + 'vertical-align:middle;"></span>' + lbl;
+        if (sgMap && sgMap.size > 0) {
+          const parts = Array.from(sgMap.values())
+            .sort((a, b) => (a.sg - b.sg) || a.name.localeCompare(b.name))
+            .map(e => {
+              const elapsed_ds = Math.floor((now - e.recv_ts) / 100);
+              const remain = Math.max(0, (e.minEnd_ds || 0) - elapsed_ds) / 10;
+              const color = PHASE_COLOR[e.phase] || '#808080';
+              const blink = PHASE_BLINK.has(e.phase) ? ' blink' : '';
+              return '<span class="dot' + blink + '" style="width:10px;height:10px;background:'
+                   + color + '"></span>' + e.sg + ' ' + remain.toFixed(0) + 's';
+            });
+          cell.innerHTML = parts.join('<br>');
+        } else {
+          cell.innerHTML = '-';
+        }
       }
       // highlight target row
       const row = document.getElementById('row-iid-' + iid);
