@@ -21,6 +21,7 @@ A second ``rospy.Timer`` (10 Hz) publishes the buffered state to:
 Inbound:
   /hmi/cmd/mode_request   std_msgs/Bool    → controller.request_mode(b.data)
   /hmi/cmd/bag_toggle     std_msgs/Empty   → controller.toggle_bag()
+  /hmi/cmd/bag_lidar      std_msgs/Bool    → controller.set_bag_include_lidar(b.data)
 """
 import json
 import os
@@ -116,6 +117,7 @@ class WebHmiBridge(BaseHmiStateController):
         # Inbound command subscribers
         rospy.Subscriber('/hmi/cmd/mode_request', Bool, self._on_mode_request)
         rospy.Subscriber('/hmi/cmd/bag_toggle', Empty, self._on_bag_toggle)
+        rospy.Subscriber('/hmi/cmd/bag_lidar', Bool, self._on_bag_lidar)
 
         # Bag dir from rosparam if provided
         bag_dir = rospy.get_param('~bag_dir', None)
@@ -320,6 +322,10 @@ class WebHmiBridge(BaseHmiStateController):
 
     def _on_bag_toggle(self, _msg):
         self.toggle_bag()
+
+    def _on_bag_lidar(self, msg):
+        # True: LiDAR/인지 토픽 포함 저장, False: 제외 저장. 녹화 시작 시 반영.
+        self.set_bag_include_lidar(msg.data)
 
 
 def main():

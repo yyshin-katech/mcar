@@ -15,6 +15,7 @@ rospy-Timer based scheduler.
 """
 import datetime
 import os
+import re
 import signal
 import subprocess
 
@@ -103,6 +104,24 @@ class BaseHmiStateController:
         self.bag_recording = False
         self.bag_info = ""
         self.bag_dir = os.path.expanduser("~/bag_data")
+        # LiDAR/인지 토픽 포함 여부 (True: 전체 -a 저장, False: 아래 토픽 제외).
+        # 용량 큰 LiDAR raw packet / 인지 rviz 토픽 13개.
+        self.bag_include_lidar = True
+        self.optional_record_topics = [
+            "/left/rslidar_packets_difop",
+            "/middle/rslidar_packets",
+            "/middle/rslidar_packets_difop",
+            "/percept_background_rviz",
+            "/percept_cluster_rviz",
+            "/percept_ground_rviz",
+            "/percept_non_ground_rviz",
+            "/percept_origin_rviz",
+            "/percept_sematic_rviz",
+            "/percept_topic",
+            "/perception_info_rviz",
+            "/perception_pre_known_rviz",
+            "/right/rslidar_packets_difop",
+        ]
 
         # mode publisher + pulse
         self.selected_mode = 0
@@ -404,6 +423,9 @@ class BaseHmiStateController:
     def set_bag_dir(self, path):
         self.bag_dir = path or os.path.expanduser("~/bag_data")
 
+    def set_bag_include_lidar(self, flag):
+        self.bag_include_lidar = bool(flag)
+
     def toggle_bag(self):
         if self.bag_recording:
             self.stop_bag()
@@ -416,10 +438,14 @@ class BaseHmiStateController:
         os.makedirs(self.bag_dir, exist_ok=True)
         ts = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         prefix = os.path.join(self.bag_dir, ts)
-        self.bag_process = subprocess.Popen(
-            ["rosbag", "record", "-a", "--split", "--size=10240", "-o", prefix],
-            preexec_fn=os.setsid,
-        )
+        cmd = ["rosbag", "record", "-a"]
+        # 토글 OFF면 LiDAR/인지 토픽을 제외 (-x 정규식, $ 앵커로 정확 매칭).
+        if not self.bag_include_lidar:
+            exclude_regex = "(" + "|".join(
+                re.escape(t) + "$" for t in self.optional_record_topics) + ")"
+            cmd += ["-x", exclude_regex]
+        cmd += ["--split", "--size=10240", "-o", prefix]
+        self.bag_process = subprocess.Popen(cmd, preexec_fn=os.setsid)
         self.bag_recording = True
         self.bag_info = ts
         rospy.loginfo("HMI: bag recording started: %s", prefix)

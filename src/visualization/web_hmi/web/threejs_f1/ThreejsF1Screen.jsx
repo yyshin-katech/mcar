@@ -165,6 +165,23 @@ function ThreejsF1Screen() {
   const [nearestOnly, setNearestOnly] = React.useState(false);
   const NEAREST_N = 5;
 
+  // ROSBAG: include LiDAR/perception topics in the next recording (default on).
+  // Read by the bridge at start_bag time, so we publish on every toggle.
+  const [bagIncludeLidar, setBagIncludeLidar] = React.useState(true);
+  const onBagLidarToggle = React.useCallback(() => {
+    setBagIncludeLidar((prev) => {
+      const next = !prev;
+      conn.publishBagLidar(next);
+      return next;
+    });
+  }, [conn]);
+  // Re-assert the LiDAR flag right before starting, so a bridge restart can't
+  // leave the next recording out of sync with the on-screen toggle.
+  const onBagToggle = React.useCallback(() => {
+    if (!(bag && bag.recording)) conn.publishBagLidar(bagIncludeLidar);
+    conn.publishBagToggle();
+  }, [conn, bag, bagIncludeLidar]);
+
   const onLayerVis = React.useCallback((name, val) => {
     setLayerVis((prev) => ({ ...prev, [name]: val }));
   }, []);
@@ -227,7 +244,9 @@ function ThreejsF1Screen() {
       egoYaw={(state.ego && state.ego.yaw) || 0}
       bagRecording={!!(bag && bag.recording)}
       bagInfo={(bag && bag.info) || ""}
-      onBagToggle={conn.publishBagToggle}
+      onBagToggle={onBagToggle}
+      bagIncludeLidar={bagIncludeLidar}
+      onBagLidarToggle={onBagLidarToggle}
       bottom={bottom}
       mainContent={mainContent}
     />
