@@ -184,12 +184,14 @@ void STAT_DISPLAY::GO_AHEAD_Popup_Gen()
     bool on_link = (local_msg.LINK_ID == 548 ||
                     local_msg.LINK_ID == 550 ||
                     local_msg.LINK_ID == 552 ||
-                    local_msg.LINK_ID == 417);
+                    local_msg.LINK_ID == 417 ||
+                    local_msg.LINK_ID == 419 ||
+                    local_msg.LINK_ID == 420);
 
     bool can_go = (can_go_active_ &&
                    (ros::Time::now() - can_go_stamp_).toSec() < 2.0);
 
-    if(on_link || can_go)
+    if(on_link && can_go)
     {
         go_ahead_text.text = "전방 직진 주행 금지";
         std_msgs::ColorRGBA state_color;

@@ -250,7 +250,7 @@ class WebHmiBridge(BaseHmiStateController):
             'selected_mode': int(self.selected_mode),
             # Block-display triggers (additive; see BlockZones.jsx / overlay).
             'on_block_link': 1 if (
-                self.link_id and int(self.link_id) in (548, 550, 552, 417)
+                self.link_id and int(self.link_id) in (548, 550, 552, 417, 419, 420)
             ) else 0,
             'do_not_go_forward': 1 if (
                 self.can_go_stamp is not None

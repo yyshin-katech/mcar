@@ -99,7 +99,7 @@ function BlockBanner() {
   const state = useRosState();
   const onLink = state && state.on_block_link === 1;
   const doNotGo = state && state.do_not_go_forward === 1;
-  if (!onLink && !doNotGo) return null;
+  if (!(onLink && doNotGo)) return null;
   return (
     <div style={{
       position: "absolute", top: 64, left: "50%", transform: "translateX(-50%)",
