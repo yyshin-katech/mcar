@@ -1,4 +1,5 @@
 #include <stat_display.h>
+#include <v2x_msgs/v2x_tim_can_go_msg.h>
 
 // 1280 * 720
 
@@ -26,7 +27,10 @@ STAT_DISPLAY::STAT_DISPLAY()
 
     // 신호등 Publisher 추가
     traffic_light_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/traffic_light_stat", 1);
-    
+
+    // GO_AHEAD 블로킹 표시 Publisher 추가 (시스템 popup 과 충돌 방지: 별도 토픽)
+    go_ahead_popup_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/go_ahead_popup", 1);
+
     gps_sub = nh.subscribe("/diagnostic/cpt7_gps", 1, &STAT_DISPLAY::diagnostic_gps_callback, this);
     adcu_sub = nh.subscribe("/diagnostic/adcu", 1, &STAT_DISPLAY::diagnostic_adcu_callback, this);
     lidar_sub = nh.subscribe("/diagnostic/lidar", 1, &STAT_DISPLAY::diagnostic_lidar_callback, this);
@@ -42,7 +46,10 @@ STAT_DISPLAY::STAT_DISPLAY()
 
     // 신호등 Subscriber 추가 (토픽 이름은 실제 사용하는 것으로 변경)
     traffic_light_sub = nh.subscribe("/spat_merged", 1, &STAT_DISPLAY::traffic_light_callback, this);
-    
+
+    // GO_AHEAD 블로킹 표시 Subscriber 추가
+    go_ahead_sub = nh.subscribe("/v2x/tim_message/can_go_status", 1, &STAT_DISPLAY::go_ahead_callback, this);
+
     timer_ = nh.createTimer(ros::Duration(1.0), &STAT_DISPLAY::timerCallback, this);
     diag_timer_ = nh.createTimer(ros::Duration(0.1), &STAT_DISPLAY::diag_timerCallback, this);
 
@@ -163,6 +170,63 @@ void STAT_DISPLAY::POPUP_Text_Clear()
     popup_pub.publish(POPUP_text);
 }
 
+void STAT_DISPLAY::go_ahead_callback(const v2x_msgs::v2x_tim_can_go_msg::ConstPtr& msg)
+{
+    if(msg->do_not_go_forward)
+    {
+        can_go_stamp_ = ros::Time::now();
+        can_go_active_ = true;
+    }
+}
+
+void STAT_DISPLAY::GO_AHEAD_Popup_Gen()
+{
+    bool on_link = (local_msg.LINK_ID == 548 ||
+                    local_msg.LINK_ID == 550 ||
+                    local_msg.LINK_ID == 552 ||
+                    local_msg.LINK_ID == 417);
+
+    bool can_go = (can_go_active_ &&
+                   (ros::Time::now() - can_go_stamp_).toSec() < 2.0);
+
+    if(on_link || can_go)
+    {
+        go_ahead_text.text = "전방 직진 주행 금지";
+        std_msgs::ColorRGBA state_color;
+        int32_t width = 20;
+        int32_t height = 80;
+
+        go_ahead_text.action = go_ahead_text.ADD;
+        go_ahead_text.font = "DejaVu Sans Mono";
+        go_ahead_text.text_size = 40;
+        go_ahead_text.width = width*go_ahead_text.text.length();
+        go_ahead_text.height = height;
+        // 시스템 popup(top=300) 과 겹치지 않게 별도 위치
+        go_ahead_text.left = 1280 - 35*go_ahead_text.text.length();
+        go_ahead_text.top = 200;
+
+        // 빨강 글자
+        state_color.r = 1;
+        state_color.g = 0;
+        state_color.b = 0;
+        state_color.a = 1;
+        go_ahead_text.fg_color = state_color;
+
+        state_color.r = 0.4;
+        state_color.g = 0.4;
+        state_color.b = 0.4;
+        state_color.a = 0.7;
+        go_ahead_text.bg_color = state_color;
+
+        go_ahead_popup_pub.publish(go_ahead_text);
+    }
+    else
+    {
+        go_ahead_text.action = go_ahead_text.DELETE;
+        go_ahead_popup_pub.publish(go_ahead_text);
+    }
+}
+
 void STAT_DISPLAY::diagnostic_gps_callback(const katech_diagnostic_msgs::cpt7_gps_diagnostic_msg::ConstPtr& msg)
 {   
     cpt7_msg = *msg;
@@ -235,6 +299,8 @@ void STAT_DISPLAY::diag_timerCallback(const ros::TimerEvent&)
     this->MODE_Text_Gen();
 
     this->ODD_Text_Gen();
+
+    this->GO_AHEAD_Popup_Gen();
 }
 
 void STAT_DISPLAY::timerCallback(const ros::TimerEvent&)

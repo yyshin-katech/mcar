@@ -190,3 +190,14 @@ diff /home/ads/.claude/projects/-home-ads-mcar-v13/memory/MEMORY.md /home/ads/mc
 |------|----------|------|------|
 | 2026-05-26 | 초기 구성 | agents 3 (spat-viewer-{analyst,coder,verifier}) + skills/spat-viewer-build | OBU>MQTT fallback 정책 적용 후 (commit 80624de — spat_CAN_writer 에서 ego 매칭, 발행자측 필터 제거) 라이브 SPaT 흐름을 메인 시스템 실행 중에도 브라우저로 확인할 수 있는 뷰어 요청 |
 | 2026-05-26 | 라이브 검증 + 데이터 소스 mat 재설계 | src/visualization/spat_viewer/* + memory/spat_viewer_build_harness.md | VPN+mqtt_spat_rx_node+roslaunch spat_viewer 라이브 검증 (브로커 IID 매치 13/15). 초기 shp 추출 (HDMap_Oido_New C1_TRAFFICLIGHT.shp, 2544 feature) 을 `mapfiles/senario/link_*.mat` 직접 추출로 교체 — mat 이 IID/SG/stop_line/MANUAVER 키를 직접 carry. 결과 308 link / 15 IID `[134,136,165,168,201,203,302,504,507,508,509,516,517,518,519]`. is_stop_line=1 링크 `#fab387` 강조 + legend 갱신. extract_map_data.py 는 pyproj 만 의존 (pyshp 제거) |
+
+## 하네스: hmi-block-display
+
+**목표:** 차량이 link 548/550/552/417 위에 있거나 `/v2x/tim_message/can_go_status` 의 `do_not_go_forward=True` 수신 시, web_hmi(Three.js) 지도에 붉은 30% 반투명 박스 + "전방 직진 주행 금지" 배너 + 좌/우 진행 화살표를 표시하고, rviz(stat_display)에 "전방 직진 주행 금지" OverlayText 팝업을 띄운다. 원천: `_work_item/hmi_block.md`.
+
+**트리거:** "hmi 블로킹", "직진 금지 표시", "hmi_block", "전방 직진 주행 금지", "블로킹 박스", "주행 경로 블로킹", "블로킹 다시" 요청 시 `hmi-block-display` 스킬 사용. 단순 코드 질문은 직접 응답.
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-06-24 | 초기 구성 + 구현 + 라이브 검증 | agents 3 (hmi-block-{analyst,coder,verifier}) + skills/hmi-block-display + web_hmi(web_hmi_bridge.py/BlockZones.jsx/index_threejs_f1.html) + stat_display(.h/.cpp/CMake/package.xml) + workspace_config/ioniq_statdisplay.rviz | `_work_item/hmi_block.md` 요구 구현. 트리거 `on_block_link`(LINK_ID∈{548,550,552,417}) + `do_not_go_forward`(can_go_status True 2.0s staleness). 박스 좌표 WGS84 1e7 7점→EPSG:5179 2폴리곤(Box A/B). bag0 라이브 검증: on_block_link=1 166회(=link417), go_ahead_popup "전방 직진 주행 금지" ADD 229회. stat_display 별도 토픽 `/rviz/jsk/go_ahead_popup`(시스템 popup 비충돌). 추가-온리(기존 동작 보존) |

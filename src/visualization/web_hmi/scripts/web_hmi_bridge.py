@@ -31,6 +31,7 @@ from collections import defaultdict, deque
 
 import rospy
 from std_msgs.msg import Bool, Empty, String
+from v2x_msgs.msg import v2x_tim_can_go_msg
 
 try:
     import shapefile  # pyshp — optional, only used to publish /hmi/map
@@ -111,6 +112,10 @@ class WebHmiBridge(BaseHmiStateController):
         # Mode pulse timer handle
         self._mode_pulse_timer = None
 
+        # /v2x/tim_message/can_go_status staleness — set when do_not_go_forward
+        # is received True; checked with a 2.0 s window in /hmi/state.
+        self.can_go_stamp = None
+
         # Now build the controller (subscribes to ROS, starts tick)
         super().__init__()
 
@@ -118,6 +123,11 @@ class WebHmiBridge(BaseHmiStateController):
         rospy.Subscriber('/hmi/cmd/mode_request', Bool, self._on_mode_request)
         rospy.Subscriber('/hmi/cmd/bag_toggle', Empty, self._on_bag_toggle)
         rospy.Subscriber('/hmi/cmd/bag_lidar', Bool, self._on_bag_lidar)
+
+        # V2X "do not go forward" (RNST TIM) status — not published at a fixed
+        # rate, so consumers apply a 2.0 s staleness window (see /hmi/state).
+        rospy.Subscriber('/v2x/tim_message/can_go_status', v2x_tim_can_go_msg,
+                         self._can_go_cb, queue_size=1)
 
         # Bag dir from rosparam if provided
         bag_dir = rospy.get_param('~bag_dir', None)
@@ -238,6 +248,14 @@ class WebHmiBridge(BaseHmiStateController):
             'on_odd': int(self.on_odd),
             'road_state': int(self.road_state),
             'selected_mode': int(self.selected_mode),
+            # Block-display triggers (additive; see BlockZones.jsx / overlay).
+            'on_block_link': 1 if (
+                self.link_id and int(self.link_id) in (548, 550, 552, 417)
+            ) else 0,
+            'do_not_go_forward': 1 if (
+                self.can_go_stamp is not None
+                and (rospy.Time.now() - self.can_go_stamp).to_sec() < 2.0
+            ) else 0,
         }, ensure_ascii=False)))
 
         # /hmi/diagnostics snapshot
@@ -326,6 +344,12 @@ class WebHmiBridge(BaseHmiStateController):
     def _on_bag_lidar(self, msg):
         # True: LiDAR/인지 토픽 포함 저장, False: 제외 저장. 녹화 시작 시 반영.
         self.set_bag_include_lidar(msg.data)
+
+    def _can_go_cb(self, msg):
+        # Stamp only on a positive "do not go forward" so the 2.0 s window in
+        # /hmi/state expires naturally when TIM stops asserting.
+        if msg.do_not_go_forward:
+            self.can_go_stamp = rospy.Time.now()
 
 
 def main():
