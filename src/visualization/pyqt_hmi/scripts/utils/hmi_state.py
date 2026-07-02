@@ -105,12 +105,16 @@ class BaseHmiStateController:
         self.bag_info = ""
         self.bag_dir = os.path.expanduser("~/bag_data")
         # LiDAR/인지 토픽 포함 여부 (True: 전체 -a 저장, False: 아래 토픽 제외).
-        # 용량 큰 LiDAR raw packet / 인지 rviz 토픽 14개.
+        # 용량 큰 LiDAR raw packet / point cloud / 인지 rviz 토픽.
         self.bag_include_lidar = True
         self.optional_record_topics = [
             "/left/rslidar_packets_difop",
             "/middle/rslidar_packets",
             "/middle/rslidar_packets_difop",
+            "/fusion_lidar_points",
+            "/rslidar_points/center",
+            "/rslidar_points/left",
+            "/rslidar_points/right",
             "/percept_background_rviz",
             "/percept_cluster_rviz",
             "/percept_ground_rviz",
