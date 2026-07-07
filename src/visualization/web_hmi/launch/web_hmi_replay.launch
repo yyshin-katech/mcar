@@ -42,18 +42,18 @@
           브리지/퓨전 노드가 이를 소비해 /hmi/* 를 새로 생성한다. -->
   <node name="web_hmi_bag_player" pkg="rosbag" type="play" output="screen"
         args="--clock --loop --rate $(arg rate) $(arg bag_dir)/$(arg bag)">
-    <remap from="/hmi/state"                  to="/sink/hmi_state"/>
-    <remap from="/hmi/threejs/map"            to="/sink/hmi_threejs_map"/>
-    <remap from="/hmi/threejs/tracks"         to="/sink/hmi_threejs_tracks"/>
-    <remap from="/hmi/threejs/free_space"     to="/sink/hmi_threejs_free_space"/>
-    <remap from="/hmi/threejs/traffic_lights" to="/sink/hmi_threejs_traffic_lights"/>
+    <!-- <remap from="/hmi/state"                  to="/sink/hmi_state"/> -->
+    <!-- <remap from="/hmi/threejs/map"            to="/sink/hmi_threejs_map"/> -->
+    <!-- <remap from="/hmi/threejs/tracks"         to="/sink/hmi_threejs_tracks"/> -->
+    <!-- <remap from="/hmi/threejs/free_space"     to="/sink/hmi_threejs_free_space"/> -->
+    <!-- <remap from="/hmi/threejs/traffic_lights" to="/sink/hmi_threejs_traffic_lights"/> -->
     <remap from="/hmi/bag"                    to="/sink/hmi_bag"/>
-    <remap from="/hmi/diagnostics"            to="/sink/hmi_diagnostics"/>
-    <remap from="/hmi/objects"                to="/sink/hmi_objects"/>
-    <remap from="/hmi/popup"                  to="/sink/hmi_popup"/>
-    <remap from="/hmi/topic_hz"               to="/sink/hmi_topic_hz"/>
-    <remap from="/hmi/map"                    to="/sink/hmi_map"/>
-    <remap from="/hmi/ego_pose"               to="/sink/hmi_ego_pose"/>
+    <!-- <remap from="/hmi/diagnostics"            to="/sink/hmi_diagnostics"/> -->
+    <!-- <remap from="/hmi/objects"                to="/sink/hmi_objects"/> -->
+    <!-- <remap from="/hmi/popup"                  to="/sink/hmi_popup"/> -->
+    <!-- <remap from="/hmi/topic_hz"               to="/sink/hmi_topic_hz"/> -->
+    <!-- <remap from="/hmi/map"                    to="/sink/hmi_map"/> -->
+    <!-- <remap from="/hmi/ego_pose"               to="/sink/hmi_ego_pose"/> -->
     <remap from="/client_count"               to="/sink/client_count"/>
   </node>
 
