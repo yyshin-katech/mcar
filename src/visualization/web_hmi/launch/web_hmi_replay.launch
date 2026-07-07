@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  web_hmi_replay.launch — web_hmi(threejs_f1) 실행 + ~/bag_data bag 재생 (한 번에)
+
+  bag 에는 web_hmi 출력 토픽(/hmi/*)까지 녹화돼 있어, 그대로 재생하면 live
+  web_hmi_bridge 와 dual-publisher 가 된다(브라우저가 옛 값/새 값 뒤섞임).
+  → 이 launch 는 bag 쪽 /hmi/* 를 전부 /sink/* 로 자동 remap 해서, 브라우저에는
+    live 브리지 출력만 보이게 한다.
+
+  사용법 (bag 는 ~/bag_data 안의 "파일명"만 전달):
+    roslaunch web_hmi web_hmi_replay.launch bag:=2026-07-07-18-17-21_2026-07-07-18-17-22_0.bag
+
+  옵션:
+    bag_dir:=<dir>        bag 디렉토리 (기본 ~/bag_data)
+    rate:=0.5             재생 배속 (기본 1.0)
+    open_browser:=false   브라우저 자동 열기 끄기 (기본 true)
+    run_fusion:=true      횡단보도 퓨전 노드 동반 기동 (기본 false).
+                          bag 의 /obu/v2x_pedes_assistance + /localization/to_control_team
+                          로 /katech_msg/crosswalk_ped_fusion 을 live 생성 → 지도에
+                          횡단보도 붉은 점멸 + "전방 보행자 주의" 팝업이 뜨게 함.
+                          (bag 자체엔 fusion 토픽이 없어, 끄면 폴리곤만 표시됨)
+
+  브라우저 URL: http://localhost:8088/index_threejs_f1.html
+-->
+<launch>
+  <!-- bag: ~/bag_data 안의 파일명 (필수). 예) 2026-07-07-18-17-21_..._0.bag -->
+  <arg name="bag"/>
+  <arg name="bag_dir"      default="$(env HOME)/bag_data"/>
+  <arg name="rate"         default="1.0"/>
+  <arg name="open_browser" default="true"/>
+  <arg name="run_fusion"   default="false"/>
+
+  <!-- 1. web_hmi (threejs_f1) — rosbridge(9090) + 브리지 + 웹서버(8088) 재사용 -->
+  <include file="$(find web_hmi)/launch/web_hmi.launch">
+    <arg name="variant"      value="threejs_f1"/>
+    <arg name="open_browser" value="$(arg open_browser)"/>
+    <arg name="bag_dir"      value="$(arg bag_dir)"/>
+  </include>
+
+  <!-- 2. bag 재생 — bag 의 /hmi/* 는 전부 /sink/* 로 remap (dual-publisher 방지).
+          /localization/*, /obu/*, /sensors/* 등 입력 토픽은 remap 안 함 → live
+          브리지/퓨전 노드가 이를 소비해 /hmi/* 를 새로 생성한다. -->
+  <node name="web_hmi_bag_player" pkg="rosbag" type="play" output="screen"
+        args="--clock --loop --rate $(arg rate) $(arg bag_dir)/$(arg bag)">
+    <remap from="/hmi/state"                  to="/sink/hmi_state"/>
+    <remap from="/hmi/threejs/map"            to="/sink/hmi_threejs_map"/>
+    <remap from="/hmi/threejs/tracks"         to="/sink/hmi_threejs_tracks"/>
+    <remap from="/hmi/threejs/free_space"     to="/sink/hmi_threejs_free_space"/>
+    <remap from="/hmi/threejs/traffic_lights" to="/sink/hmi_threejs_traffic_lights"/>
+    <remap from="/hmi/bag"                    to="/sink/hmi_bag"/>
+    <remap from="/hmi/diagnostics"            to="/sink/hmi_diagnostics"/>
+    <remap from="/hmi/objects"                to="/sink/hmi_objects"/>
+    <remap from="/hmi/popup"                  to="/sink/hmi_popup"/>
+    <remap from="/hmi/topic_hz"               to="/sink/hmi_topic_hz"/>
+    <remap from="/hmi/map"                    to="/sink/hmi_map"/>
+    <remap from="/hmi/ego_pose"               to="/sink/hmi_ego_pose"/>
+    <remap from="/client_count"               to="/sink/client_count"/>
+  </node>
+
+  <!-- 3. (옵션) 횡단보도 퓨전 노드 — bag 의 OBU+LINK_ID 로 fusion 토픽 live 생성 -->
+  <node if="$(arg run_fusion)" name="crosswalk_ped_fusion_node"
+        pkg="can" type="crosswalk_ped_fusion.py" output="screen"/>
+</launch>
