@@ -32,6 +32,7 @@ from collections import defaultdict, deque
 import rospy
 from std_msgs.msg import Bool, Empty, String
 from v2x_msgs.msg import v2x_tim_can_go_msg
+from katech_custom_msgs.msg import crosswalk_ped_fusion_msg
 
 try:
     import shapefile  # pyshp — optional, only used to publish /hmi/map
@@ -116,6 +117,12 @@ class WebHmiBridge(BaseHmiStateController):
         # is received True; checked with a 2.0 s window in /hmi/state.
         self.can_go_stamp = None
 
+        # /katech_msg/crosswalk_ped_fusion — 최신 퓨전 상태 + staleness stamp.
+        self.crosswalk_ped_active = 0
+        self.crosswalk_ped_present = False
+        self.crosswalk_ped_source = 0
+        self.crosswalk_ped_stamp = None
+
         # Now build the controller (subscribes to ROS, starts tick)
         super().__init__()
 
@@ -128,6 +135,11 @@ class WebHmiBridge(BaseHmiStateController):
         # rate, so consumers apply a 2.0 s staleness window (see /hmi/state).
         rospy.Subscriber('/v2x/tim_message/can_go_status', v2x_tim_can_go_msg,
                          self._can_go_cb, queue_size=1)
+
+        # Crosswalk pedestrian fusion (own lidar + OBU V2X) — not published at a
+        # fixed rate, so /hmi/state applies a 2.0 s staleness window.
+        rospy.Subscriber('/katech_msg/crosswalk_ped_fusion', crosswalk_ped_fusion_msg,
+                         self._crosswalk_ped_cb, queue_size=1)
 
         # Bag dir from rosparam if provided
         bag_dir = rospy.get_param('~bag_dir', None)
@@ -256,6 +268,20 @@ class WebHmiBridge(BaseHmiStateController):
                 self.can_go_stamp is not None
                 and (rospy.Time.now() - self.can_go_stamp).to_sec() < 2.0
             ) else 0,
+            # Crosswalk pedestrian fusion (additive; see CrosswalkZones.jsx / banner).
+            # 2.0 s staleness so a dead fusion node can't leave a stuck alert.
+            'crosswalk_ped_active': int(self.crosswalk_ped_active) if (
+                self.crosswalk_ped_stamp is not None
+                and (rospy.Time.now() - self.crosswalk_ped_stamp).to_sec() < 2.0
+            ) else 0,
+            'crosswalk_ped_present': bool(self.crosswalk_ped_present) if (
+                self.crosswalk_ped_stamp is not None
+                and (rospy.Time.now() - self.crosswalk_ped_stamp).to_sec() < 2.0
+            ) else False,
+            'crosswalk_ped_source': int(self.crosswalk_ped_source) if (
+                self.crosswalk_ped_stamp is not None
+                and (rospy.Time.now() - self.crosswalk_ped_stamp).to_sec() < 2.0
+            ) else 0,
         }, ensure_ascii=False)))
 
         # /hmi/diagnostics snapshot
@@ -350,6 +376,12 @@ class WebHmiBridge(BaseHmiStateController):
         # /hmi/state expires naturally when TIM stops asserting.
         if msg.do_not_go_forward:
             self.can_go_stamp = rospy.Time.now()
+
+    def _crosswalk_ped_cb(self, msg):
+        self.crosswalk_ped_active = int(msg.active_crosswalk_id)
+        self.crosswalk_ped_present = bool(msg.pedestrian_present)
+        self.crosswalk_ped_source = int(msg.source)
+        self.crosswalk_ped_stamp = rospy.Time.now()
 
 
 def main():

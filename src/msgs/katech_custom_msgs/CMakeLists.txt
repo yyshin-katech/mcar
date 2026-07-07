@@ -11,6 +11,8 @@ add_message_files(
  FILES
  ped_crosswalk_check_msg.msg
  ped_crosswalk_check_array_msg.msg
+ crosswalk_occupancy_msg.msg
+ crosswalk_ped_fusion_msg.msg
  ioniq5_ad_can_msg.msg
  v_can_msg.msg
 )

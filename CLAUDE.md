@@ -201,3 +201,16 @@ diff /home/ads/.claude/projects/-home-ads-mcar-v13/memory/MEMORY.md /home/ads/mc
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
 | 2026-06-24 | 초기 구성 + 구현 + 라이브 검증 | agents 3 (hmi-block-{analyst,coder,verifier}) + skills/hmi-block-display + web_hmi(web_hmi_bridge.py/BlockZones.jsx/index_threejs_f1.html) + stat_display(.h/.cpp/CMake/package.xml) + workspace_config/ioniq_statdisplay.rviz | `_work_item/hmi_block.md` 요구 구현. 트리거 `on_block_link`(LINK_ID∈{548,550,552,417}) + `do_not_go_forward`(can_go_status True 2.0s staleness). 박스 좌표 WGS84 1e7 7점→EPSG:5179 2폴리곤(Box A/B). bag0 라이브 검증: on_block_link=1 166회(=link417), go_ahead_popup "전방 직진 주행 금지" ADD 229회. stat_display 별도 토픽 `/rviz/jsk/go_ahead_popup`(시스템 popup 비충돌). 추가-온리(기존 동작 보존) |
+
+## 하네스: tim-pedes-display
+
+**목표:** TIM(V2X) 보행자(`/obu/v2x_pedes_assistance`)와 차량 자체 횡단보도 판단(`/katech_msg/crosswalk_detection`)을 퓨전하여 소스(자체/OBU) 필드 포함 새 토픽(`/katech_msg/crosswalk_ped_fusion`)으로 발행하고, web_hmi 지도의 횡단보도 #1/#2 위에 보행자 유무를 붉은 점멸 + "전방 보행자 주의" 팝업(소스별 색상)으로 표시. 원천: `claude_work_list/tim_pedes_display.md`.
+
+**트리거:** "tim pedes", "보행자 퓨전", "횡단보도 보행자 표시", "tim_pedes_display", "보행자 퓨전 다시", "횡단보도 hmi" 요청 시 `tim-pedes-display` 스킬 사용. 단순 코드 질문은 직접 응답.
+
+**확정 결정:** #1=south_pedes / #2=east_pedes · 새 퓨전 노드(CAN 무손상, 검출 노드는 additive `crosswalk_id`만) · 팝업 색상 자체=주황#ff9800/OBU=빨강#ff3030/둘다=자홍#ff30ff · active LINK_ID {1239,1238}→#1, 1205→#2.
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-07-07 | 초기 구성 | agents 3 (tim-pedes-{analyst,coder,verifier}) + skills/tim-pedes-display + `_tim_pedes_workspace/00_constraints.md` | `claude_work_list/tim_pedes_display.md` 보행자 퓨전+HMI 표시 요청. 사용자 결정 3건 반영(#2=east_pedes, 새 퓨전 노드 CAN 무손상, 팝업 색상) |

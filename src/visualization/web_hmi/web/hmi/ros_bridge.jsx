@@ -172,6 +172,7 @@ const STATE_DEFAULT = {
   gps: { rtk: 0, lon_std: 0, lat_std: 0 },
   speed_limit: 0, link_id: 0, lane_label: '', on_odd: 0,
   road_state: 0, selected_mode: 0,
+  crosswalk_ped_active: 0, crosswalk_ped_present: false, crosswalk_ped_source: 0,
 };
 
 function useRosState() {

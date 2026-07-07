@@ -223,6 +223,7 @@ function ThreejsF1Screen() {
       <window.ThreeScene>
         <window.MapLayers layerVisibility={layerVis} />
         <window.BlockZones />
+        <window.CrosswalkZones />
         <window.TrackBoxes showBoxes={showBoxes} showHeading={showHeading} showIds={false}
                            nearestOnly={nearestOnly} nearestN={NEAREST_N} />
         <window.TrackPointClouds showClouds={showClouds} pointSize={pointSize}
@@ -231,6 +232,7 @@ function ThreejsF1Screen() {
         <window.CameraController mode={cameraMode} />
       </window.ThreeScene>
       <window.BlockBanner />
+      <window.CrosswalkPedBanner />
       <div style={{
         position: "absolute", top: 140, right: 8, width: 240, maxHeight: "calc(92% - 140px)",
         zIndex: 10, overflowY: "auto",

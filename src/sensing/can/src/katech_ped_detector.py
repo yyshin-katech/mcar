@@ -9,7 +9,7 @@ from typing import List, Tuple, Dict, Optional
 from mmc_msgs.msg import localization2D_msg, to_control_team_from_local_msg
 from perception_ros_msg.msg import object_array_msg, object_msg
 from sensor_msgs.msg import NavSatFix
-from katech_custom_msgs.msg import ped_crosswalk_check_msg, ped_crosswalk_check_array_msg
+from katech_custom_msgs.msg import ped_crosswalk_check_msg, ped_crosswalk_check_array_msg, crosswalk_occupancy_msg
 
 class ObjectArray:
     def __init__(self):
@@ -88,6 +88,7 @@ class ROSCrosswalkDetector:
         self.object_subscriber = rospy.Subscriber('/track_Multi_RS', object_array_msg, self.object_array_callback, queue_size=10)
 
         self.target_pub = rospy.Publisher('/katech_msg/crosswalk_detection', ped_crosswalk_check_array_msg, queue_size=10)
+        self.occupancy_pub = rospy.Publisher('/katech_msg/crosswalk_occupancy', crosswalk_occupancy_msg, queue_size=10)
 
         # 결과 발행자
         # self.result_publisher = rospy.Publisher(
@@ -194,6 +195,18 @@ class ROSCrosswalkDetector:
         # rospy.loginfo(pub_msg_ar)
 
         pub_msg_ar.data.clear()
+
+        # --- additive (Option 1, CAN 무관): 자체 횡단보도 점유를 독립 계산·발행 ---
+        # 기존 crosswalk_detection 배열/136행 참조버그와 분리 — active_objects 에서 재계산.
+        occ_ids = set()
+        for obj in active_objects:
+            ids, _ = self.find_crosswalks_containing_object(obj.x, obj.y)
+            occ_ids.update(ids)
+        occ_msg = crosswalk_occupancy_msg()
+        occ_msg.time = rospy.Time.now()
+        occ_msg.crosswalk1_occupied = (1 in occ_ids)
+        occ_msg.crosswalk2_occupied = (2 in occ_ids)
+        self.occupancy_pub.publish(occ_msg)
 
     def rotate_point(self, x, y, yaw_rad):
         """점을 yaw각도만큼 회전"""
