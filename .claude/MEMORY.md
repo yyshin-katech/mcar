@@ -23,7 +23,7 @@
 - 커밋·푸시 시 메모리 파일도 프로젝트 `.claude/`에 동기화하여 함께 커밋
 - 메모리 원본: `/home/ads/.claude/projects/-home-ads-mcar-v13/memory/` 또는 `/home/katech/.claude/projects/-home-katech-mcar-v13/memory/` (환경별)
 - 복사 대상: `<repo>/.claude/`
-- 대상 파일: `MEMORY.md`, `can_package.md`, `project_build.md`, `user_style.md`, `siheung_map_senario3.md`, `web_hmi_adapt_harness.md`, `web_hmi_adapt_pitfalls.md`, `feedback_no_japanese.md`, `feedback_honorific.md`, `project_qt_hmi.md`, `project_bag_replay_hmi.md`, `project_bridge_cpp_port.md`, `senario_gps_pub_harness.md`, `feedback_can_frozen_additive.md` (메모리 파일 추가 시 갱신)
+- 대상 파일: `MEMORY.md`, `can_package.md`, `project_build.md`, `user_style.md`, `siheung_map_senario3.md`, `web_hmi_adapt_harness.md`, `web_hmi_adapt_pitfalls.md`, `feedback_no_japanese.md`, `feedback_honorific.md`, `project_qt_hmi.md`, `project_bag_replay_hmi.md`, `project_bridge_cpp_port.md`, `senario_gps_pub_harness.md`, `feedback_can_frozen_additive.md`, `reference_tim_pedes_bag_replay.md` (메모리 파일 추가 시 갱신)
 
 ## 최근 작업 이력
 - DBC 파일을 `CANdb_IONIQev_PCAN1.dbc` → `CANdb_IONIQ5_AD_CAN_v3.dbc`로 변경 (7개 src 파일)
@@ -161,6 +161,7 @@
 - [senario-gps-pub harness](senario_gps_pub_harness.md) — senario HTML 주행 link 시퀀스 → 40 km/h GPS 시뮬레이션 publisher 신규 개발 파이프라인
 - [spat-merge OBU+MQTT](spat_merge_obu_mqtt.md) — `spat_merge_node` 교차로 단위 OBU 우선 병합(/spat_merged). MQTT-only 교차로(302)를 HMI/CAN 에 전달
 - [spat_viewer 실행](spat_viewer_run.md) — MQTT/OBU SPaT 라이브 Leaflet 뷰어. 별도 터미널 `roslaunch spat_viewer spat_viewer.launch` + `http://localhost:8080/` (rosbridge 9090/http 8080)
+- [tim-pedes bag 재생](reference_tim_pedes_bag_replay.md) — `web_hmi_replay.launch`(bag→web_hmi threejs_f1, /hmi/* remap 토글) 사용법 + 구 bag 으론 퓨전 own 경로 검증 불가(occupancy/track_Multi_RS 없음 → OBU 경로만 간헐 동작)
 
 ## 피드백 메모리
 - [일본어 사용 금지](feedback_no_japanese.md) — 응답에 일본어(한자) 금지, 한국어만 사용
