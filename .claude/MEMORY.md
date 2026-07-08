@@ -23,7 +23,7 @@
 - 커밋·푸시 시 메모리 파일도 프로젝트 `.claude/`에 동기화하여 함께 커밋
 - 메모리 원본: `/home/ads/.claude/projects/-home-ads-mcar-v13/memory/` 또는 `/home/katech/.claude/projects/-home-katech-mcar-v13/memory/` (환경별)
 - 복사 대상: `<repo>/.claude/`
-- 대상 파일: `MEMORY.md`, `can_package.md`, `project_build.md`, `user_style.md`, `siheung_map_senario3.md`, `web_hmi_adapt_harness.md`, `web_hmi_adapt_pitfalls.md`, `feedback_no_japanese.md`, `feedback_honorific.md`, `project_qt_hmi.md`, `project_bag_replay_hmi.md`, `project_bridge_cpp_port.md`, `senario_gps_pub_harness.md`, `feedback_can_frozen_additive.md`, `reference_tim_pedes_bag_replay.md` (메모리 파일 추가 시 갱신)
+- 대상 파일: `MEMORY.md`, `can_package.md`, `project_build.md`, `user_style.md`, `siheung_map_senario3.md`, `web_hmi_adapt_harness.md`, `web_hmi_adapt_pitfalls.md`, `feedback_no_japanese.md`, `feedback_honorific.md`, `project_qt_hmi.md`, `project_bag_replay_hmi.md`, `project_bridge_cpp_port.md`, `senario_gps_pub_harness.md`, `feedback_can_frozen_additive.md`, `reference_tim_pedes_bag_replay.md`, `reference_a2_link_shp.md`, `project_global_nav_hmi.md` (메모리 파일 추가 시 갱신)
 
 ## 최근 작업 이력
 - DBC 파일을 `CANdb_IONIQev_PCAN1.dbc` → `CANdb_IONIQ5_AD_CAN_v3.dbc`로 변경 (7개 src 파일)
@@ -140,6 +140,11 @@
 - 소비자 4곳 `/siheung_spat` → `/spat_merged` 재지정: `spat_CAN_writer.cpp`(sub3 mqtt 직접구독 제거), `stat_display.cpp:44`, pyqt_hmi `main_window.py:602`·`utils/hmi_state.py:144`(web_hmi 공용). `v2x_diagnostic` 은 OBU 건전성용이라 raw `/siheung_spat` 유지. CMake 타겟 + `launch/siheung.launch` 노드 기동 추가.
 - 링크→IID 매핑은 `link_*.mat` 의 `look_at_IntersectionID/look_at_signalGroupID/MANUAVER`. 링크 **417 → IID 302, SG 70, MANUAVER -1(LEFT), is_stop_line 1**. 소비자(CAN·HMI) 모두 ego 타깃 IID 하나만 필터.
 
+### siheung_dev 브랜치 작업 (2026-07-08)
+- **global-nav-hmi 하네스 신규** (`skills/global-nav-hmi` + agents 3 `global-nav-{analyst,coder,verifier}`): web_hmi(threejs_f1) 지도에 주행 예정 경로를 **중앙차선 굵은 리본**으로 표시, `on_block_link && do_not_go_forward`(TIM) 성립 시 기존(직진)→신규(좌회전 우회) 경로로 **latch 전환**. 지나간 구간 페이드(미표시).
+- 오프라인 `scripts/extract_route.py`(A2_LINK 중앙차선 하드코딩 링크열·위상정렬·중복점dedup) → `scripts/route_senario_20260623.json`(12.9 KB 커밋, OLD 299점/NEW 246점, 공유 prefix 161점). 런타임 재추출 없음. `web_hmi_threejs_bridge.py` 에 `/hmi/threejs/route`(latch String) additive 발행. 신규 `web/threejs/RouteLayer.jsx`(지면 삼각스트립 리본=BlockZones 재질, `useEgoPose` nearest-index slice 페이드, 전환은 기존 `/hmi/state` 재사용·신규 토픽 없음). index/ThreejsF1Screen 등록·마운트.
+- 경로: OLD 10링크 `785093…785190→785059…785208`(직진), NEW 11링크 = 앞 6링크 공유 후 `785057→785082→795017→795018→795117`(좌분기). 분기점 좌차선 `785188`.ToNode → OLD `785058`/NEW `785057`. 빈구간 `785104↔785110`=`A222BF785105`(BFS 유일). **795117 절단**(md 후반 ITSLinkID 구간 미구현 — 다음 단계). 전부 additive/CAN 무손상(git diff 48+/0-). 상세 [global-nav-hmi](project_global_nav_hmi.md), 데이터 [A2_LINK](reference_a2_link_shp.md).
+
 ## Diagnostic 구조
 | 토픽 | 메시지 타입 | 소스 노드 | 판단 기준 |
 |------|-------------|-----------|-----------|
@@ -162,6 +167,8 @@
 - [spat-merge OBU+MQTT](spat_merge_obu_mqtt.md) — `spat_merge_node` 교차로 단위 OBU 우선 병합(/spat_merged). MQTT-only 교차로(302)를 HMI/CAN 에 전달
 - [spat_viewer 실행](spat_viewer_run.md) — MQTT/OBU SPaT 라이브 Leaflet 뷰어. 별도 터미널 `roslaunch spat_viewer spat_viewer.launch` + `http://localhost:8080/` (rosbridge 9090/http 8080)
 - [tim-pedes bag 재생](reference_tim_pedes_bag_replay.md) — `web_hmi_replay.launch`(bag→web_hmi threejs_f1, /hmi/* remap 토글) 사용법 + 구 bag 으론 퓨전 own 경로 검증 불가(occupancy/track_Multi_RS 없음 → OBU 경로만 간헐 동작)
+- [A2_LINK shp 구조](reference_a2_link_shp.md) — senario_shp_20260623 A2_LINK, UTM52N(32652)→5179, 좌/중/우 3차선(중앙=R·L 양쪽), ITSLinkID 1:N, ToNode→FromNode 위상. web_hmi 지도/경로 원천
+- [global-nav-hmi 경로표시](project_global_nav_hmi.md) — web_hmi 주행 예정 경로 중앙차선 리본 + TIM(`on_block_link&&do_not_go_forward`) 트리거 old→new latch 전환. 오프라인 route JSON. 795117 절단(후반 ITS 미구현)
 
 ## 피드백 메모리
 - [일본어 사용 금지](feedback_no_japanese.md) — 응답에 일본어(한자) 금지, 한국어만 사용

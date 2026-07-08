@@ -214,3 +214,16 @@ diff /home/ads/.claude/projects/-home-ads-mcar-v13/memory/MEMORY.md /home/ads/mc
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
 | 2026-07-07 | 초기 구성 | agents 3 (tim-pedes-{analyst,coder,verifier}) + skills/tim-pedes-display + `_tim_pedes_workspace/00_constraints.md` | `claude_work_list/tim_pedes_display.md` 보행자 퓨전+HMI 표시 요청. 사용자 결정 3건 반영(#2=east_pedes, 새 퓨전 노드 CAN 무손상, 팝업 색상) |
+
+## 하네스: global-nav-hmi
+
+**목표:** web_hmi(Three.js) 지도에 주행 예정 경로(`A2_LINK.shp` 링크 시퀀스)를 자차 앞 굵은 선(중앙 차선 대표 1선)으로 표시하고, OBU TIM(`do_not_go_forward`) 팝업/배너 트리거 시 기존 경로를 삭제하고 신규(우회) 경로로 전환·latch. 지나간 구간은 페이드. 원천: `claude_work_list/global_nav_hmi.md`.
+
+**트리거:** "주행 예정 경로", "global_nav", "경로 표시", "경로 전환", "우회 경로 안내", "네비 라인", "경로 다시", "경로 하네스" 요청 시 `global-nav-hmi` 스킬 사용. 단순 경로/링크 조회는 직접 응답.
+
+**확정 결정:** 중앙 차선 대표 1선 · 오프라인 사전 추출 JSON · 범위=분기 직후 795116/795118까지(후반 ITSLinkID 구간 제외) · 전환=`on_block_link AND do_not_go_forward`(기존 `/hmi/state` 재사용) 후 latch · 분기점 좌차선 `A222BF785188`→old `785058`(직진)/new `785057`(좌분기) · 빈구간 `785106→785109` BFS 연결 · CAN 무손상 추가-온리.
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-07-08 | 초기 구성 | agents 3 (global-nav-{analyst,coder,verifier}) + skills/global-nav-hmi + `_global_nav_workspace/00_constraints.md` | `claude_work_list/global_nav_hmi.md` 주행 예정 경로 표시+전환 요청. 사용자 결정 4건 반영(중앙차선 1선, 오프라인 JSON, 795까지, latch 전환) |

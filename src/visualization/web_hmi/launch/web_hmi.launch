@@ -53,6 +53,8 @@
         output="screen"
         required="true">
     <param name="mapdir" value="$(arg threejs_mapdir)"/>
+    <!-- global_nav_hmi: pre-extracted planned-route JSON (latched on /hmi/threejs/route). -->
+    <param name="route_json" value="$(find web_hmi)/scripts/route_senario_20260623.json"/>
     <param name="publish_tracks" value="false"/>
   </node>
 

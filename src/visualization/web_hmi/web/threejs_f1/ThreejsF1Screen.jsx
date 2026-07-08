@@ -224,6 +224,7 @@ function ThreejsF1Screen() {
         <window.MapLayers layerVisibility={layerVis} />
         <window.BlockZones />
         <window.CrosswalkZones />
+        <window.RouteLayer />
         <window.TrackBoxes showBoxes={showBoxes} showHeading={showHeading} showIds={false}
                            nearestOnly={nearestOnly} nearestN={NEAREST_N} />
         <window.TrackPointClouds showClouds={showClouds} pointSize={pointSize}
