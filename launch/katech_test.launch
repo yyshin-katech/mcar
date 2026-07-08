@@ -58,5 +58,22 @@
   <node name="katech_ped_detector_can_writer_node"       type="ped_detector_can_writer"     pkg="can"  respawn="true" />
   <node pkg="can"          type="crosswalk_ped_fusion.py"          name="crosswalk_ped_fusion_node"            respawn="true" output="screen" />
   <!-- <node  name="my_rviz"  type="rviz"  pkg="rviz"  args="-d $(arg sweet_home)/mcar_v9/workspace_config/perception.rviz"/> -->
+
+  <!-- USB 카메라 (src/sensing/usb_cam) — 아래 <node> 주석 해제 시 활성화.
+       /usb_cam/image_raw (sensor_msgs/Image) + /usb_cam/camera_info 발행. 저장은
+       rosbag record -a 또는 /usb_cam/image_raw/compressed (용량↓) 권장.
+       카메라 미연결(/dev/video0 없음) 시 5초 간격 재시도만, 나머지 시스템은 정상.
+       장치번호/해상도/포맷이 다르면 param 조정 (v4l2-ctl 로 장치 목록 확인). -->
+  <!--
+  <node name="usb_cam" type="usb_cam_node" pkg="usb_cam" respawn="true" respawn_delay="5" output="screen">
+    <param name="video_device"    value="/dev/video0" />
+    <param name="image_width"     value="640" />
+    <param name="image_height"    value="480" />
+    <param name="framerate"       value="30" />
+    <param name="pixel_format"    value="yuyv" />
+    <param name="camera_frame_id" value="usb_cam" />
+    <param name="io_method"       value="mmap" />
+  </node>
+  -->
   
 </launch>
