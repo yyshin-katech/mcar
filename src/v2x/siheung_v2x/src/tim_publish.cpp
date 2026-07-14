@@ -14,6 +14,7 @@
 #include <cctype>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
 #include <iomanip>
 #include <sstream>
 #include <string>
@@ -706,6 +707,33 @@ void publishPedesAssistance(const j2735TravelerInformation& tim, ros::Publisher&
     msg.east_pedes = data.east_pedes_valid ? data.east_pedes : false;
     msg.south_pedes = data.south_pedes_valid ? data.south_pedes : false;
     msg.west_pedes = data.west_pedes_valid ? data.west_pedes : false;
+
+    // ── /obu/v2x_pedes_assistance 발행 전 수신 데이터 로그 저장 ──────────
+    {
+        const char* home = std::getenv("HOME");
+        std::string log_path =
+            std::string(home ? home : ".") + "/v2x_pedes_assistance.log";
+        std::ofstream ofs(log_path, std::ios::app);
+        if (ofs)
+        {
+            ros::WallTime now = ros::WallTime::now();
+            ofs << std::fixed << std::setprecision(3) << now.toSec()
+                << " has_any=" << (data.hasAny() ? 1 : 0)
+                << " std_time=\"" << msg.standard_time << "\""
+                << " rsu_lat=" << std::setprecision(7) << msg.rsu_latitude
+                << " rsu_lon=" << msg.rsu_longitude
+                << " N=" << (msg.north_pedes ? 1 : 0)
+                << "(" << (data.north_pedes_valid ? "ok" : "miss") << ")"
+                << " E=" << (msg.east_pedes ? 1 : 0)
+                << "(" << (data.east_pedes_valid ? "ok" : "miss") << ")"
+                << " S=" << (msg.south_pedes ? 1 : 0)
+                << "(" << (data.south_pedes_valid ? "ok" : "miss") << ")"
+                << " W=" << (msg.west_pedes ? 1 : 0)
+                << "(" << (data.west_pedes_valid ? "ok" : "miss") << ")"
+                << "\n";
+        }
+    }
+
     pedes_pub.publish(msg);
 
     ROS_INFO_THROTTLE(1.0, "[TIM] published pedestrian assistance from TIM regional extensions");
