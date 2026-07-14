@@ -165,10 +165,13 @@
 - [bridge cpp 포팅 패턴](project_bridge_cpp_port.md) — Python `/hmi/threejs/tracks` 0.78 Hz → C++ 9.98 Hz. zero-copy PointCloud2 + dual-publisher 회피(`~publish_tracks` 가드) 일반 패턴
 - [senario-gps-pub harness](senario_gps_pub_harness.md) — senario HTML 주행 link 시퀀스 → 40 km/h GPS 시뮬레이션 publisher 신규 개발 파이프라인
 - [spat-merge OBU+MQTT](spat_merge_obu_mqtt.md) — `spat_merge_node` 교차로 단위 OBU 우선 병합(/spat_merged). MQTT-only 교차로(302)를 HMI/CAN 에 전달
-- [spat_viewer 실행](spat_viewer_run.md) — MQTT/OBU SPaT 라이브 Leaflet 뷰어. 별도 터미널 `roslaunch spat_viewer spat_viewer.launch` + `http://localhost:8080/` (rosbridge 9090/http 8080)
+- [SPaT 방향 매칭](spat_dir_match.md) — MANUAVER -1/0/1 ↔ MovementStateName(LEFT/{STR,STRAIGHT}/RIGHT). HMI 방향필터 부재로 병합 알파벳순 LEFT 오선택 버그. spat_CAN_writer/hmi_state.py/stat_display 수정, 하네스 spat-dir-match. 검증 리플레이 뷰어 포함
+- [spat_viewer 실행](spat_viewer_run.md) — MQTT/OBU SPaT ① 라이브 Leaflet 뷰어(`roslaunch spat_viewer spat_viewer.launch` + `:8080/`) ② offline bag 리플레이 뷰어(`extract_spat_replay.py`→`replay.html`, ego 방향매칭 신호등 재생/스크럽)
 - [tim-pedes bag 재생](reference_tim_pedes_bag_replay.md) — `web_hmi_replay.launch`(bag→web_hmi threejs_f1, /hmi/* remap 토글) 사용법 + 구 bag 으론 퓨전 own 경로 검증 불가(occupancy/track_Multi_RS 없음 → OBU 경로만 간헐 동작)
 - [A2_LINK shp 구조](reference_a2_link_shp.md) — senario_shp_20260623 A2_LINK, UTM52N(32652)→5179, 좌/중/우 3차선(중앙=R·L 양쪽), ITSLinkID 1:N, ToNode→FromNode 위상. web_hmi 지도/경로 원천
 - [global-nav-hmi 경로표시](project_global_nav_hmi.md) — web_hmi 주행 예정 경로 중앙차선 리본 + TIM(`on_block_link&&do_not_go_forward`) 트리거 old→new latch 전환. 오프라인 route JSON. 795117 절단(후반 ITS 미구현)
+- [percept 오브젝트 필터 정책](percept_filter_policy.md) — percept_topic_matcher.cpp+rviz_filter.cpp 3-zone OR(박스 |y|≤5/전·후방 좌측면), 우측컷, 14개 cap. 두 파일 ROI 동시 갱신
+- [lanelet fiona geometry 함정](lanelet_fiona_geometry.md) — POINTZ 'float' not subscriptable 크래시, A2_LINK 전용화, geom_type별 coordinates 구조 차이
 
 ## 피드백 메모리
 - [일본어 사용 금지](feedback_no_japanese.md) — 응답에 일본어(한자) 금지, 한국어만 사용

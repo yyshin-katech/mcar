@@ -1,6 +1,6 @@
 ---
 name: spat-viewer-run
-description: MQTT/OBU SPaT 라이브 Leaflet 뷰어(spat_viewer) 실행 방법
+description: spat_viewer 실행 — MQTT/OBU SPaT 라이브 Leaflet 뷰어 + offline bag 리플레이 뷰어(replay.html)
 metadata: 
   node_type: memory
   type: project
@@ -32,4 +32,14 @@ xdg-open http://localhost:8080/
 - `web/data/road_links.json` 도로 link 308개
 - json 재생성: `scripts/extract_map_data.py` (mapfiles/senario/link_*.mat 직접 추출, pyproj 만 의존)
 
-관련: [[spat-merge-obu-mqtt]] (소비자측 /spat_merged 병합).
+## 리플레이 뷰어 (offline, bag 재생) — replay.html
+
+라이브 뷰어와 **별개**로, 저장된 주행 bag 을 ego 위치별 **방향매칭 신호등**과 함께 재생·스크럽하는 self-contained 뷰어. 수정된 SPaT 방향매칭([[spat-dir-match]]) 검증/시연용. roscore 불필요.
+
+- 데이터 추출(1회): `source devel/setup.bash && python3 scripts/extract_spat_replay.py [bag...]`
+  → `web/data/replay_timeline.json`. 기본 `~/bag_data/2026-06-24-14-37-33_2026-06-24*.bag` 3개 = **2427 샘플 / 512s / 5Hz**. ego `host_east/north`→WGS84, `/spat_merged` 에서 **수정 매칭 헬퍼(hmi_state 동일 복제)** 로 ego 방향(MANUAVER -1/0/1) 신호 선택.
+- 실행: `bash scripts/serve_http.sh 8080` → `http://localhost:8080/replay.html`.
+- 화면: 지도 배경(road_links/intersections.json 재사용) + ego 궤적·방향화살표(yaw) + 우상단 신호등 패널(색/방향/IID/SG/movement/LINK·제한속도) + 재생·일시정지·0.5~4×·타임라인 스크럽·ego 따라가기. 타깃 교차로 마커가 신호 색으로 하이라이트. 지도 타일 CDN 인터넷 필요.
+- `replay_timeline.json` 은 파생물 — bag 바뀌면 추출 재실행.
+
+관련: [[spat-merge-obu-mqtt]] (소비자측 /spat_merged 병합), [[spat-dir-match]] (방향 매칭 로직).

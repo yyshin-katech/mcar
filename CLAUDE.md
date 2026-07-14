@@ -227,3 +227,16 @@ diff /home/ads/.claude/projects/-home-ads-mcar-v13/memory/MEMORY.md /home/ads/mc
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
 | 2026-07-08 | 초기 구성 | agents 3 (global-nav-{analyst,coder,verifier}) + skills/global-nav-hmi + `_global_nav_workspace/00_constraints.md` | `claude_work_list/global_nav_hmi.md` 주행 예정 경로 표시+전환 요청. 사용자 결정 4건 반영(중앙차선 1선, 오프라인 JSON, 795까지, latch 전환) |
+
+## 하네스: spat-dir-match
+
+**목표:** MQTT/OBU SPaT 신호를 ego 진행방향(local `MANUAVER` -1/0/1)에 해당하는 movement(`MovementStateName`)로 매칭해 CAN·HMI 에 반영. 원천 확정사실: `_spat_dir_workspace/00_constraints.md`.
+
+**트리거:** "spat 방향 매칭", "신호등 방향 매칭", "MANUAVER 매칭", "MovementStateName 매칭", "좌회전 신호 매칭 안됨", "방향 신호등 잘못 나옴", "spat 방향 다시" 요청 시 `spat-dir-match` 스킬 사용. 단순 조회는 직접 응답.
+
+**확정 결정:** 방향 매핑 -1→LEFT / 0→{STR,STRAIGHT} / 1→RIGHT (MQTT 약어+OBU 풀네임 혼재) · PED/BUS/BYC 배제 · signalGroup 단독매칭 금지(같은 SG 다방향, 방향 문자열이 최종 판별자) · 매칭 실패 시 안전 리셋(신호 0) · CAN 무손상(spat_CAN_writer 선택 로직만).
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-07-14 | 초기 구성 + 1회 실행 | agents 3 (spat-dir-{analyst,coder,verifier}) + skills/spat-dir-match + `_spat_dir_workspace/` | HMI 3경로 방향필터 부재로 병합노드 알파벳순(LEFT 최선) 오선택 버그. web_hmi(hmi_state.py)+stat_display+CAN 수정, bag 실증(516/518 OLD LEFT→NEW STR). pyqt main_window 제외(사용자 스코프) |

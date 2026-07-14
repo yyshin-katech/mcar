@@ -28,6 +28,15 @@
 
 using namespace std;
 
+// ego 진행방향(MANUAVER) ↔ movement 방향문자열 매칭.
+// MANUAVER -1=LEFT, 0=STR/STRAIGHT, 1=RIGHT. MQTT 는 약어(STR), OBU 는 풀네임(STRAIGHT) 을 쓰므로
+// 직진은 두 철자 모두 허용. PED/PEDESTRIAN/BUS/BYC 는 어느 집합에도 없어 자동 배제, empty 는 스킵.
+static bool movement_matches_manuaver(const std::string& mn, int man) {
+  if (man == -1) return mn == "LEFT";
+  if (man ==  1) return mn == "RIGHT";
+  return mn == "STR" || mn == "STRAIGHT";   // man == 0 (직진)
+}
+
 class SPAT_CAN_WRITER{
   public:
     ros::Subscriber sub1;
@@ -161,7 +170,7 @@ void SPAT_CAN_WRITER::WRITE_SPAT_CAN(const v2x_msgs::intersection_array_msg& msg
       if ((int)d.IntersectionID != loc_iid) continue;
       if (loc_sig != 0 && (int)d.Movements.SignalGroupID != loc_sig) continue;
       const std::string& mn = d.Movements.MovementStateName;
-      if (!mn.empty() && mn != target_name) continue;
+      if (!movement_matches_manuaver(mn, loc_man)) continue;   // STR 은 STRAIGHT 도 매칭, empty 는 스킵
       matched = &d;
       break;
     }

@@ -69,6 +69,16 @@ STAT_DISPLAY::~STAT_DISPLAY()
     
 }
 
+// ego 진행방향(MANUAVER) ↔ movement 방향문자열 매칭.
+// MANUAVER -1=LEFT, 0=STR/STRAIGHT, 1=RIGHT. MQTT 는 약어(STR), OBU 는 풀네임(STRAIGHT) 이라
+// 직진은 두 철자 모두 허용. PED/PEDESTRIAN/BUS/BYC 는 어느 집합에도 없어 자동 배제, empty 는 스킵.
+static bool movement_matches_manuaver(const std::string& mn, int man)
+{
+    if (man == -1) return mn == "LEFT";
+    if (man ==  1) return mn == "RIGHT";
+    return mn == "STR" || mn == "STRAIGHT";   // man == 0 (직진)
+}
+
 void STAT_DISPLAY::traffic_light_callback(const v2x_msgs::intersection_array_msg::ConstPtr& msg)
 {
     uint16_t target_intersection_id = local_msg.look_at_IntersectionID;
@@ -95,7 +105,14 @@ void STAT_DISPLAY::traffic_light_callback(const v2x_msgs::intersection_array_msg
             {
                 continue;  // SignalGroupID가 다르면 건너뛰기
             }
-            
+
+            // ego 진행방향과 다른 movement(예: 직진 중 LEFT) 스킵
+            if (!movement_matches_manuaver(movement.MovementStateName,
+                                           (int)local_msg.MANUAVER))
+            {
+                continue;
+            }
+
             // 남은 시간 및 색상 정보 저장
             traffic_light_time = movement.TimeChangeDetails;
             
@@ -119,6 +136,9 @@ void STAT_DISPLAY::traffic_light_callback(const v2x_msgs::intersection_array_msg
         }
     }
 
+    // 방향매칭 실패(ego 방향 신호 없음) → 신호 없음 (직전 값 잔존 금지)
+    traffic_light_time = 0;
+    traffic_light_color = 0;
 }
 
 void STAT_DISPLAY::chassis_callback_func(const mmc_msgs::chassis_msg::ConstPtr& msg)
