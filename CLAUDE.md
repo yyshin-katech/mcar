@@ -253,3 +253,16 @@ diff /home/ads/.claude/projects/-home-ads-mcar-v13/memory/MEMORY.md /home/ads/mc
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
 | 2026-07-15 | 초기 구성 + 1회 실행 | agents 3 (stopline-adj-{analyst,coder,verifier}) + skills/stopline-adj + `_stopline_adj_workspace/` | `stop_line_adj_20260715.md`: 링크 871/870/877 을 B2209W001421(Kind530 정지선)까지 +2.9m 연장(66→68.9m), 3871/3870/3877 트림. verifier 6항목 PASS(정지선 수직거리 0m, 287 mat 불변) |
+
+## 하네스: crosswalk-position
+
+**목표:** `claude_work_list/crosswalk_position.md` 의 횡단보도 폴리곤(WGS84)을 `src/sensing/can/src/katech_ped_detector.py` 의 EPSG:5179 `crosswalk_data` 로 교체(오프라인 pyproj 변환 후 리터럴)하고 senario mat 뷰어(`mapfiles/senario/mat_viewer_senario_260514c 1.html`)에 각 횡단보도 다각형(채움+토글+범례)을 표시. 원천: `claude_work_list/crosswalk_position.md`, 확정사실: `_crosswalk_position_workspace/00_constraints.md`.
+
+**트리거:** "횡단보도 좌표", "crosswalk_position", "횡단보도 다각형", "ped_detector 좌표", "횡단보도 뷰어 표시", "횡단보도 좌표 다시" 요청 시 `crosswalk-position` 스킬 사용. 단순 조회는 직접 응답.
+
+**확정 결정:** 범위=좌표+뷰어+검증만(occupancy_msg crosswalk1·2_occupied·CAN·HMI·tim-pedes 무변경, 검출토픽 `/katech_msg/crosswalk_detection` 은 순회로 9개 자동 커버) · 변환 `pyproj EPSG:4326→5179 always_xy=True` 입력(lon,lat), 기존 1·2번과 0.000000m 일치 · .py 는 `crosswalk_data` 딕셔너리 내용만 교체(런타임 pyproj 의존 추가 금지, 리터럴만) · 뷰어 추가-온리(기존 DATA/LINEMARK/TYPE5 불변) · 원본 백업 · 수정 파일 정확히 2개.
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-07-15 | 초기 구성 | agents 3 (crosswalk-position-{analyst,coder,verifier}) + skills/crosswalk-position + `_crosswalk_position_workspace/00_constraints.md` | `crosswalk_position.md` 9개 횡단보도(1·2 기존=동일, 3~9 신규) 좌표를 ped_detector 에 반영 + mat 뷰어 표시 요청. 사용자 결정 2건(범위=좌표+뷰어만, 뷰어=채움 다각형+토글+범례) |
