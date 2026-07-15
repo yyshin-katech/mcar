@@ -240,3 +240,16 @@ diff /home/ads/.claude/projects/-home-ads-mcar-v13/memory/MEMORY.md /home/ads/mc
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
 | 2026-07-14 | 초기 구성 + 1회 실행 | agents 3 (spat-dir-{analyst,coder,verifier}) + skills/spat-dir-match + `_spat_dir_workspace/` | HMI 3경로 방향필터 부재로 병합노드 알파벳순(LEFT 최선) 오선택 버그. web_hmi(hmi_state.py)+stat_display+CAN 수정, bag 실증(516/518 OLD LEFT→NEW STR). pyqt main_window 제외(사용자 스코프) |
+
+## 하네스: stopline-adj
+
+**목표:** senario mat 도로링크 끝을 노면선표시(B2_SURFACELINEMARK) 정지선까지 연장하고 다음 링크를 교차점부터 트림. 웨이포인트/station(길이)/is_stop_line 갱신 + HTML mat 뷰어 반영. 원천: `claude_work_list/stop_line_adj_*.md`, 확정사실: `_stopline_adj_workspace/00_constraints.md`.
+
+**트리거:** "링크 정지선 매칭", "정지선까지 연장", "링크 끝 정지선", "stop_line_adj", "링크 길이 수정 정지선", "mat 정지선 다시" 요청 시 `stopline-adj` 스킬 사용. 단순 조회는 직접 응답.
+
+**확정 결정:** 편집 대상 6개 mat만(연장 L + 트림 N 세트) · 공유정점 L.end==N.start==교차점 P · L=L점+N[1:k+1]+P / N=P+N[k+1:] · station 0부터 재계산 · 위상(NEXT/L/R_LINK)·IID/SG/MANUAVER 등 불변 · is_stop_line 연장링크=1/트림링크=0 · 원본 백업 · 뷰어 var DATA 6 feature만 byte-safe 패치(regen_mat_viewer.py repo외부라 직접).
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-07-15 | 초기 구성 + 1회 실행 | agents 3 (stopline-adj-{analyst,coder,verifier}) + skills/stopline-adj + `_stopline_adj_workspace/` | `stop_line_adj_20260715.md`: 링크 871/870/877 을 B2209W001421(Kind530 정지선)까지 +2.9m 연장(66→68.9m), 3871/3870/3877 트림. verifier 6항목 PASS(정지선 수직거리 0m, 287 mat 불변) |
