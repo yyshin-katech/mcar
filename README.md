@@ -1,4 +1,4 @@
-# mcar — 시흥 자율주행 시스템 (IONIQ 5)
+# mcar — 시흥 자율주행 시스템 (IONIQ EV)
 
 ROS Noetic 기반 자율주행 시스템 (KATECH). 현재 작업 브랜치: **`siheung_dev`** (시흥 시범운행).
 
@@ -30,6 +30,13 @@ source devel/setup.bash
 ## 2. 전체 시스템 실행
 
 주행용 `katech_test.launch` 와 진단/HMI용 `diagnostic_only.launch` 를 **별도 터미널에서 함께** 실행한다.
+
+### 2-0. NTRIP RTK 보정 (먼저 실행)
+GPS RTK 보정 스트림(RTCM)을 받기 위해 NTRIP 클라이언트를 **먼저** 기동한다:
+```bash
+roslaunch launch/launch/katech_ntrip.launch
+```
+`ntripclient`(ntrip_node.py) 실행 → RTK Fix 확보 후 아래 주행 launch 실행.
 
 ### 2-1. 주행 (`katech_test.launch`)
 ```bash
