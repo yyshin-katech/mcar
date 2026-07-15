@@ -260,9 +260,13 @@ diff /home/ads/.claude/projects/-home-ads-mcar-v13/memory/MEMORY.md /home/ads/mc
 
 **트리거:** "횡단보도 좌표", "crosswalk_position", "횡단보도 다각형", "ped_detector 좌표", "횡단보도 뷰어 표시", "횡단보도 좌표 다시" 요청 시 `crosswalk-position` 스킬 사용. 단순 조회는 직접 응답.
 
-**확정 결정:** 범위=좌표+뷰어+검증만(occupancy_msg crosswalk1·2_occupied·CAN·HMI·tim-pedes 무변경, 검출토픽 `/katech_msg/crosswalk_detection` 은 순회로 9개 자동 커버) · 변환 `pyproj EPSG:4326→5179 always_xy=True` 입력(lon,lat), 기존 1·2번과 0.000000m 일치 · .py 는 `crosswalk_data` 딕셔너리 내용만 교체(런타임 pyproj 의존 추가 금지, 리터럴만) · 뷰어 추가-온리(기존 DATA/LINEMARK/TYPE5 불변) · 원본 백업 · 수정 파일 정확히 2개.
+**확정 결정 (Phase1):** 범위=좌표+뷰어+검증만(occupancy_msg·CAN·HMI 무변경, 검출토픽 순회로 자동 커버) · 변환 `pyproj EPSG:4326→5179 always_xy=True` 입력(lon,lat) · .py 는 `crosswalk_data` 딕셔너리만 교체(리터럴) · 뷰어 추가-온리 · 원본 백업.
+
+**확정 결정 (Phase2, 사용자 "둘 다"):** Phase1 의 CAN/occupancy 무변경 제약 **해제** · 크로스워크→접근 LINK_ID `CW_LINKS`(원천 `crosswalk_position.md` §134, detector·fusion 공유 dict) · detector `find_crosswalks_containing_object` 를 ego LINK_ID 로 **게이팅**(on_crosswalk·occupancy 동시, 접근 크로스워크만) · occupancy_msg `uint8[] occupied_ids` 추가(기존 2필드 보존) · fusion active=CW_LINKS 조회(1~9), own=`active in occupied_ids`, obu=#1·#2만(3~9 OBU 없음) · CAN writer/web_hmi(CrosswalkZones) 무변경(3~9 점멸은 자동).
 
 **변경 이력:**
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
 | 2026-07-15 | 초기 구성 | agents 3 (crosswalk-position-{analyst,coder,verifier}) + skills/crosswalk-position + `_crosswalk_position_workspace/00_constraints.md` | `crosswalk_position.md` 9개 횡단보도(1·2 기존=동일, 3~9 신규) 좌표를 ped_detector 에 반영 + mat 뷰어 표시 요청. 사용자 결정 2건(범위=좌표+뷰어만, 뷰어=채움 다각형+토글+범례) |
+| 2026-07-15 | Phase1 실행 | katech_ped_detector.py(crosswalk_data 1~9) + mat 뷰어 var CROSSWALK + CrosswalkZones.jsx(표시 1~9) | 9개 좌표 반영·뷰어·web_hmi 표시(표시 전용). verifier 7/7 (aaefdc4/fd1baee) |
+| 2026-07-15 | Phase2 (LINK 게이팅+HMI 경보, "둘 다") | katech_ped_detector.py(LINK 게이팅+occupied_ids) + crosswalk_occupancy_msg(`uint8[] occupied_ids`) + crosswalk_ped_fusion.py(active 1~9) | §134 크로스워크→LINK 매핑으로 on_crosswalk(CAN) 링크 게이팅 + fusion active 3~9 → web_hmi 3~9 점멸. catkin_make EXIT0, verifier 7/7. CAN writer/web_hmi 무변경 |

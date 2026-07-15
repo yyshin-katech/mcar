@@ -11,6 +11,21 @@ from perception_ros_msg.msg import object_array_msg, object_msg
 from sensor_msgs.msg import NavSatFix
 from katech_custom_msgs.msg import ped_crosswalk_check_msg, ped_crosswalk_check_array_msg, crosswalk_occupancy_msg
 
+# 크로스워크 -> 접근 LINK_ID 맵 (SSOT).
+# 원천: claude_work_list/crosswalk_position.md §134 와 동기화할 것 (crosswalk_ped_fusion.py 와 동일 dict).
+# ego 가 CW_LINKS[N] 에 속한 LINK_ID 에 있을 때만 크로스워크 N 을 검사(게이팅)한다.
+CW_LINKS = {
+    1: {1239, 1238, 1242, 1241},
+    2: {1205},
+    3: {465, 467, 463},
+    4: {417},
+    5: {1029, 1025, 1027},
+    6: {1092, 1094, 1090, 1091, 1093, 1089},
+    7: {1370, 1368, 1372, 1369, 1367, 1371},
+    8: {1326, 1325, 1330, 1331},
+    9: {1257, 1258},
+}
+
 class ObjectArray:
     def __init__(self):
         self.header = Header()
@@ -79,8 +94,9 @@ class ROSCrosswalkDetector:
         
         # 자차 상태 변수
         self.host_east = 0.0      # global X [m]
-        self.host_north = 0.0     # global Y [m] 
+        self.host_north = 0.0     # global Y [m]
         self.host_yaw = 0.0       # global yaw [rad]
+        self.host_link_id = 0     # 현재 주행 LINK_ID (크로스워크 게이팅용)
         self.host_data_updated = False
         
         # ROS1 구독자 생성
@@ -132,6 +148,7 @@ class ROSCrosswalkDetector:
         self.host_east = msg.host_east
         self.host_north = msg.host_north
         self.host_yaw = msg.host_yaw
+        self.host_link_id = int(msg.LINK_ID)
         self.host_data_updated = True
         
         # 디버그 로그 (필요시 주석 해제)
@@ -213,6 +230,7 @@ class ROSCrosswalkDetector:
         occ_msg.time = rospy.Time.now()
         occ_msg.crosswalk1_occupied = (1 in occ_ids)
         occ_msg.crosswalk2_occupied = (2 in occ_ids)
+        occ_msg.occupied_ids = sorted(occ_ids)
         self.occupancy_pub.publish(occ_msg)
 
     def rotate_point(self, x, y, yaw_rad):
@@ -243,11 +261,15 @@ class ROSCrosswalkDetector:
         
         # 각 횡단보도에 대해 검사
         containing_crosswalks = []
-        
+
         for crosswalk_id, crosswalk in self.crosswalks.items():
+            # LINK 게이팅: ego 가 이 크로스워크의 접근 링크(CW_LINKS[N])에 있을 때만 검사.
+            # host_link_id 가 어떤 매핑 링크에도 없으면(0 포함) 검사 대상 없음.
+            if self.host_link_id not in CW_LINKS.get(crosswalk_id, set()):
+                continue
             if crosswalk.point_in_rectangle(abs_x, abs_y):
                 containing_crosswalks.append(crosswalk_id)
-        
+
         return containing_crosswalks, (abs_x, abs_y)
     
     def find_nearest_crosswalk(self, relative_x, relative_y):

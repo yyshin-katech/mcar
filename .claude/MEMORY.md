@@ -36,7 +36,7 @@
 - **diagnostic_only.launch**: `lateral_offset_relay.py`/`gps_std_relay.py` = rviz overlay text 전용(web_hmi 무관), `ioniq_statdisplay.rviz` 가 구독하므로 유지 필요. base2ego TF frame_id 는 `/ego_frame`(슬래시 필수, rviz 매칭).
 - **bag 검증 함정**: `/hmi/state`/`/hmi/*` 녹화 bag 재생 시 live 브리지(web_hmi_bridge/qt bridge) 동시 기동 금지 → dual-publisher 진동. roscore + bag + 뷰어 노드만. bag 재생 시 `/hmi/map`·`/hmi/threejs/map` 을 `/dev/null/*` 로 remap.
 - **SPaT 활성 토픽은 브랜치마다 정반대** — siheung_dev `/siheung_spat`(→ 병합 `/spat_merged`) vs ioniq5_hmi_dev `/katri_v2x_node/katri_spat`. 점검 전 `git branch` 확인.
-- **crosswalk 좌표/CAN**: katech_ped_detector.py `crosswalk_data`=EPSG:5179 폴리곤(오프라인 pyproj 4326→5179 리터럴). 검출토픽 `/katech_msg/crosswalk_detection` 전체 순회 자동커버 → `katech_ped_detector_can_writer` 가 CAN `Pedestrian_Stat`(528/529) `on_crosswalk=1` 전송(**crosswalk_data 늘리면 CAN 도 자동 확장**, 단 crosswalk_id 없음·객체 4 cap). occupancy_msg 는 1·2만. web_hmi CrosswalkZones=[E,N], mat 뷰어 var CROSSWALK=[lat,lon].
+- **crosswalk 좌표/CAN/게이팅**: katech_ped_detector.py `crosswalk_data`=EPSG:5179 폴리곤(오프라인 pyproj 4326→5179 리터럴). 검출 `/katech_msg/crosswalk_detection` → `katech_ped_detector_can_writer` CAN `Pedestrian_Stat`(528/529) `on_crosswalk=1`(crosswalk_id 없음·객체 4 cap). **`find_crosswalks_containing_object` 를 ego LINK_ID(`CW_LINKS` §134, detector·fusion 공유)로 게이팅 → 접근 크로스워크만**. occupancy_msg `uint8[] occupied_ids` 추가, fusion active 1~9(own=occupied_ids, obu #1·#2만). web_hmi CrosswalkZones=[E,N] 1~9 점멸, mat 뷰어 var CROSSWALK=[lat,lon].
 
 ## Diagnostic 구조
 | 토픽 | 메시지 타입 | 소스 노드 | 판단 기준 |

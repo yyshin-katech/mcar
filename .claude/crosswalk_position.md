@@ -19,13 +19,18 @@ metadata:
 
 ## CAN 경로 (보행자 시그널) — crosswalk_data 확장이 CAN 동작을 바꿈
 `crosswalk_data`(detector) → `/katech_msg/crosswalk_detection`(ped_crosswalk_check_array_msg) → **`katech_ped_detector_can_writer.cpp`** → CAN `Pedestrian_Stat`(ID 528) + `Pedestrian_Stat_1`(529). `katech_test.launch` 기동.
-- detector 가 보행자(status 1/2)를 **1~9 중 아무 폴리곤** 안에서 찾으면 `on_crosswalk=1` → CAN `on_crosswalk` 시그널 1. **즉 crosswalk_data 를 1→9 로 늘리면(코드 무변경) 검출·CAN 이 자동 3~9 커버.**
+- detector 가 보행자(status 1/2)를 크로스워크 폴리곤 안에서 찾으면 `on_crosswalk=1` → CAN 시그널 1. **[Phase2] `find_crosswalks_containing_object` 를 ego LINK_ID 로 게이팅** — ego 가 `CW_LINKS[N]`(§134) 링크에 있을 때만 크로스워크 N 검사 → on_crosswalk 은 **접근 중 크로스워크로 한정**(이전엔 링크 무관 기하판정, crosswalk_data 만 1→9 늘려도 자동 커버였음). 게이팅 한 곳으로 검출·CAN·occupancy 동시 적용.
 - 단 CAN 은 **crosswalk_id 없음**: `ped_crosswalk_check_msg`=id/status/on_crosswalk/rel_pos_x/y. `on_crosswalk` 은 0/1 플래그, CAN `on_crosswalk_1/2/3` 는 **검출객체 슬롯(0·1·2·3) 인덱스**(횡단보도 번호 아님). writer 는 **객체 4개 cap**(data.size 1~4, >4 는 그 사이클 미전송).
 
-## 스코프/HMI (사용자 확정: 표시 위주)
-- occupancy_msg 는 `crosswalk1/2_occupied` **2필드뿐** → 3~9 검출돼도 occupancy·tim-pedes 퓨전엔 안 실림(크래시 없음). occupancy_msg 정의 무변경.
-- **`web_hmi/web/threejs/CrosswalkZones.jsx`**: EPSG:5179 **[E,N] 절대좌표**(crosswalk_data 와 동일, **swap 없음** — mat 뷰어 [lat,lon] 과 다름), `CROSSWALK_IDS=Object.keys(CROSSWALK_POLYS)` 루프. **1~9 표시 확장됨(표시 전용)** — 3~9 점멸/배너 없음(경보 `crosswalk_ped_active===id` 인데 fusion 은 active_id 0/1/2 만 발행). 3~9 경보까지=occupancy_msg 확장+fusion LINK_ID 매핑+OBU 소스(단일 RSU 4방향 한계) 필요.
+## HMI 경보 (fusion → web_hmi) — Phase2 로 3~9 완성
+- **[Phase2]** occupancy_msg 에 `uint8[] occupied_ids` 추가(기존 crosswalk1/2_occupied 보존). detector 가 링크-active 이고 보행자 있는 크로스워크 id 를 채움. 소비자=fusion 뿐이라 확장 안전.
+- `crosswalk_ped_fusion.py`: active = `CW_LINKS` 조회(1~9, 하드코딩 1239/1238/1205 제거), own = `active in occupied_ids`, obu = #1→south_pedes/#2→east_pedes/**3~9→없음**(OBU v2x_pedes_assist 단일 RSU 4방향뿐 → 3~9 는 own/라이다만, present 시 source=1 주황).
+- **`web_hmi/web/threejs/CrosswalkZones.jsx`**: EPSG:5179 **[E,N] 절대좌표**(crosswalk_data 와 동일, swap 없음 — mat 뷰어 [lat,lon] 과 다름), `CROSSWALK_IDS=Object.keys(CROSSWALK_POLYS)` 루프로 1~9 표시. 점멸 조건 `crosswalk_ped_active===id && present` → **fusion 이 3~9 active 발행 시 자동 점멸/배너**(web_hmi 코드 추가변경 없이 Phase2 로 완성). web_hmi_bridge 는 active_id(uint8) 그대로 전달.
+
+## CW_LINKS (크로스워크→접근 LINK_ID, SSOT crosswalk_position.md §134)
+`{1:{1239,1238,1242,1241},2:{1205},3:{465,467,463},4:{417},5:{1029,1025,1027},6:{1092,1094,1090,1091,1093,1089},7:{1370,1368,1372,1369,1367,1371},8:{1326,1325,1330,1331},9:{1257,1258}}`. 30링크 senario 실재·disjoint. detector·fusion **양쪽 동일 dict**(주석 §134 동기화). disjoint → LINK_ID 당 active 0/1개. **주의: 매핑 누락 접근링크 = 그 크로스워크 on_crosswalk 미발화**(완전성 사용자 책임).
 
 ## 실행 이력 (2026-07-15)
-1. 사용자가 crosswalk_position.md 에 3~9 추가(원천 편집) → crosswalk_data 1·2 → **1~9 확장** + mat 뷰어 var CROSSWALK 1~9. 점개수 (11,11,12,14,12,12,12,10,10). **1·2 재변환 byte-identical(0m)**, 3~9 max|Δ|=6.8e-07m. 수정 .py+.html 2파일. verifier 7/7 PASS. (commit aaefdc4)
-2. 후속: `CrosswalkZones.jsx` 표시 1~9 확장(표시 전용, 좌표=crosswalk_data byte-identical, babel PASS).
+1. Phase1a: crosswalk_data 1·2 → **1~9 확장** + mat 뷰어 var CROSSWALK. 점개수 (11,11,12,14,12,12,12,10,10). 1·2 byte-identical(0m), 3~9 max|Δ|=6.8e-07m. verifier 7/7. (aaefdc4)
+2. Phase1b: `CrosswalkZones.jsx` 표시 1~9(표시 전용). (fd1baee)
+3. **Phase2 (LINK 게이팅 + HMI 경보, "둘 다")**: detector `find_crosswalks_containing_object` LINK 게이팅 + occupancy `occupied_ids` / occupancy_msg `uint8[] occupied_ids` / fusion active 1~9·own=occupied_ids·obu #1·#2만. catkin_make EXIT0, verifier 7/7. 코드 3파일(detector.py/occupancy_msg.msg/fusion.py), CAN writer·web_hmi 무변경.
