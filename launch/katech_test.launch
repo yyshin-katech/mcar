@@ -1,18 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
     <arg name="sweet_home" default="$(optenv HOME)" />
-    <!-- 시나리오 선택: senario1 또는 senario3 -->
-    <!-- roslaunch launch/katech_test.launch scenario:=senario1 -->
-    <!-- roslaunch launch/katech_test.launch scenario:=senario3 -->
-    <arg name="scenario" default="senario3" />
+    <!-- 시나리오 선택: mat 지도와 shp 지도를 분리 지정 -->
+    <!-- roslaunch launch/katech_test.launch mat_scenario:=senario3 shp_scenario:=senario3 -->
+    <arg name="mat_scenario" default="senario" />
+    <arg name="shp_scenario" default="HDMap_Oido_New" />
+
+    <!-- MQTT broker 선택: prod = 시흥시 VPN 사설망 실제 서버, test = 인터넷 테스트 서버.
+         siheung.launch 로 그대로 전달. 예) roslaunch launch/katech_test.launch mqtt_server:=prod -->
+    <arg name="mqtt_server" default="prod" />
 
     <param name="EPSG" value="5179" />
 
-    <!-- 맵 경로 설정 (scenario arg에 따라 자동 변경) -->
+    <!-- 맵 경로 설정 (각 arg에 따라 자동 변경) -->
     <param name="MAPFILE_PATH"
-          value="$(find gps_system_localizer)/mapfiles/$(arg scenario)" />
+          value="$(find gps_system_localizer)/mapfiles/$(arg mat_scenario)" />
     <param name="SHP_MAP_PATH"
-          value="$(find gps_system_localizer)/src/shp_map/$(arg scenario)" />
+          value="$(find gps_system_localizer)/src/shp_map/$(arg shp_scenario)" />
 
    <group ns="sensors/gps">
         <include file="$(find novatel_gps_driver)/launch/tester_for_usb_eq.launch">
@@ -45,10 +49,31 @@
   <node name="spat_CAN_writer"       type="spat_CAN_writer"     pkg="can"  respawn="true" />
 
   <!-- KATRI에서는 OFF-->
-  <node name="siheung_v2x_node"       type="siheung_v2x_node"     pkg="siheung_v2x"  respawn="true" />
+  <!-- siheung_v2x_node + bsm_tx_node 는 siheung.launch 로 분리 -->
+  <include file="$(dirname)/siheung.launch">
+    <arg name="mqtt_server" value="$(arg mqtt_server)" />
+  </include>
 
   <node pkg="can"          type="katech_ped_detector.py"          name="katech_ped_detector_node"             respawn="true" />
   <node name="katech_ped_detector_can_writer_node"       type="ped_detector_can_writer"     pkg="can"  respawn="true" />
+  <node pkg="can"          type="crosswalk_ped_fusion.py"          name="crosswalk_ped_fusion_node"            respawn="true" output="screen" />
   <!-- <node  name="my_rviz"  type="rviz"  pkg="rviz"  args="-d $(arg sweet_home)/mcar_v9/workspace_config/perception.rviz"/> -->
+
+  <!-- USB 카메라 (src/sensing/usb_cam) — 아래 <node> 주석 해제 시 활성화.
+       /usb_cam/image_raw (sensor_msgs/Image) + /usb_cam/camera_info 발행. 저장은
+       rosbag record -a 또는 /usb_cam/image_raw/compressed (용량↓) 권장.
+       카메라 미연결(/dev/video0 없음) 시 5초 간격 재시도만, 나머지 시스템은 정상.
+       장치번호/해상도/포맷이 다르면 param 조정 (v4l2-ctl 로 장치 목록 확인). -->
+  <!--
+  <node name="usb_cam" type="usb_cam_node" pkg="usb_cam" respawn="true" respawn_delay="5" output="screen">
+    <param name="video_device"    value="/dev/video0" />
+    <param name="image_width"     value="640" />
+    <param name="image_height"    value="480" />
+    <param name="framerate"       value="30" />
+    <param name="pixel_format"    value="yuyv" />
+    <param name="camera_frame_id" value="usb_cam" />
+    <param name="io_method"       value="mmap" />
+  </node>
+  -->
   
 </launch>

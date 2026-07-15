@@ -44,7 +44,23 @@ function disposeMesh(obj) {
   });
 }
 
-function TrackBoxes({ showBoxes, showHeading, showIds }) {
+// Of the live tracks, return the set of ids for the N closest to ego.
+// Distance is the ego-frame range √(x²+y²); we sort on the squared value
+// (cheaper, same ordering). Returns null when capping is disabled.
+function nearestTrackIds(tracks, nearestOnly, nearestN) {
+  if (!nearestOnly || !tracks || !tracks.length) return null;
+  const n = nearestN || 5;
+  if (tracks.length <= n) return null; // nothing trimmed
+  return new Set(
+    tracks
+      .map((t) => ({ id: t.id, d2: (t.x || 0) * (t.x || 0) + (t.y || 0) * (t.y || 0) }))
+      .sort((a, b) => a.d2 - b.d2)
+      .slice(0, n)
+      .map((t) => t.id)
+  );
+}
+
+function TrackBoxes({ showBoxes, showHeading, showIds, nearestOnly, nearestN }) {
   const three = useThree();
   const tracks = useJsonTopic('/hmi/threejs/tracks', null);
   const map = useJsonTopic('/hmi/threejs/map', null);
@@ -83,6 +99,9 @@ function TrackBoxes({ showBoxes, showHeading, showIds }) {
     // anything trimmed (further away) used to linger ~5 s on screen at the
     // throttled rate. Shorter grace prunes those promptly.
     const TRACK_MISS_GRACE = 4;
+    // When the "nearest N only" toggle is on, restrict visibility to the N
+    // tracks closest to ego; the rest stay tracked (slots kept) but hidden.
+    const allowed = nearestTrackIds(tracks.tracks, nearestOnly, nearestN);
     tracks.tracks.forEach((trk) => {
       seen.add(trk.id);
       let slot = slotsRef.current.get(trk.id);
@@ -113,7 +132,8 @@ function TrackBoxes({ showBoxes, showHeading, showIds }) {
       slot.group.position.set(trk.x, 0, trk.y);
       slot.group.rotation.y = -trk.orientation;
       const confirmed = slot.hits >= TRACK_CONFIRM;
-      slot.group.visible = confirmed && (!!showBoxes || !!showHeading);
+      const inNearest = !allowed || allowed.has(trk.id);
+      slot.group.visible = confirmed && inNearest && (!!showBoxes || !!showHeading);
       const arrow = slot.group.getObjectByName('arrow');
       if (arrow) arrow.visible = !!showHeading;
       // boxes themselves toggled via children visibility
@@ -131,7 +151,7 @@ function TrackBoxes({ showBoxes, showHeading, showIds }) {
         slotsRef.current.delete(id);
       }
     }
-  }, [three, tracks, showBoxes, showHeading]);
+  }, [three, tracks, showBoxes, showHeading, nearestOnly, nearestN]);
 
   // Cleanup on unmount.
   React.useEffect(() => () => {
@@ -149,3 +169,4 @@ function TrackBoxes({ showBoxes, showHeading, showIds }) {
 
 window.TrackBoxes = TrackBoxes;
 window.__buildBox = buildBox;
+window.__nearestTrackIds = nearestTrackIds;

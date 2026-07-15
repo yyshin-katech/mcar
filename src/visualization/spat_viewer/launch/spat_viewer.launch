@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+<!--
+  spat_viewer.launch
+  - rosbridge_websocket (default port 9090) for roslibjs subscribe-only access
+  - python3 http.server (default port 8080) serving the self-contained Leaflet HTML
+  - (옵션) viewer 전용 MQTT SPaT 수신 노드 mqtt_spat_rx_viewer (run_mqtt_rx 토글)
+
+  Usage:
+    # katech_test.launch / diagnostic_only.launch 와 함께(또는 단독): 기본 on,
+    # viewer 가 직접 prod 브로커에서 SPaT 수신 (prod 는 SecuwaySSL VPN 필요)
+    roslaunch spat_viewer spat_viewer.launch
+    #   인터넷 테스트 브로커:
+    roslaunch spat_viewer spat_viewer.launch mqtt_server:=test
+
+    # siheung.launch 와 동시 실행(이미 mqtt_spat_rx_node 가 발행 중): MQTT 수신 끄기
+    roslaunch spat_viewer spat_viewer.launch run_mqtt_rx:=false
+
+    xdg-open http://localhost:8080/
+-->
+<launch>
+  <arg name="port"      default="9090" />
+  <arg name="http_port" default="8080" />
+  <arg name="web_root"  default="$(find spat_viewer)/web" />
+
+  <!-- ===== 수정1: viewer 자체 MQTT SPaT 수신 ===== -->
+  <!-- siheung.launch 와 동시 실행 시 run_mqtt_rx:=false 로 끄세요 (그쪽 mqtt_spat_rx_node 가 이미 발행). -->
+  <arg name="run_mqtt_rx" default="true" />
+
+  <!-- MQTT broker 선택: prod(차량 사설망, SecuwaySSL VPN 필요) / test(인터넷) -->
+  <arg name="mqtt_server" default="prod" />
+
+  <arg name="mqtt_host_test" value="121.137.106.141" />
+  <arg name="mqtt_port_test" value="23312" />
+  <arg name="mqtt_user_test" value="ut_adcp" />
+  <arg name="mqtt_pass_test" value="ut_adcp123!@#" />
+
+  <arg name="mqtt_host_prod" value="192.168.255.173" />
+  <arg name="mqtt_port_prod" value="10044" />
+  <arg name="mqtt_user_prod" value="xcms-mtqq" />
+  <arg name="mqtt_pass_prod" value="xcms123!" />
+
+  <arg name="mqtt_host" value="$(eval arg('mqtt_host_prod') if arg('mqtt_server')=='prod' else arg('mqtt_host_test'))" />
+  <arg name="mqtt_port" value="$(eval arg('mqtt_port_prod') if arg('mqtt_server')=='prod' else arg('mqtt_port_test'))" />
+  <arg name="mqtt_user" value="$(eval arg('mqtt_user_prod') if arg('mqtt_server')=='prod' else arg('mqtt_user_test'))" />
+  <arg name="mqtt_pass" value="$(eval arg('mqtt_pass_prod') if arg('mqtt_server')=='prod' else arg('mqtt_pass_test'))" />
+
+  <!-- rosbridge WebSocket (roslibjs subscriber endpoint) -->
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch">
+    <arg name="port" value="$(arg port)" />
+  </include>
+
+  <!-- Static web server for index.html and data/*.json -->
+  <node name="spat_viewer_http"
+        pkg="spat_viewer"
+        type="serve_http.sh"
+        args="$(arg http_port) $(arg web_root)"
+        output="screen" />
+
+  <!-- viewer 전용 MQTT SPaT 수신 노드. 이름은 siheung.launch 의 mqtt_spat_rx_node 와 달라야 함 -->
+  <node if="$(arg run_mqtt_rx)"
+        name="mqtt_spat_rx_viewer" type="mqtt_spat_rx_node" pkg="siheung_v2x"
+        respawn="true" output="screen">
+    <param name="broker_host"  value="$(arg mqtt_host)" />
+    <param name="broker_port"  value="$(arg mqtt_port)" />
+    <param name="username"     value="$(arg mqtt_user)" />
+    <param name="password"     value="$(arg mqtt_pass)" />
+    <param name="topic"        value="V2N/1321103202/trf_drct/spat" />
+    <param name="client_id"    value="" />
+    <param name="keepalive"    value="60" />
+    <param name="qos"          value="0" />
+    <param name="spat_topic"   value="/siheung_v2x/mqtt_spat" />
+    <param name="verbose_first_msg" value="true" />
+  </node>
+</launch>

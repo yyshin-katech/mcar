@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SPaT 방향매칭 리플레이 — 시화 2026-06-24</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root { --green:#22e07a; --amber:#ffb52e; --red:#ff4d4d; --off:#5a6472; }
+    html,body { margin:0; height:100%; background:#0b0e14; color:#e6edf3;
+      font-family:Inter,Pretendard,system-ui,sans-serif; }
+    #map { position:absolute; inset:0; background:#0b0e14; }
+    .leaflet-popup-content { color:#1e1e2e; font-size:12px; }
+
+    /* 신호등 패널 (우상단) */
+    #signal { position:absolute; top:12px; right:12px; z-index:1000; width:230px;
+      background:rgba(10,14,20,.9); border:1px solid rgba(0,229,255,.22); border-radius:10px;
+      padding:14px 16px; box-shadow:0 8px 30px rgba(0,0,0,.5); }
+    #signal .title { font-size:11px; letter-spacing:.08em; color:#8aa0b4; margin-bottom:10px; }
+    #sigrow { display:flex; align-items:center; gap:14px; }
+    #lamp { width:54px; height:54px; border-radius:50%; background:var(--off); flex:0 0 auto;
+      box-shadow:0 0 0 3px rgba(255,255,255,.06) inset; transition:background .15s, box-shadow .15s; }
+    #sigtxt .st { font-size:22px; font-weight:800; }
+    #sigtxt .sub { font-size:12px; color:#aab6c2; margin-top:2px; }
+    #sigmeta { margin-top:12px; font-size:12px; line-height:1.7; }
+    #sigmeta b { color:#dfe8f0; }
+    .dir { display:inline-block; padding:1px 8px; border-radius:4px; font-weight:700;
+      background:rgba(0,229,255,.14); color:#7fe3ff; }
+
+    /* 하단 컨트롤 바 */
+    #ctl { position:absolute; left:12px; right:12px; bottom:12px; z-index:1000;
+      background:rgba(10,14,20,.92); border:1px solid rgba(255,255,255,.1); border-radius:10px;
+      padding:10px 14px; display:flex; align-items:center; gap:12px; }
+    #ctl button { background:#182230; color:#e6edf3; border:1px solid #2b3a4d; border-radius:6px;
+      padding:6px 12px; font-size:13px; font-weight:700; cursor:pointer; }
+    #ctl button:hover { background:#213043; }
+    #play { min-width:64px; }
+    #seek { flex:1; cursor:pointer; }
+    #time { font-variant-numeric:tabular-nums; font-size:13px; color:#aab6c2; min-width:118px; text-align:right; }
+    .spd { display:flex; gap:4px; }
+    .spd button.active { background:#0b6; border-color:#0b6; color:#04110a; }
+    label.follow { font-size:12px; color:#aab6c2; display:flex; align-items:center; gap:5px; cursor:pointer; }
+
+    /* ego 화살표 */
+    .ego-wrap { width:0; height:0; }
+    .ego-arrow { width:0; height:0; border-left:9px solid transparent; border-right:9px solid transparent;
+      border-bottom:22px solid #00e5ff; transform-origin:50% 70%; margin-left:-9px; margin-top:-15px;
+      filter:drop-shadow(0 0 4px rgba(0,229,255,.7)); }
+
+    #hdr { position:absolute; top:12px; left:12px; z-index:1000; background:rgba(10,14,20,.85);
+      border:1px solid rgba(255,255,255,.08); border-radius:8px; padding:8px 12px; font-size:12px; }
+    #hdr .big { font-size:14px; font-weight:800; color:#7fe3ff; }
+    #hdr .mut { color:#8aa0b4; }
+    #legend { margin-top:6px; display:flex; gap:10px; font-size:11px; color:#aab6c2; }
+    #legend i { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:3px; vertical-align:middle; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <div id="hdr">
+    <div class="big">SPaT 방향매칭 리플레이</div>
+    <div class="mut">시화 · bag 2026-06-24 · 수정 매칭(-1→LEFT / 0→STR·STRAIGHT / 1→RIGHT)</div>
+    <div id="legend">
+      <span><i style="background:var(--green)"></i>GREEN</span>
+      <span><i style="background:var(--amber)"></i>AMBER</span>
+      <span><i style="background:var(--red)"></i>RED</span>
+      <span><i style="background:var(--off)"></i>신호없음</span>
+    </div>
+  </div>
+
+  <div id="signal">
+    <div class="title">EGO 방향 신호등</div>
+    <div id="sigrow">
+      <div id="lamp"></div>
+      <div id="sigtxt"><div class="st" id="sigstate">—</div><div class="sub" id="sigsub">대기</div></div>
+    </div>
+    <div id="sigmeta">
+      <div>교차로 IID: <b id="m-iid">—</b></div>
+      <div>진행방향: <span class="dir" id="m-dir">—</span> &nbsp; SG <b id="m-sg">—</b></div>
+      <div>매칭 movement: <b id="m-move">—</b></div>
+      <div>LINK: <b id="m-link">—</b> &nbsp; 제한 <b id="m-spd">—</b> km/h</div>
+    </div>
+  </div>
+
+  <div id="ctl">
+    <button id="play">▶ 재생</button>
+    <div class="spd" id="spd">
+      <button data-s="0.5">0.5×</button><button data-s="1" class="active">1×</button>
+      <button data-s="2">2×</button><button data-s="4">4×</button>
+    </div>
+    <input id="seek" type="range" min="0" max="1000" value="0" step="1" />
+    <span id="time">0.0 / 0.0 s</span>
+    <label class="follow"><input type="checkbox" id="follow" checked /> ego 따라가기</label>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+  // ── 색 매핑 (hmi_state/stat_display 와 동일): 1=GREEN 2=AMBER 3=RED 0=off ──
+  const COLOR = { 1:{n:'GREEN',c:getCss('--green')}, 2:{n:'AMBER',c:getCss('--amber')},
+                  3:{n:'RED',c:getCss('--red')}, 0:{n:'OFF',c:getCss('--off')} };
+  function getCss(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+  const map = L.map('map', { zoomControl:true, preferCanvas:true }).setView([37.356,126.729], 15);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    { attribution:'© OpenStreetMap © CARTO', maxZoom:20, subdomains:'abcd' }).addTo(map);
+
+  let TL=null, iidMarkers={}, egoMarker=null, curIdx=0;
+  let t=0, dur=0, playing=false, speed=1, lastFrame=null;
+
+  Promise.all([
+    fetch('data/road_links.json').then(r=>r.ok?r.json():null).catch(()=>null),
+    fetch('data/intersections.json').then(r=>r.ok?r.json():null).catch(()=>null),
+    fetch('data/replay_timeline.json').then(r=>r.json()),
+  ]).then(([roads, inter, tl])=>{
+    TL = tl; dur = tl.duration_s || (tl.samples.length? tl.samples[tl.samples.length-1].t:0);
+
+    // 도로 배경
+    if (roads && roads.features) roads.features.forEach(f=>{
+      if (f.coords && f.coords.length>1)
+        L.polyline(f.coords, {color:'#37506b', weight:2, opacity:.5, interactive:false}).addTo(map);
+    });
+    // 교차로 마커
+    if (inter && inter.intersections) inter.intersections.forEach(it=>{
+      const m = L.circleMarker([it.center.lat, it.center.lon],
+        {radius:7, color:'#8aa0b4', weight:2, fillColor:'#2a3646', fillOpacity:.9})
+        .bindTooltip('IID '+it.intersection_id, {permanent:false});
+      m.addTo(map); iidMarkers[it.intersection_id]=m;
+    });
+    // ego 전체 궤적
+    const track = TL.samples.map(s=>[s.lat, s.lon]);
+    if (track.length) {
+      L.polyline(track, {color:'#00e5ff', weight:2, opacity:.35, interactive:false}).addTo(map);
+      map.setView(track[0], 17);
+    }
+    // ego 화살표 마커
+    egoMarker = L.marker(track[0]||[37.356,126.729],
+      {icon:L.divIcon({className:'ego-wrap', html:'<div class="ego-arrow"></div>', iconSize:[0,0]}),
+       interactive:false, zIndexOffset:1000}).addTo(map);
+
+    document.getElementById('seek').max = 1000;
+    update(0); // 초기 프레임
+    requestAnimationFrame(loop);
+  }).catch(e=>{
+    document.getElementById('sigstate').textContent = 'JSON 로드 실패';
+    document.getElementById('sigsub').textContent = String(e);
+  });
+
+  // t(초)에 해당하는 마지막 샘플 인덱스
+  function idxAt(tt){
+    let i=curIdx;
+    if (TL.samples[i] && TL.samples[i].t > tt) i=0; // 되감기
+    while (i+1 < TL.samples.length && TL.samples[i+1].t <= tt) i++;
+    return i;
+  }
+
+  function setLamp(color){
+    const info = COLOR[color]||COLOR[0];
+    const lamp = document.getElementById('lamp');
+    lamp.style.background = info.c;
+    lamp.style.boxShadow = color? ('0 0 18px '+info.c+', 0 0 0 3px rgba(255,255,255,.06) inset')
+                                 : '0 0 0 3px rgba(255,255,255,.06) inset';
+    return info;
+  }
+
+  function update(tt){
+    if (!TL || !TL.samples.length) return;
+    curIdx = idxAt(tt);
+    const s = TL.samples[curIdx];
+
+    // ego 위치/방향
+    egoMarker.setLatLng([s.lat, s.lon]);
+    const arrow = egoMarker.getElement() && egoMarker.getElement().querySelector('.ego-arrow');
+    if (arrow){ const hdg = 90 - s.yaw*180/Math.PI; arrow.style.transform = 'rotate('+hdg+'deg)'; }
+    if (document.getElementById('follow').checked) map.panTo([s.lat, s.lon], {animate:false});
+
+    // 신호등 패널
+    document.getElementById('m-link').textContent = s.link;
+    document.getElementById('m-spd').textContent = s.spd;
+    const dirEl = document.getElementById('m-dir'); dirEl.textContent = s.man_l;
+    // 이전 하이라이트 초기화
+    Object.values(iidMarkers).forEach(m=>m.setStyle({color:'#8aa0b4', weight:2, fillColor:'#2a3646', radius:7}));
+
+    if (s.iid === 0){
+      setLamp(0);
+      document.getElementById('sigstate').textContent = '신호 구간 아님';
+      document.getElementById('sigsub').textContent = 'IID=0 (신호 불필요 링크)';
+      document.getElementById('m-iid').textContent = '—';
+      document.getElementById('m-sg').textContent = '—';
+      document.getElementById('m-move').textContent = '—';
+    } else {
+      document.getElementById('m-iid').textContent = s.iid;
+      if (s.sig){
+        const info = setLamp(s.sig.color);
+        document.getElementById('sigstate').textContent = info.n;
+        document.getElementById('sigsub').textContent = 'phase '+s.sig.phase+' · minEnd(0.1s) '+s.sig.tcd;
+        document.getElementById('m-sg').textContent = s.sig.m_sg;
+        document.getElementById('m-move').textContent = s.sig.move;
+        const mk = iidMarkers[s.iid];
+        if (mk) mk.setStyle({color:'#fff', weight:3, fillColor:info.c, radius:10});
+      } else {
+        setLamp(0);
+        document.getElementById('sigstate').textContent = '신호 없음';
+        document.getElementById('sigsub').textContent = 'ego 방향('+s.man_l+') movement 매칭 실패';
+        document.getElementById('m-sg').textContent = s.sg||'—';
+        document.getElementById('m-move').textContent = '—';
+      }
+    }
+
+    // 컨트롤 동기화
+    document.getElementById('seek').value = Math.round(dur? (tt/dur*1000):0);
+    document.getElementById('time').textContent = tt.toFixed(1)+' / '+dur.toFixed(1)+' s';
+  }
+
+  function loop(ts){
+    if (playing){
+      if (lastFrame!=null){ t += (ts-lastFrame)/1000*speed; if (t>=dur){ t=dur; setPlaying(false); } update(t); }
+      lastFrame = ts;
+    } else lastFrame = ts;
+    requestAnimationFrame(loop);
+  }
+
+  function setPlaying(p){
+    playing=p; lastFrame=null;
+    document.getElementById('play').textContent = p? '⏸ 일시정지' : '▶ 재생';
+    if (p && t>=dur) t=0;
+  }
+
+  document.getElementById('play').onclick = ()=> setPlaying(!playing);
+  document.getElementById('seek').oninput = (e)=>{ t = e.target.value/1000*dur; update(t); };
+  document.getElementById('spd').onclick = (e)=>{
+    const b=e.target.closest('button'); if(!b) return;
+    speed = parseFloat(b.dataset.s);
+    [...document.querySelectorAll('#spd button')].forEach(x=>x.classList.toggle('active', x===b));
+  };
+  document.addEventListener('keydown', (e)=>{ if(e.code==='Space'){ e.preventDefault(); setPlaying(!playing);} });
+  </script>
+</body>
+</html>

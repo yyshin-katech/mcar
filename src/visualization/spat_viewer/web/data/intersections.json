@@ -1,0 +1,384 @@
+{
+  "schema_version": 2,
+  "data_source": "mapfiles/senario/link_*.mat",
+  "epsg_source": "EPSG:5179",
+  "epsg_target": "EPSG:4326",
+  "intersections": [
+    {
+      "intersection_id": 134,
+      "center": {
+        "lat": 37.3677301,
+        "lon": 126.7230671
+      },
+      "source": "stop_line_avg",
+      "signal_groups": [
+        70,
+        80
+      ],
+      "linked_link_ids": [
+        1125,
+        1142,
+        1143,
+        1144,
+        1159,
+        1160,
+        1161,
+        1972,
+        1973,
+        1974
+      ],
+      "tl_points_count": 3,
+      "maneuvers": [
+        0
+      ]
+    },
+    {
+      "intersection_id": 136,
+      "center": {
+        "lat": 37.3627829,
+        "lon": 126.7188
+      },
+      "source": "stop_line_avg",
+      "signal_groups": [
+        60,
+        70
+      ],
+      "linked_link_ids": [
+        1186,
+        1187,
+        1188,
+        1189,
+        1205,
+        1239,
+        1242
+      ],
+      "tl_points_count": 1,
+      "maneuvers": [
+        0,
+        1
+      ]
+    },
+    {
+      "intersection_id": 165,
+      "center": {
+        "lat": 37.3595586,
+        "lon": 126.7241448
+      },
+      "source": "stop_line_avg",
+      "signal_groups": [
+        60
+      ],
+      "linked_link_ids": [
+        1342,
+        1343,
+        1344,
+        1367,
+        1368,
+        1369,
+        1370,
+        1371,
+        1372
+      ],
+      "tl_points_count": 3,
+      "maneuvers": [
+        0
+      ]
+    },
+    {
+      "intersection_id": 168,
+      "center": {
+        "lat": 37.3532686,
+        "lon": 126.7260876
+      },
+      "source": "stop_line_avg",
+      "signal_groups": [
+        70,
+        80
+      ],
+      "linked_link_ids": [
+        488,
+        489,
+        499,
+        2540,
+        2541
+      ],
+      "tl_points_count": 1,
+      "maneuvers": [
+        -1,
+        0
+      ]
+    },
+    {
+      "intersection_id": 201,
+      "center": {
+        "lat": 37.372016,
+        "lon": 126.7269874
+      },
+      "source": "stop_line_avg",
+      "signal_groups": [
+        60,
+        70
+      ],
+      "linked_link_ids": [
+        677,
+        946,
+        973,
+        1878
+      ],
+      "tl_points_count": 1,
+      "maneuvers": [
+        -1,
+        0
+      ]
+    },
+    {
+      "intersection_id": 203,
+      "center": {
+        "lat": 37.3545431,
+        "lon": 126.7278215
+      },
+      "source": "stop_line_avg",
+      "signal_groups": [
+        70
+      ],
+      "linked_link_ids": [
+        462,
+        463,
+        464,
+        465,
+        466,
+        467,
+        469,
+        470,
+        471
+      ],
+      "tl_points_count": 3,
+      "maneuvers": [
+        0
+      ]
+    },
+    {
+      "intersection_id": 302,
+      "center": {
+        "lat": 37.3560616,
+        "lon": 126.7291893
+      },
+      "source": "stop_line_avg",
+      "signal_groups": [
+        70
+      ],
+      "linked_link_ids": [
+        417,
+        442,
+        548
+      ],
+      "tl_points_count": 1,
+      "maneuvers": [
+        -1
+      ]
+    },
+    {
+      "intersection_id": 504,
+      "center": {
+        "lat": 37.3814656,
+        "lon": 126.7271638
+      },
+      "source": "stop_line_avg",
+      "signal_groups": [
+        50,
+        70
+      ],
+      "linked_link_ids": [
+        2086,
+        2203,
+        2206,
+        2374
+      ],
+      "tl_points_count": 2,
+      "maneuvers": [
+        0
+      ]
+    },
+    {
+      "intersection_id": 507,
+      "center": {
+        "lat": 37.3736821,
+        "lon": 126.7248404
+      },
+      "source": "stop_line_avg",
+      "signal_groups": [
+        60
+      ],
+      "linked_link_ids": [
+        574,
+        579,
+        580,
+        773,
+        774,
+        775,
+        1846,
+        1847,
+        1848
+      ],
+      "tl_points_count": 3,
+      "maneuvers": [
+        0
+      ]
+    },
+    {
+      "intersection_id": 508,
+      "center": {
+        "lat": 37.3698202,
+        "lon": 126.7250512
+      },
+      "source": "link_endpoint_avg",
+      "signal_groups": [
+        70
+      ],
+      "linked_link_ids": [
+        1079,
+        1080,
+        1081,
+        1082,
+        1083,
+        1084,
+        1085,
+        1086,
+        1899,
+        1900,
+        1901,
+        1902
+      ],
+      "tl_points_count": 0,
+      "maneuvers": [
+        0
+      ]
+    },
+    {
+      "intersection_id": 509,
+      "center": {
+        "lat": 37.3650518,
+        "lon": 126.7205729
+      },
+      "source": "link_endpoint_avg",
+      "signal_groups": [
+        70
+      ],
+      "linked_link_ids": [
+        870,
+        871,
+        877,
+        913,
+        1176,
+        1177,
+        1178,
+        1918,
+        1920,
+        1922,
+        1924
+      ],
+      "tl_points_count": 0,
+      "maneuvers": [
+        0
+      ]
+    },
+    {
+      "intersection_id": 516,
+      "center": {
+        "lat": 37.356707,
+        "lon": 126.7287528
+      },
+      "source": "link_endpoint_avg",
+      "signal_groups": [
+        60
+      ],
+      "linked_link_ids": [
+        951,
+        956,
+        1033,
+        1034,
+        1035,
+        2542,
+        2544
+      ],
+      "tl_points_count": 0,
+      "maneuvers": [
+        0
+      ]
+    },
+    {
+      "intersection_id": 517,
+      "center": {
+        "lat": 37.3574288,
+        "lon": 126.7275941
+      },
+      "source": "stop_line_avg",
+      "signal_groups": [
+        60
+      ],
+      "linked_link_ids": [
+        1017,
+        1018,
+        1024,
+        1025,
+        1026,
+        1027,
+        1028,
+        1029
+      ],
+      "tl_points_count": 3,
+      "maneuvers": [
+        0
+      ]
+    },
+    {
+      "intersection_id": 518,
+      "center": {
+        "lat": 37.3581198,
+        "lon": 126.7264764
+      },
+      "source": "stop_line_avg",
+      "signal_groups": [
+        60
+      ],
+      "linked_link_ids": [
+        1089,
+        1090,
+        1091,
+        1092,
+        1093,
+        1094,
+        1390,
+        1391,
+        1392
+      ],
+      "tl_points_count": 3,
+      "maneuvers": [
+        0
+      ]
+    },
+    {
+      "intersection_id": 519,
+      "center": {
+        "lat": 37.3618327,
+        "lon": 126.7203647
+      },
+      "source": "stop_line_avg",
+      "signal_groups": [
+        60
+      ],
+      "linked_link_ids": [
+        1255,
+        1256,
+        1257,
+        1258,
+        1261,
+        1262
+      ],
+      "tl_points_count": 2,
+      "maneuvers": [
+        0
+      ]
+    }
+  ]
+}

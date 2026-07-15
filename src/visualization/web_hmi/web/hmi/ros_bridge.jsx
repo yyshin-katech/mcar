@@ -12,6 +12,7 @@ const RosContext = React.createContext({
   markActivity: () => {},
   publishModeRequest: () => {},
   publishBagToggle: () => {},
+  publishBagLidar: () => {},
 });
 
 function RosProvider({ url, children }) {
@@ -43,6 +44,9 @@ function RosProvider({ url, children }) {
         });
         cmdsRef.current.bagToggle = new ROSLIB.Topic({
           ros, name: '/hmi/cmd/bag_toggle', messageType: 'std_msgs/Empty',
+        });
+        cmdsRef.current.bagLidar = new ROSLIB.Topic({
+          ros, name: '/hmi/cmd/bag_lidar', messageType: 'std_msgs/Bool',
         });
       });
 
@@ -96,6 +100,14 @@ function RosProvider({ url, children }) {
     t.publish(new ROSLIB.Message({}));
   }, []);
 
+  // Tell the bridge whether to include LiDAR/perception topics in the next
+  // recording. Read at `start_bag` time, so publish it before toggling REC on.
+  const publishBagLidar = React.useCallback((include) => {
+    const t = cmdsRef.current.bagLidar;
+    if (!t) return;
+    t.publish(new ROSLIB.Message({ data: !!include }));
+  }, []);
+
   const value = React.useMemo(() => ({
     connected,
     ros: rosRef.current,
@@ -104,7 +116,8 @@ function RosProvider({ url, children }) {
     markActivity,
     publishModeRequest,
     publishBagToggle,
-  }), [connected, connectedSince, lastMessageAgeMs, markActivity, publishModeRequest, publishBagToggle]);
+    publishBagLidar,
+  }), [connected, connectedSince, lastMessageAgeMs, markActivity, publishModeRequest, publishBagToggle, publishBagLidar]);
 
   return <RosContext.Provider value={value}>{children}</RosContext.Provider>;
 }
@@ -159,6 +172,7 @@ const STATE_DEFAULT = {
   gps: { rtk: 0, lon_std: 0, lat_std: 0 },
   speed_limit: 0, link_id: 0, lane_label: '', on_odd: 0,
   road_state: 0, selected_mode: 0,
+  crosswalk_ped_active: 0, crosswalk_ped_present: false, crosswalk_ped_source: 0,
 };
 
 function useRosState() {

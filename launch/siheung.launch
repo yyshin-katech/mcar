@@ -2,9 +2,125 @@
 <launch>
     <arg name="sweet_home" default="$(optenv HOME)" />
 
+    <!-- 시흥시 VPN (SecuwaySSL) 자격증명·서버 — launch 가 직접 VPN 을 띄우지는 않음.
+         다른 PC 셋업 시 ~/sslvpn/conf/client.info (vpn_ip / vpn_port) 와
+         sudo ./SecuwaySSLU_client 실행 시 입력할 ID/PW 참조용. -->
+    <arg name="vpn_server_ip"   value="27.101.133.111" />
+    <arg name="vpn_server_port" value="443" />
+    <arg name="vpn_id"          value="kanavi001" />
+    <arg name="vpn_pass"        value="kanavI99!@#$" />
+
+    <!-- MQTT broker 선택: test = 인터넷 테스트 서버, prod = 차량 사설망 실제 서버 (시흥시 VPN 필요) -->
+    <!-- 기본 prod. 인터넷 테스트 시 mqtt_server:=test 로 override -->
+    <!-- 예) roslaunch launch/siheung.launch mqtt_server:=test -->
+    <arg name="mqtt_server" default="prod" />
+
+    <!-- BSM partII 주행예정 링크 시퀀스 확장 (사설 규격, partII_Id=63).
+         기본 false. 활성화: roslaunch launch/siheung.launch enable_route_partii:=true -->
+    <arg name="enable_route_partii" default="false" />
+
+    <!-- BSM 모니터링 업로더(EC2 관제웹 ws://13.209.88.22:8081) 자동 기동 여부.
+         /sensors/gps/inspva + /sensors/v_can 필요 (katech_test.launch 의 GPS/CAN 노드가 공급).
+         끄려면: roslaunch ... enable_bsm_upload:=false -->
+    <arg name="enable_bsm_upload" default="true" />
+
+    <!--   테스트 서버 (test) : 121.137.106.141 : 23312 / ut_adcp -->
+    <arg name="mqtt_host_test" value="121.137.106.141" />
+    <arg name="mqtt_port_test" value="23312" />
+    <arg name="mqtt_user_test" value="ut_adcp" />
+    <arg name="mqtt_pass_test" value="ut_adcp123!@#" />
+
+    <!--   실제 서버 (prod) : 192.168.255.173 : 10044 / xcms-mtqq -->
+    <arg name="mqtt_host_prod" value="192.168.255.173" />
+    <arg name="mqtt_port_prod" value="10044" />
+    <arg name="mqtt_user_prod" value="xcms-mtqq" />
+    <arg name="mqtt_pass_prod" value="xcms123!" />
+
+    <!-- 선택된 서버로 dispatch -->
+    <arg name="mqtt_host" value="$(eval arg('mqtt_host_prod') if arg('mqtt_server')=='prod' else arg('mqtt_host_test'))" />
+    <arg name="mqtt_port" value="$(eval arg('mqtt_port_prod') if arg('mqtt_server')=='prod' else arg('mqtt_port_test'))" />
+    <arg name="mqtt_user" value="$(eval arg('mqtt_user_prod') if arg('mqtt_server')=='prod' else arg('mqtt_user_test'))" />
+    <arg name="mqtt_pass" value="$(eval arg('mqtt_pass_prod') if arg('mqtt_server')=='prod' else arg('mqtt_pass_test'))" />
+
     <param name="EPSG" value="5179" />
 
-    <node name="siheung_v2x_node"       type="siheung_v2x_node"     pkg="siheung_v2x"  respawn="true" />
-    <!-- pyqt_hmi launch 파일 포함 -->
-    <include file="$(find pyqt_hmi)/launch/pyqt_hmi.launch" />
+    <!-- OBU UDP 수신 바인드. 기본 0.0.0.0(실제 네이티브 Ubuntu).
+         WSL mirrored 테스트에서는 obu_bind_ip:=192.168.1.3 으로 override -->
+    <arg name="obu_bind_ip"   default="0.0.0.0" />
+    <arg name="obu_bind_port" default="9999" />
+
+    <!-- OBU TIM 발행 토픽. SPaT/SDSM/TIM 모두 siheung_v2x_node 가 UDP 9999 단일 수신 후 messageId 로 분기 -->
+    <arg name="tim_topic"          default="/v2x/tim_message" />
+    <arg name="tim_pedes_topic"    default="/obu/v2x_pedes_assistance" />
+    <arg name="tim_go_ahead_topic" default="/v2x/tim_message/can_go_status" />
+
+    <!-- V2X RX (OBU → PC, UDP 9999): SPaT(19) / SDSM(41) / TIM(31) 단일 수신 + messageId 분기 -->
+    <node name="siheung_v2x_node"       type="siheung_v2x_node"     pkg="siheung_v2x"  respawn="true" output="screen">
+        <param name="bind_ip"   value="$(arg obu_bind_ip)" />
+        <param name="bind_port" value="$(arg obu_bind_port)" />
+        <param name="tim_topic"          value="$(arg tim_topic)" />
+        <param name="tim_pedes_topic"    value="$(arg tim_pedes_topic)" />
+        <param name="tim_go_ahead_topic" value="$(arg tim_go_ahead_topic)" />
+    </node>
+
+    <!-- V2X TX BSM (PC → OBU, UDP 6666) -->
+    <node name="bsm_tx_node"            type="bsm_tx_node"          pkg="siheung_v2x"  respawn="true" output="screen">
+        <param name="enable_udp"        value="true" />
+        <param name="vehicle_id"        value="EV01" />
+    </node>
+
+    <!-- SPaT 병합: OBU(/siheung_spat) + MQTT(/siheung_v2x/mqtt_spat) 를 교차로(IID)
+         단위 OBU 우선으로 병합 → /spat_merged. OBU 가 안 싣는 교차로(예: 302) 는 MQTT 로
+         채워져 HMI/CAN(spat_CAN_writer·stat_display·pyqt/web hmi) 에 전달된다. -->
+    <node name="spat_merge_node" type="spat_merge_node" pkg="siheung_v2x"
+          respawn="true" output="screen">
+        <param name="obu_topic"            value="/siheung_spat" />
+        <param name="mqtt_topic"           value="/siheung_v2x/mqtt_spat" />
+        <param name="merged_topic"         value="/spat_merged" />
+        <param name="obu_priority_timeout" value="2.0" />
+        <param name="entry_ttl"            value="3.0" />
+        <param name="publish_rate"         value="10.0" />
+    </node>
+
+    <!-- V2X RX via MQTT (Cloud V2N → PC). mqtt_server arg 로 test/prod 전환 -->
+    <node name="mqtt_spat_rx_node" type="mqtt_spat_rx_node" pkg="siheung_v2x"
+          respawn="true" output="screen">
+        <param name="broker_host"  value="$(arg mqtt_host)" />
+        <param name="broker_port"  value="$(arg mqtt_port)" />
+        <param name="username"     value="$(arg mqtt_user)" />
+        <param name="password"     value="$(arg mqtt_pass)" />
+        <param name="topic"        value="V2N/1321103202/trf_drct/spat" />
+        <param name="client_id"    value="" />
+        <param name="keepalive"    value="60" />
+        <param name="qos"          value="0" />
+        <param name="spat_topic"   value="/siheung_v2x/mqtt_spat" />
+        <param name="verbose_first_msg" value="true" />
+    </node>
+
+    <!-- V2X TX BSM via MQTT (PC → Cloud V2N). mqtt_server arg 로 test/prod 전환 -->
+    <node name="mqtt_bsm_tx_node" type="mqtt_bsm_tx_node" pkg="siheung_v2x"
+          respawn="true" output="screen">
+        <param name="broker_host"  value="$(arg mqtt_host)" />
+        <param name="broker_port"  value="$(arg mqtt_port)" />
+        <param name="username"     value="$(arg mqtt_user)" />
+        <param name="password"     value="$(arg mqtt_pass)" />
+        <param name="topic"        value="V2N/1321103202/bsm" />
+        <param name="client_id"    value="" />
+        <param name="keepalive"    value="60" />
+        <param name="qos"          value="0" />
+        <param name="retain"       value="false" />
+        <param name="vehicle_id"   value="EV01" />
+        <param name="publish_rate" value="10.0" />
+        <param name="verbose_first_msg" value="true" />
+        <!-- 주행예정 링크 ID 시퀀스 (partII, P1 JSON) — 기본 비활성, arg 로 토글 -->
+        <param name="enable_route_partii" value="$(arg enable_route_partii)" />
+        <param name="route_partii_id"     value="63" />
+        <param name="route_lookahead"     value="10" />
+        <param name="route_topic"         value="/localization/to_control_team" />
+        <param name="link_map_path" value="$(find siheung_v2x)/config/senario_link_map.csv" />
+    </node>
+
+    <!-- BSM 모니터링 업로더 (PC → EC2 관제웹). bsm_uploader.launch 의 params 그대로 사용
+         (server_url=ws://13.209.88.22:8081/ws/ingest, vehicle_id=EV01) -->
+    <include file="$(find bsm_uploader)/launch/bsm_uploader.launch" if="$(arg enable_bsm_upload)" />
 </launch>

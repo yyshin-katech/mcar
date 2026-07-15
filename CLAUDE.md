@@ -129,3 +129,127 @@ diff /home/ads/.claude/projects/-home-ads-mcar-v13/memory/MEMORY.md /home/ads/mc
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
 | 2026-05-12 | 초기 구성 | agents 3 (bridge-port-analyst/coder/verifier) + skills/bridge-cpp-port | `/hmi/threejs/tracks` 가 콜백 지연으로 0.95 Hz 까지 떨어져 web_hmi 트랙 박스가 1초마다 점프 — Python → C++ 포팅 요청 |
+
+## 하네스: senario-gps-pub
+
+**목표:** `mapfiles/senario/mat_viewer_senario_*.html` 주행 link 시퀀스를 따라 EPSG:5179 GPS 데이터를 40 km/h 일정 + 간단 동역학으로 시뮬레이션 발행하는 ROS publisher 신규 개발. 기존 `test_senario3_publisher.py` 와 동일 토픽/메시지 (`/localization/pose_2d_gps`, `mmc_msgs/localization2D_msg`) 패턴.
+
+**트리거:** "senario gps publisher 만들어", "mat 시나리오 시뮬", "senario_260514c 주행 시뮬", "40km/h GPS 시뮬", "senario gps pub 다시 만들어", "route 바꿔서 다시" 요청 시 `senario-gps-pub` 스킬 사용. 단순 코드 질문은 직접 응답.
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-05-15 | 초기 구성 | agents 3 (senario-sim-analyst/coder/verifier) + skills/senario-gps-pub | senario_260514c HTML 주행 시퀀스 기반 40 km/h GPS 시뮬레이터 publisher 신규 개발 요청 |
+
+## 하네스: v2x-signal-verify
+
+**목표:** `mapfiles/senario/` mat 의 신호등 매핑 ↔ `siheung_v2x` SPaT 디코딩(`/katri_v2x_node/katri_spat` 등) ↔ `to_control_team_demo.py` 신호등 매칭 로직의 정합성을 코드 변경 없이 정적 검증. 라이브 ROS 토픽 echo 는 SKIP (사용자 정책).
+
+**트리거:** "v2x 신호등 검증", "senario 신호등 매칭 확인", "SPaT 파싱 검증", "신호등 디코딩 흐름 점검" 요청 시 `v2x-signal-verify` 스킬 사용. 패치가 필요한 경우 별도 하네스/직접 수정으로 위임. 단순 코드 질문은 직접 응답.
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-05-18 | 초기 구성 | agents 2 (v2x-signal-analyst/verifier) + skills/v2x-signal-verify | senario 경로 mat 적용 시 v2x SPaT 파싱·매칭 정합성 검증 요청 |
+
+## 하네스: protocol-spec-check
+
+**목표:** `~/protocol/[ITSK-00150-2]V2N규격-제2부 V2N정보연계-경찰청연구과제규격.hwpx` 의 MQTT 인터페이스 규격을 추출하여 `siheung_v2x` 의 `mqtt_spat_rx_node` / `mqtt_bsm_tx_node` / `launch/siheung.launch` 가 규격에 정합한지 코드 변경 없이 정적 검증. 라이브 ROS 토픽 echo SKIP.
+
+**트리거:** "프로토콜 규격 확인", "V2N 규격 검증", "hwpx 규격 비교", "MQTT 인터페이스 정합성 확인", "프로토콜 문서랑 코드 비교" 요청 시 `protocol-spec-check` 스킬 사용. 패치 필요 시 별도 하네스/직접 수정으로 위임. 단순 코드 질문은 직접 응답.
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-05-23 | 초기 구성 | agents 2 (protocol-spec-analyst/verifier) + skills/protocol-spec-check | 경찰청 V2N 정보연계 hwpx 규격 ↔ 현재 MQTT 구현 정합성 검증 요청 |
+
+## 하네스: mqtt-vpn-setup
+
+**목표:** MQTT V2N 인터페이스 트래픽 (prod 브로커 `192.168.255.173:10044`) 만 시흥시 VPN 터널 로 보내고, 그 외 인터넷·NTRIP·로컬 LAN 트래픽은 default route 를 유지하는 split-tunnel 을 외과적으로 구성·검증. 실 환경 VPN 은 **시흥시 시범운행 인프라의 SecuwaySSL (Secuwiz)** — `~/sslvpn/SecuwaySSLU_client` + `conf/client.info` (`27.101.133.111:443`). OpenVPN 가정의 초기 사양서는 무시.
+
+**트리거:** "vpn 설정", "mqtt vpn", "split-tunnel", "시흥시 vpn", "mqtt 인터페이스 vpn", "vpn 다시 설정", "vpn 재구성", "secuwayssl", "openvpn 분리 터널" 요청 시 `mqtt-vpn-setup` 스킬 사용. 단순 ROS/launch 질문이나 일반 네트워크 진단은 직접 응답.
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-05-26 | 초기 구성 | agents 3 (vpn-net-analyst/configurator/verifier) + skills/mqtt-vpn-setup | 시흥시 VPN 게이트웨이 통해 prod MQTT 브로커만 분리 터널 구성 요청 (자격증명 시스템 경로 보관, git 평문 금지) |
+| 2026-05-26 | 실 환경 검증 + 사실 보정 | memory/mqtt_vpn_setup_harness.md + 본 항목 | 실 VPN 은 OpenVPN 아닌 SecuwaySSL (Secuwiz) 로 판명. PDF 가이드 + `~/sslvpn/SecuwaySSLU_client` 로 27.101.133.111:443 접속, tun0=172.18.113.51 동적 할당. split push 자동 → 핵심 2조건 통과. prod MQTT → IID 517 (시화) SPaT 5 Hz 수신·디코드 검증 (signalGroup 60/80, phase GO). `publishSpat` 가 `/localization/to_control_team` 필터 사용 — 시연 시 dummy publish 필요 |
+| 2026-05-26 | 다른 PC 셋업 산출물 추가 | tools/sslvpn/{SSU21-2.1.0.2-20230331.tgz, README.md} | 다른 PC 에서도 PDF 없이 동일 절차로 VPN 셋업·접속 가능하도록 클라이언트 tgz 와 설치/검증/트러블슈팅 가이드를 git 추적 |
+| 2026-05-26 | BSM 송신 검증 추가 | memory/mqtt_vpn_setup_harness.md + 본 항목 | `~/bag/20260508/*_0.bag` 리플레이 → `mqtt_bsm_tx_node` (prod 인자) → prod 브로커 `V2N/1321103202/bsm` 토픽 10 Hz 송신 확인. V2N header `04 00 ff 10` (BSM fid=FF10), PSID `00 01 40 82`, inner 40 byte J2735 BSM UPER 정합. v_can 미포함 bag 이라 steering/accel/yaw/brake 는 0 으로 채워짐. `use_sim_time=true` + `--clock` 미사용 시 timer 동결 함정 기록 |
+| 2026-05-26 | VPN 명칭 정정 (카네비 → 시흥시) | CLAUDE.md, MEMORY.md, memory/*, .claude/{agents,skills,mqtt_vpn_setup_harness.md}, tools/sslvpn/README.md | "kanavi VPN" 으로 부르던 것은 실제로 시흥시 시범운행 인프라의 VPN. 표기 통일을 위해 모든 문서·에이전트·스킬에서 "kanavi" → "siheung" (파일명 `kanavi-mqtt.conf` → `siheung-mqtt.conf`, `tun-kanavi` → `tun-siheung` 등) 정정. ID 마스킹 `kana***1` 은 실제 계정 패턴이므로 유지 |
+| 2026-05-26 | launch 자격증명 평문 정책 완화 + prod 기본화 | launch/siheung.launch, memory/mqtt_vpn_setup_harness.md | 다른 PC 셋업 편의를 위해 시흥시 VPN ID/PW 와 서버 IP/포트를 `launch/siheung.launch` arg 로 평문 포함 (`vpn_id`/`vpn_pass`/`vpn_server_ip`/`vpn_server_port`). `mqtt_server` default 를 `test` → `prod` 로 변경 (인터넷 테스트 시만 명시 override). 메모리 자격증명 보안 섹션을 launch 예외 명시로 갱신 |
+
+## 하네스: spat-viewer-build
+
+**목표:** VPN 통해 prod 브로커 (`192.168.255.173:10044`) 에서 들어오는 MQTT SPaT (`/siheung_v2x/mqtt_spat`) + OBU SPaT (`/siheung_spat`) 를 라이브로 보여주는 self-contained Leaflet HTML 뷰어 신규 개발. `mat_viewer_senario_*` 패턴으로 지도 위에 shp_map 도로 link, 교차로별 신호등 색/잔여시간, ego 마커(real-time), target intersection 강조. 메인 launch (`siheung.launch`) 와 동시 실행 가능 (별도 rosbridge_websocket).
+
+**트리거:** "spat 뷰어 만들어", "신호등 뷰어", "spat 시각화", "MQTT spat 보는 페이지", "vpn spat 확인 페이지", "뷰어 다시 만들어", "spat-viewer", "교차로 색 잘못 나옴" 요청 시 `spat-viewer-build` 스킬 사용. 단순 코드 질문은 직접 응답.
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-05-26 | 초기 구성 | agents 3 (spat-viewer-{analyst,coder,verifier}) + skills/spat-viewer-build | OBU>MQTT fallback 정책 적용 후 (commit 80624de — spat_CAN_writer 에서 ego 매칭, 발행자측 필터 제거) 라이브 SPaT 흐름을 메인 시스템 실행 중에도 브라우저로 확인할 수 있는 뷰어 요청 |
+| 2026-05-26 | 라이브 검증 + 데이터 소스 mat 재설계 | src/visualization/spat_viewer/* + memory/spat_viewer_build_harness.md | VPN+mqtt_spat_rx_node+roslaunch spat_viewer 라이브 검증 (브로커 IID 매치 13/15). 초기 shp 추출 (HDMap_Oido_New C1_TRAFFICLIGHT.shp, 2544 feature) 을 `mapfiles/senario/link_*.mat` 직접 추출로 교체 — mat 이 IID/SG/stop_line/MANUAVER 키를 직접 carry. 결과 308 link / 15 IID `[134,136,165,168,201,203,302,504,507,508,509,516,517,518,519]`. is_stop_line=1 링크 `#fab387` 강조 + legend 갱신. extract_map_data.py 는 pyproj 만 의존 (pyshp 제거) |
+
+## 하네스: hmi-block-display
+
+**목표:** 차량이 link 548/550/552/417 위에 있거나 `/v2x/tim_message/can_go_status` 의 `do_not_go_forward=True` 수신 시, web_hmi(Three.js) 지도에 붉은 30% 반투명 박스 + "전방 직진 주행 금지" 배너 + 좌/우 진행 화살표를 표시하고, rviz(stat_display)에 "전방 직진 주행 금지" OverlayText 팝업을 띄운다. 원천: `_work_item/hmi_block.md`.
+
+**트리거:** "hmi 블로킹", "직진 금지 표시", "hmi_block", "전방 직진 주행 금지", "블로킹 박스", "주행 경로 블로킹", "블로킹 다시" 요청 시 `hmi-block-display` 스킬 사용. 단순 코드 질문은 직접 응답.
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-06-24 | 초기 구성 + 구현 + 라이브 검증 | agents 3 (hmi-block-{analyst,coder,verifier}) + skills/hmi-block-display + web_hmi(web_hmi_bridge.py/BlockZones.jsx/index_threejs_f1.html) + stat_display(.h/.cpp/CMake/package.xml) + workspace_config/ioniq_statdisplay.rviz | `_work_item/hmi_block.md` 요구 구현. 트리거 `on_block_link`(LINK_ID∈{548,550,552,417}) + `do_not_go_forward`(can_go_status True 2.0s staleness). 박스 좌표 WGS84 1e7 7점→EPSG:5179 2폴리곤(Box A/B). bag0 라이브 검증: on_block_link=1 166회(=link417), go_ahead_popup "전방 직진 주행 금지" ADD 229회. stat_display 별도 토픽 `/rviz/jsk/go_ahead_popup`(시스템 popup 비충돌). 추가-온리(기존 동작 보존) |
+
+## 하네스: tim-pedes-display
+
+**목표:** TIM(V2X) 보행자(`/obu/v2x_pedes_assistance`)와 차량 자체 횡단보도 판단(`/katech_msg/crosswalk_detection`)을 퓨전하여 소스(자체/OBU) 필드 포함 새 토픽(`/katech_msg/crosswalk_ped_fusion`)으로 발행하고, web_hmi 지도의 횡단보도 #1/#2 위에 보행자 유무를 붉은 점멸 + "전방 보행자 주의" 팝업(소스별 색상)으로 표시. 원천: `claude_work_list/tim_pedes_display.md`.
+
+**트리거:** "tim pedes", "보행자 퓨전", "횡단보도 보행자 표시", "tim_pedes_display", "보행자 퓨전 다시", "횡단보도 hmi" 요청 시 `tim-pedes-display` 스킬 사용. 단순 코드 질문은 직접 응답.
+
+**확정 결정:** #1=south_pedes / #2=east_pedes · 새 퓨전 노드(CAN 무손상, 검출 노드는 additive `crosswalk_id`만) · 팝업 색상 자체=주황#ff9800/OBU=빨강#ff3030/둘다=자홍#ff30ff · active LINK_ID {1239,1238}→#1, 1205→#2.
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-07-07 | 초기 구성 | agents 3 (tim-pedes-{analyst,coder,verifier}) + skills/tim-pedes-display + `_tim_pedes_workspace/00_constraints.md` | `claude_work_list/tim_pedes_display.md` 보행자 퓨전+HMI 표시 요청. 사용자 결정 3건 반영(#2=east_pedes, 새 퓨전 노드 CAN 무손상, 팝업 색상) |
+
+## 하네스: global-nav-hmi
+
+**목표:** web_hmi(Three.js) 지도에 주행 예정 경로(`A2_LINK.shp` 링크 시퀀스)를 자차 앞 굵은 선(중앙 차선 대표 1선)으로 표시하고, OBU TIM(`do_not_go_forward`) 팝업/배너 트리거 시 기존 경로를 삭제하고 신규(우회) 경로로 전환·latch. 지나간 구간은 페이드. 원천: `claude_work_list/global_nav_hmi.md`.
+
+**트리거:** "주행 예정 경로", "global_nav", "경로 표시", "경로 전환", "우회 경로 안내", "네비 라인", "경로 다시", "경로 하네스" 요청 시 `global-nav-hmi` 스킬 사용. 단순 경로/링크 조회는 직접 응답.
+
+**확정 결정:** 중앙 차선 대표 1선 · 오프라인 사전 추출 JSON · 범위=분기 직후 795116/795118까지(후반 ITSLinkID 구간 제외) · 전환=`on_block_link AND do_not_go_forward`(기존 `/hmi/state` 재사용) 후 latch · 분기점 좌차선 `A222BF785188`→old `785058`(직진)/new `785057`(좌분기) · 빈구간 `785106→785109` BFS 연결 · CAN 무손상 추가-온리.
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-07-08 | 초기 구성 | agents 3 (global-nav-{analyst,coder,verifier}) + skills/global-nav-hmi + `_global_nav_workspace/00_constraints.md` | `claude_work_list/global_nav_hmi.md` 주행 예정 경로 표시+전환 요청. 사용자 결정 4건 반영(중앙차선 1선, 오프라인 JSON, 795까지, latch 전환) |
+
+## 하네스: spat-dir-match
+
+**목표:** MQTT/OBU SPaT 신호를 ego 진행방향(local `MANUAVER` -1/0/1)에 해당하는 movement(`MovementStateName`)로 매칭해 CAN·HMI 에 반영. 원천 확정사실: `_spat_dir_workspace/00_constraints.md`.
+
+**트리거:** "spat 방향 매칭", "신호등 방향 매칭", "MANUAVER 매칭", "MovementStateName 매칭", "좌회전 신호 매칭 안됨", "방향 신호등 잘못 나옴", "spat 방향 다시" 요청 시 `spat-dir-match` 스킬 사용. 단순 조회는 직접 응답.
+
+**확정 결정:** 방향 매핑 -1→LEFT / 0→{STR,STRAIGHT} / 1→RIGHT (MQTT 약어+OBU 풀네임 혼재) · PED/BUS/BYC 배제 · signalGroup 단독매칭 금지(같은 SG 다방향, 방향 문자열이 최종 판별자) · 매칭 실패 시 안전 리셋(신호 0) · CAN 무손상(spat_CAN_writer 선택 로직만).
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-07-14 | 초기 구성 + 1회 실행 | agents 3 (spat-dir-{analyst,coder,verifier}) + skills/spat-dir-match + `_spat_dir_workspace/` | HMI 3경로 방향필터 부재로 병합노드 알파벳순(LEFT 최선) 오선택 버그. web_hmi(hmi_state.py)+stat_display+CAN 수정, bag 실증(516/518 OLD LEFT→NEW STR). pyqt main_window 제외(사용자 스코프) |
+
+## 하네스: stopline-adj
+
+**목표:** senario mat 도로링크 끝을 노면선표시(B2_SURFACELINEMARK) 정지선까지 연장하고 다음 링크를 교차점부터 트림. 웨이포인트/station(길이)/is_stop_line 갱신 + HTML mat 뷰어 반영. 원천: `claude_work_list/stop_line_adj_*.md`, 확정사실: `_stopline_adj_workspace/00_constraints.md`.
+
+**트리거:** "링크 정지선 매칭", "정지선까지 연장", "링크 끝 정지선", "stop_line_adj", "링크 길이 수정 정지선", "mat 정지선 다시" 요청 시 `stopline-adj` 스킬 사용. 단순 조회는 직접 응답.
+
+**확정 결정:** 편집 대상 6개 mat만(연장 L + 트림 N 세트) · 공유정점 L.end==N.start==교차점 P · L=L점+N[1:k+1]+P / N=P+N[k+1:] · station 0부터 재계산 · 위상(NEXT/L/R_LINK)·IID/SG/MANUAVER 등 불변 · is_stop_line 연장링크=1/트림링크=0 · 원본 백업 · 뷰어 var DATA 6 feature만 byte-safe 패치(regen_mat_viewer.py repo외부라 직접).
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-07-15 | 초기 구성 + 1회 실행 | agents 3 (stopline-adj-{analyst,coder,verifier}) + skills/stopline-adj + `_stopline_adj_workspace/` | `stop_line_adj_20260715.md`: 링크 871/870/877 을 B2209W001421(Kind530 정지선)까지 +2.9m 연장(66→68.9m), 3871/3870/3877 트림. verifier 6항목 PASS(정지선 수직거리 0m, 287 mat 불변) |

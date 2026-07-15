@@ -1,0 +1,3 @@
+time time
+bool crosswalk1_occupied
+bool crosswalk2_occupied

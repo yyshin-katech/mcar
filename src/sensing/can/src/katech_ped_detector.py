@@ -9,7 +9,7 @@ from typing import List, Tuple, Dict, Optional
 from mmc_msgs.msg import localization2D_msg, to_control_team_from_local_msg
 from perception_ros_msg.msg import object_array_msg, object_msg
 from sensor_msgs.msg import NavSatFix
-from katech_custom_msgs.msg import ped_crosswalk_check_msg, ped_crosswalk_check_array_msg
+from katech_custom_msgs.msg import ped_crosswalk_check_msg, ped_crosswalk_check_array_msg, crosswalk_occupancy_msg
 
 class ObjectArray:
     def __init__(self):
@@ -38,9 +38,29 @@ class Crosswalk:
         self.height = self.max_y - self.min_y
     
     def point_in_rectangle(self, point_x, point_y):
-        """점이 횡단보도 내부에 있는지 판단"""
-        return (self.min_x <= point_x <= self.max_x and 
-                self.min_y <= point_y <= self.max_y)
+        """점이 횡단보도(다각형) 내부에 있는지 판단.
+
+        횡단보도는 사각형이 아닌 임의 다각형일 수 있으므로,
+        바운딩 박스로 빠르게 걸러낸 뒤 ray-casting 으로 다각형 내부를 판정한다.
+        """
+        # 1) 바운딩 박스 빠른 배제
+        if not (self.min_x <= point_x <= self.max_x and
+                self.min_y <= point_y <= self.max_y):
+            return False
+
+        # 2) ray-casting (짝/홀 교차 판정)
+        coords = self.coords
+        n = len(coords)
+        inside = False
+        j = n - 1
+        for i in range(n):
+            xi, yi = coords[i]
+            xj, yj = coords[j]
+            if ((yi > point_y) != (yj > point_y)) and \
+               (point_x < (xj - xi) * (point_y - yi) / (yj - yi) + xi):
+                inside = not inside
+            j = i
+        return inside
     
     def distance_to_point(self, point_x, point_y):
         """점과 횡단보도 중심 간의 거리"""
@@ -68,6 +88,7 @@ class ROSCrosswalkDetector:
         self.object_subscriber = rospy.Subscriber('/track_Multi_RS', object_array_msg, self.object_array_callback, queue_size=10)
 
         self.target_pub = rospy.Publisher('/katech_msg/crosswalk_detection', ped_crosswalk_check_array_msg, queue_size=10)
+        self.occupancy_pub = rospy.Publisher('/katech_msg/crosswalk_occupancy', crosswalk_occupancy_msg, queue_size=10)
 
         # 결과 발행자
         # self.result_publisher = rospy.Publisher(
@@ -80,17 +101,13 @@ class ROSCrosswalkDetector:
         # rospy.loginfo('등록된 횡단보도 수: %d개', len(self.crosswalks))
     
     def initialize_crosswalks(self):
-        """횡단보도 초기화 (1번~9번)"""
+        """횡단보도 초기화 (senario 260514c, EPSG:5179 다각형)"""
+        # WGS84 원좌표(_work_item/crosswalk_position.md)를 EPSG:5179(east, north)로 변환한 값
         crosswalk_data = {
-            1: [(935593.810694961, 1916121.68412715), (935600.278890672, 1916121.86795773), (935600.43755585, 1916108.78192149), (935593.870541841, 1916108.67782005)],
-            2: [(935580.772449552, 1916230.69164213), (935588.5487203, 1916230.92466476), (935588.654241561, 1916224.2682485), (935580.81546852, 1916224.13178964)],
-            3: [(935572.064003941, 1916238.49208121), (935578.645533124, 1916238.70616428), (935578.912810416, 1916231.07676833), (935572.099261183, 1916230.88339591)],
-            4: [(935574.207087599, 1915939.44861648), (935583.40729901, 1915934.47284806), (935578.783563172, 1915926.91225337), (935569.830268791, 1915931.69682715)],
-            5: [(935588.577962978, 1915935.99373898), (935594.119199351, 1915946.44673322), (935601.738834777, 1915942.7141174), (935596.339641485, 1915932.53164923)],
-            6: [(935615.268581353, 1915987.70606626), (935621.140055542, 1915985.01883842), (935618.446257018, 1915979.56186638), (935612.497383937, 1915982.51614206)],
-            7: [(935607.012942158, 1916003.86678806), (935616.553350834, 1915998.96957952), (935612.58116282, 1915991.07787071), (935603.036116325, 1915996.26766916)]
+            1: [(930819.312725, 1929593.158143), (930807.530293, 1929580.608639), (930804.537889, 1929582.883314), (930803.754045, 1929582.693963), (930800.736230, 1929585.001303), (930798.147151, 1929585.252169), (930814.166390, 1929602.326491), (930814.430028, 1929599.606956), (930813.356668, 1929598.462133), (930816.299566, 1929596.210116), (930816.286256, 1929595.495250)],
+            2: [(930819.933061, 1929617.498679), (930817.484334, 1929614.491229), (930817.695865, 1929613.842349), (930815.283504, 1929610.895521), (930813.983369, 1929609.298809), (930788.698959, 1929628.204441), (930789.932348, 1929629.623349), (930790.729092, 1929629.069490), (930793.150823, 1929631.994565), (930792.937083, 1929632.723870), (930795.460264, 1929635.651967)]
         }
-        
+
         for crosswalk_id, coords in crosswalk_data.items():
             self.add_crosswalk(crosswalk_id, coords)
     
@@ -178,6 +195,18 @@ class ROSCrosswalkDetector:
         # rospy.loginfo(pub_msg_ar)
 
         pub_msg_ar.data.clear()
+
+        # --- additive (Option 1, CAN 무관): 자체 횡단보도 점유를 독립 계산·발행 ---
+        # 기존 crosswalk_detection 배열/136행 참조버그와 분리 — active_objects 에서 재계산.
+        occ_ids = set()
+        for obj in active_objects:
+            ids, _ = self.find_crosswalks_containing_object(obj.x, obj.y)
+            occ_ids.update(ids)
+        occ_msg = crosswalk_occupancy_msg()
+        occ_msg.time = rospy.Time.now()
+        occ_msg.crosswalk1_occupied = (1 in occ_ids)
+        occ_msg.crosswalk2_occupied = (2 in occ_ids)
+        self.occupancy_pub.publish(occ_msg)
 
     def rotate_point(self, x, y, yaw_rad):
         """점을 yaw각도만큼 회전"""

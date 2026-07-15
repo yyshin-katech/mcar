@@ -157,6 +157,21 @@ function F1HMIScreen() {
   const bag = useBag();
   const map = useMap();
 
+  // ROSBAG LiDAR/perception include toggle (read by bridge at start_bag time).
+  const [bagIncludeLidar, setBagIncludeLidar] = React.useState(true);
+  const onBagLidarToggle = React.useCallback(() => {
+    setBagIncludeLidar((prev) => {
+      const next = !prev;
+      conn.publishBagLidar(next);
+      return next;
+    });
+  }, [conn]);
+  // Re-assert the LiDAR flag right before starting (survives bridge restart).
+  const onBagToggle = React.useCallback(() => {
+    if (!(bag && bag.recording)) conn.publishBagLidar(bagIncludeLidar);
+    conn.publishBagToggle();
+  }, [conn, bag, bagIncludeLidar]);
+
   const now = useClock(250);
   const pageLoadAtRef = React.useRef(Date.now());
 
@@ -239,7 +254,9 @@ function F1HMIScreen() {
       egoYaw={(state.ego && state.ego.yaw) || 0}
       bagRecording={!!(bag && bag.recording)}
       bagInfo={(bag && bag.info) || ""}
-      onBagToggle={conn.publishBagToggle}
+      onBagToggle={onBagToggle}
+      bagIncludeLidar={bagIncludeLidar}
+      onBagLidarToggle={onBagLidarToggle}
       bottom={bottom}
     />
   );

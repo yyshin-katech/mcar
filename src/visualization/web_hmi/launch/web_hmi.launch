@@ -22,9 +22,9 @@
   <arg name="variant"      default="threejs_f1"/>
   <arg name="page"         default="$(eval {'f1':'index_f1.html','default':'index.html','threejs':'index_threejs.html','threejs_f1':'index_threejs_f1.html'}.get(arg('variant'), 'index.html'))"/>
   <!-- HD map shapefile to overlay on the F1 environment (EPSG:5179). Empty = disabled. -->
-  <arg name="map_shp"      default="$(find gps_system_localizer)/src/shp_map/HDMap_Oido_New/A2_LINK.shp"/>
+  <arg name="map_shp"      default="$(find gps_system_localizer)/src/shp_map/senario_shp_20260623/A2_LINK.shp"/>
   <!-- threejs variant: K_CITY_2025 shapefile dir (UTM52N → EPSG:5179 inside the bridge). -->
-  <arg name="threejs_mapdir" default="$(find gps_system_localizer)/src/shp_map/HDMap_Oido_New"/>
+  <arg name="threejs_mapdir" default="$(find gps_system_localizer)/src/shp_map/senario_shp_20260623"/>
 
   <!-- 1. rosbridge WebSocket server -->
   <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch">
@@ -53,6 +53,8 @@
         output="screen"
         required="true">
     <param name="mapdir" value="$(arg threejs_mapdir)"/>
+    <!-- global_nav_hmi: pre-extracted planned-route JSON (latched on /hmi/threejs/route). -->
+    <param name="route_json" value="$(find web_hmi)/scripts/route_senario_20260623.json"/>
     <param name="publish_tracks" value="false"/>
   </node>
 

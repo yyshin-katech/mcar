@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>spat_viewer</name>
+  <version>0.1.0</version>
+  <description>Self-contained Leaflet + roslibjs SPaT live viewer (OBU and MQTT) for siheung_dev.</description>
+
+  <maintainer email="yyshin@katech.re.kr">Yuyeong Shin</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <exec_depend>rosbridge_server</exec_depend>
+  <exec_depend>rosapi</exec_depend>
+  <exec_depend>v2x_msgs</exec_depend>
+  <exec_depend>mmc_msgs</exec_depend>
+  <exec_depend>siheung_v2x</exec_depend>
+
+  <export>
+  </export>
+</package>

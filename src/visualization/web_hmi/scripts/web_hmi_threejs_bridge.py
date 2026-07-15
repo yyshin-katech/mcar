@@ -94,6 +94,11 @@ class WebHmiThreejsBridge:
         self._pub_map = rospy.Publisher(
             "/hmi/threejs/map", String, queue_size=1, latch=True,
         )
+        # Latched planned-route ribbon (global_nav_hmi). Additive — the map/
+        # track publishing below is unchanged.
+        self._pub_route = rospy.Publisher(
+            "/hmi/threejs/route", String, queue_size=1, latch=True,
+        )
         # Track publishing is owned by web_hmi_threejs_tracks_cpp when this
         # param is false (default). The C++ node is faster on the percept hot
         # path; keeping Python's advertiser around would create a dual
@@ -113,6 +118,13 @@ class WebHmiThreejsBridge:
                 "mapfiles", "K_CITY_2025",
             ),
         )
+        # Pre-extracted route JSON (extract_route.py output). Read-only at
+        # runtime; latched once on /hmi/threejs/route.
+        self._route_json = rospy.get_param(
+            "~route_json",
+            os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                         "route_senario_20260623.json"),
+        )
         self._tracks_count = 0
         self._with_points_count = 0
         self._cloud_xyz = None  # (N,3) float32, latest /fusion_lidar_points
@@ -125,6 +137,7 @@ class WebHmiThreejsBridge:
         # and include it in each /hmi/threejs/tracks payload.
         self._last_ego = None  # (east, north, yaw) or None until first cb
         self._publish_map_once()
+        self._publish_route_once()
 
         if self._publish_tracks:
             if to_control_team_from_local_msg is not None:
@@ -351,6 +364,24 @@ class WebHmiThreejsBridge:
             "%d layers, %d KB. Features: %s",
             len(layers), len(payload) // 1024, feats,
         )
+
+    def _publish_route_once(self):
+        """Latch pre-extracted route (EPSG:5179 abs coords) on /hmi/threejs/route."""
+        if not os.path.isfile(self._route_json):
+            rospy.logwarn("web_hmi_threejs_bridge: route_json not found: %s",
+                          self._route_json)
+            return
+        try:
+            with open(self._route_json, "r", encoding="utf-8") as f:
+                data = f.read()
+            json.loads(data)  # validate
+            self._pub_route.publish(String(data=data))
+            rospy.loginfo(
+                "web_hmi_threejs_bridge: /hmi/threejs/route latched (%d B)",
+                len(data),
+            )
+        except (OSError, ValueError) as e:
+            rospy.logerr("web_hmi_threejs_bridge: route load failed: %s", e)
 
     @staticmethod
     def _xform_xy(tx, pts):

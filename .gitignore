@@ -49,3 +49,20 @@ qtcreator-*
 
 # Catkin custom files
 CATKIN_IGNORE
+
+# Harness intermediate artifacts
+_workspace/
+_adapt_workspace/
+_adapt_workspace_prev/
+_workspace_vpn/
+_workspace_vpn_prev/
+_vehicle_tracker_workspace/
+_protocol_spec_workspace/
+_spat_priority_workspace/
+
+# Node.js
+server/node_modules/
+
+# Runtime / lock files
+.claude/scheduled_tasks.lock
+capture/

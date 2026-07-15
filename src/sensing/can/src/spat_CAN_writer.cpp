@@ -10,6 +10,7 @@
 #include <cstring>
 #include <vector>
 #include <tuple>
+#include <mutex>
 
 #include <v2x_msgs/intersection_msg.h>
 #include <v2x_msgs/intersection_array_msg.h>
@@ -27,10 +28,28 @@
 
 using namespace std;
 
+// ego 진행방향(MANUAVER) ↔ movement 방향문자열 매칭.
+// MANUAVER -1=LEFT, 0=STR/STRAIGHT, 1=RIGHT. MQTT 는 약어(STR), OBU 는 풀네임(STRAIGHT) 을 쓰므로
+// 직진은 두 철자 모두 허용. PED/PEDESTRIAN/BUS/BYC 는 어느 집합에도 없어 자동 배제, empty 는 스킵.
+static bool movement_matches_manuaver(const std::string& mn, int man) {
+  if (man == -1) return mn == "LEFT";
+  if (man ==  1) return mn == "RIGHT";
+  return mn == "STR" || mn == "STRAIGHT";   // man == 0 (직진)
+}
+
 class SPAT_CAN_WRITER{
   public:
     ros::Subscriber sub1;
     uint16_t cur_intersection_id = 0;
+    int      cur_signal_group_id = 0;   // to_control_team.look_at_signalGroupID
+    int      cur_manuaver = 0;          // to_control_team.MANUAVER (-1=LEFT, 0=STR, 1=RIGHT)
+    std::mutex link_mtx_;               // cur_* 보호
+
+    // OBU SPaT 마지막 수신 시각 (MQTT fallback 판정용).
+    // default ros::Time(0) → 한 번도 못 받음 → MQTT 첫 메시지에서 곧바로 fallback.
+    ros::Time obu_last_seen_;
+    std::mutex spat_mtx_;             // obu_last_seen_ 보호용
+    double spat_stale_timeout_ = 2.0; // 초; main 에서 rosparam 으로 갱신
 
     unsigned int kvaDb_flags = 0;
     unsigned int dlc = 8;
@@ -46,6 +65,10 @@ class SPAT_CAN_WRITER{
     SPAT_CAN_WRITER();
     void CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& data);
     void CALLBACK_LOCAL(const mmc_msgs::to_control_team_from_local_msg& data);
+    void CALLBACK_MQTT_SPAT(const v2x_msgs::intersection_array_msg& data);
+    void WRITE_SPAT_CAN(const v2x_msgs::intersection_array_msg& msg,
+                        const char* source_tag);
+    bool OBU_IS_FRESH();
     short FIND_MSG_IDX(char* target_msg, vector<tuple<char*, vector<char*>>>* msg_list);
     canStatus OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num, char *filename, bool init_access_flag);
     void LOOP();
@@ -62,7 +85,10 @@ SPAT_CAN_WRITER::SPAT_CAN_WRITER(){
 }
 
 void SPAT_CAN_WRITER::CALLBACK_LOCAL(const mmc_msgs::to_control_team_from_local_msg& data){
-  cur_intersection_id = data.look_at_IntersectionID;
+  std::lock_guard<std::mutex> lock(link_mtx_);
+  cur_intersection_id  = data.look_at_IntersectionID;
+  cur_signal_group_id  = data.look_at_signalGroupID;
+  cur_manuaver         = data.MANUAVER;
 }
 
 void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg){
@@ -73,6 +99,35 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg)
     time1 = msg.time.sec%10000 + msg.time.nsec/1000000000.0;
   new_time = (msg.time.sec%10000 + msg.time.nsec/1000000000.0) - time1;
 
+  // OBU 우선: 들어오면 항상 CAN write + last_seen 갱신
+  {
+    std::lock_guard<std::mutex> lock(spat_mtx_);
+    obu_last_seen_ = ros::Time::now();
+  }
+  WRITE_SPAT_CAN(msg, "OBU");
+}
+
+void SPAT_CAN_WRITER::CALLBACK_MQTT_SPAT(const v2x_msgs::intersection_array_msg& msg){
+  // OBU 가 fresh 이면 MQTT 는 skip
+  if (OBU_IS_FRESH())
+  {
+    ROS_DEBUG_THROTTLE(5.0,
+      "[SPaT CAN] MQTT skipped - OBU fresh (last_seen < %.1fs)", spat_stale_timeout_);
+    return;
+  }
+  ROS_INFO_THROTTLE(5.0, "[SPaT CAN] OBU stale -> using MQTT SPaT");
+  WRITE_SPAT_CAN(msg, "MQTT");
+}
+
+bool SPAT_CAN_WRITER::OBU_IS_FRESH(){
+  std::lock_guard<std::mutex> lock(spat_mtx_);
+  if (obu_last_seen_.isZero()) return false;
+  return (ros::Time::now() - obu_last_seen_).toSec() < spat_stale_timeout_;
+}
+
+void SPAT_CAN_WRITER::WRITE_SPAT_CAN(const v2x_msgs::intersection_array_msg& msg,
+                                     const char* source_tag)
+{
   unsigned char can_data[dlc];
   memset(can_data, 0, sizeof(can_data));
 
@@ -83,29 +138,63 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg)
   unsigned int id_write, flag = 0;
   vector<double> temp_data;
 
-  // 현재 링크의 교차로 ID가 0이면 (신호 불필요 구간) 0 전송
-  if (cur_intersection_id == 0)
+  // ego 링크 정보 스냅샷
+  int loc_iid, loc_sig, loc_man;
+  {
+    std::lock_guard<std::mutex> lock(link_mtx_);
+    loc_iid = cur_intersection_id;
+    loc_sig = cur_signal_group_id;
+    loc_man = cur_manuaver;
+  }
+
+  // ego 가 신호 불필요 링크 (IID=0) → CAN 신호 모두 0
+  if (loc_iid == 0)
   {
     temp_data = {0.0, 0.0, 0.0, 0.0, 0.0};
   }
-  else if (!msg.data.empty() && msg.data[0].IntersectionID != 0)
+  else
   {
-    auto& d = msg.data[0];
+    // 다운스트림 매칭: SPaT 안 모든 intersection × movement 중에서
+    //   (IID == loc_iid)
+    //   AND (loc_sig == 0  OR  SigGrp == loc_sig)
+    //   AND (movementName 비어있음  OR  loc_man 에 대응되는 방향)
+    // 첫 매칭 항목을 사용. 없으면 CAN 송신 생략.
+    const char* target_name = "STR";
+    if (loc_man == -1)      target_name = "LEFT";
+    else if (loc_man == 1)  target_name = "RIGHT";
+
+    const v2x_msgs::intersection_msg* matched = nullptr;
+    for (size_t i = 0; i < msg.data.size(); ++i)
+    {
+      const auto& d = msg.data[i];
+      if ((int)d.IntersectionID != loc_iid) continue;
+      if (loc_sig != 0 && (int)d.Movements.SignalGroupID != loc_sig) continue;
+      const std::string& mn = d.Movements.MovementStateName;
+      if (!movement_matches_manuaver(mn, loc_man)) continue;   // STR 은 STRAIGHT 도 매칭, empty 는 스킵
+      matched = &d;
+      break;
+    }
+
+    if (matched == nullptr)
+    {
+      ROS_DEBUG_THROTTLE(2.0,
+        "[SPaT CAN/%s] no match for IID=%d SigGrp=%d Move=%s (data=%zu items)",
+        source_tag, loc_iid, loc_sig, target_name, msg.data.size());
+      return;
+    }
+
+    auto& d = *matched;
     temp_data = {0.0,
                  (double)d.Movements.TimeChangeDetails,
                  (double)d.Movements.MovementPhaseStatus,
                  (double)d.Movements.SignalGroupID,
                  (double)d.IntersectionID};
 
-    ROS_INFO("[SPaT CAN] IntID=%d SigGrp=%d Phase=%d minEnd=%.1fs",
+    ROS_INFO_THROTTLE(1.0, "[SPaT CAN/%s] IntID=%d SigGrp=%d Phase=%d minEnd=%.1fs",
+             source_tag,
              d.IntersectionID, d.Movements.SignalGroupID,
              d.Movements.MovementPhaseStatus,
              d.Movements.TimeChangeDetails / 10.0);
-  }
-  else
-  {
-    // 매칭 없지만 교차로 구간: 이전 값 유지 위해 전송 skip
-    return;
   }
 
   msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
@@ -200,13 +289,16 @@ int main(int argc, char **argv){
   bool init_access_flag = false;
 
   SPAT_CAN_WRITER SPaTCW;
+  node.param<double>("spat_stale_timeout", SPaTCW.spat_stale_timeout_, 2.0);
 
   can_status = SPaTCW.OPEN_CAN_CHANNEL_AND_READ_DB(channel_num, filename, init_access_flag);
 
-  ros::Subscriber sub1 = node.subscribe("/siheung_spat", 1, &SPAT_CAN_WRITER::CALLBACK_SPAT, &SPaTCW);
+  // OBU/MQTT 병합 스트림(/spat_merged) 단일 구독. 교차로 단위 OBU 우선 병합은
+  // spat_merge_node 가 처리하므로 여기서는 소스 구분 없이 그대로 CAN write.
+  ros::Subscriber sub1 = node.subscribe("/spat_merged", 1, &SPAT_CAN_WRITER::CALLBACK_SPAT, &SPaTCW);
   ros::Subscriber sub2 = node.subscribe("/localization/to_control_team", 1, &SPAT_CAN_WRITER::CALLBACK_LOCAL, &SPaTCW);
 
-  ros::waitForShutdown();   
+  ros::waitForShutdown();
   canBusOff(hCAN);
   canClose(hCAN);
 }

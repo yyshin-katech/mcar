@@ -34,6 +34,7 @@
 
 #include <v2x_msgs/intersection_msg.h>
 #include <v2x_msgs/intersection_array_msg.h>
+#include <v2x_msgs/v2x_tim_can_go_msg.h>
 
 #include <sound_play/SoundRequest.h>
 
@@ -89,6 +90,13 @@ class STAT_DISPLAY{
 
         // Subscriber 추가
         ros::Subscriber traffic_light_sub;
+
+        // GO_AHEAD 블로킹 표시 (전방 직진 주행 금지) 추가
+        ros::Subscriber go_ahead_sub;
+        ros::Publisher go_ahead_popup_pub;
+        jsk_rviz_plugins::OverlayText go_ahead_text;
+        ros::Time can_go_stamp_;
+        bool can_go_active_ = false;
 
         ros::Timer timer_;
         ros::Timer diag_timer_;
@@ -206,6 +214,10 @@ class STAT_DISPLAY{
         int intersectionid;
         // Callback 함수
         void traffic_light_callback(const v2x_msgs::intersection_array_msg::ConstPtr& msg);
+
+        // GO_AHEAD 블로킹 표시 (전방 직진 주행 금지) 추가
+        void go_ahead_callback(const v2x_msgs::v2x_tim_can_go_msg::ConstPtr& msg);
+        void GO_AHEAD_Popup_Gen();
 
         // Text 생성 함수
         void TRAFFIC_LIGHT_Text_Gen();

@@ -15,6 +15,7 @@ rospy-Timer based scheduler.
 """
 import datetime
 import os
+import re
 import signal
 import subprocess
 
@@ -40,6 +41,15 @@ from perception_ros_msg.msg import object_array_msg
 GPS_STD_WARN_M = 0.05  # 5 cm precision threshold (mirrors legacy)
 DIAG_MISS_THRESHOLD = 10  # 10 ticks × 100 ms = 1 s
 DIAG_MISS_THRESHOLD_V2X = 30  # 30 ticks × 100 ms = 3 s (V2X is slower)
+
+# ego 진행방향(MANUAVER) ↔ movement 방향문자열 매칭.
+# MQTT 는 약어(STR/PED), OBU 는 풀네임(STRAIGHT/PEDESTRIAN); /spat_merged 엔 둘 다 섞임.
+# 차량 진행방향만 매칭, PED/PEDESTRIAN/BUS/BYC 는 어느 집합에도 없어 자동 배제(empty 도 스킵).
+_DIR_NAMES = {-1: ("LEFT",), 0: ("STR", "STRAIGHT"), 1: ("RIGHT",)}
+
+
+def movement_matches_manuaver(name, manuaver):
+    return name in _DIR_NAMES.get(manuaver, ())
 
 
 class BaseHmiStateController:
@@ -92,6 +102,7 @@ class BaseHmiStateController:
         # traffic
         self.look_at_intersection_id = 0
         self.look_at_signal_group_id = 0
+        self.look_at_manuaver = 0
         self.traffic_light_color = 0
         self.traffic_light_time = 0
 
@@ -103,6 +114,29 @@ class BaseHmiStateController:
         self.bag_recording = False
         self.bag_info = ""
         self.bag_dir = os.path.expanduser("~/bag_data")
+        # LiDAR/인지 토픽 포함 여부 (True: 전체 -a 저장, False: 아래 토픽 제외).
+        # 용량 큰 LiDAR raw packet / point cloud / 인지 rviz 토픽.
+        self.bag_include_lidar = True
+        self.optional_record_topics = [
+            "/left/rslidar_packets_difop",
+            "/middle/rslidar_packets",
+            "/middle/rslidar_packets_difop",
+            "/fusion_lidar_points",
+            "/rslidar_points/center",
+            "/rslidar_points/left",
+            "/rslidar_points/right",
+            "/percept_background_rviz",
+            "/percept_cluster_rviz",
+            "/percept_ground_rviz",
+            "/percept_non_ground_rviz",
+            "/percept_origin_rviz",
+            "/percept_sematic_rviz",
+            "/percept_topic",
+            "/perception_info_rviz",
+            "/perception_pre_known_rviz",
+            "/right/rslidar_packets_difop",
+            "/track_Multi_RS",
+        ]
 
         # mode publisher + pulse
         self.selected_mode = 0
@@ -141,7 +175,7 @@ class BaseHmiStateController:
         rospy.Subscriber("/sensors/v_can", v_can_msg, self._cb_v_can)
         rospy.Subscriber("/localization/to_control_team",
                          to_control_team_from_local_msg, self._cb_local)
-        rospy.Subscriber("/siheung_spat",
+        rospy.Subscriber("/spat_merged",
                          intersection_array_msg, self._cb_traffic)
         rospy.Subscriber("/track_Multi_RS", object_array_msg, self._cb_objects)
 
@@ -252,6 +286,7 @@ class BaseHmiStateController:
 
         self.look_at_intersection_id = msg.look_at_IntersectionID
         self.look_at_signal_group_id = msg.look_at_signalGroupID
+        self.look_at_manuaver = msg.MANUAVER
 
         self.host_east = float(msg.host_east)
         self.host_north = float(msg.host_north)
@@ -272,6 +307,9 @@ class BaseHmiStateController:
             if (self.look_at_signal_group_id != 0 and
                     movement.SignalGroupID != self.look_at_signal_group_id):
                 continue
+            if not movement_matches_manuaver(movement.MovementStateName,
+                                             self.look_at_manuaver):
+                continue        # ego 진행방향과 다른 movement(예: 직진 중 LEFT) 스킵
             self.traffic_light_time = movement.TimeChangeDetails
             phase = movement.MovementPhaseStatus
             # SAE J2735 MovementPhaseState → display color code.
@@ -288,6 +326,11 @@ class BaseHmiStateController:
             self.traffic_light_color = color
             self._emit('traffic_changed', int(color), int(self.traffic_light_time))
             return
+        # 방향매칭 실패(ego 방향 신호 없음) → 신호 없음으로 안전 초기화 (직전 값 잔존 금지)
+        if self.traffic_light_color != 0 or self.traffic_light_time != 0:
+            self.traffic_light_color = 0
+            self.traffic_light_time = 0
+            self._emit('traffic_changed', 0, 0)
 
     def _cb_objects(self, msg):
         objects = []
@@ -404,6 +447,9 @@ class BaseHmiStateController:
     def set_bag_dir(self, path):
         self.bag_dir = path or os.path.expanduser("~/bag_data")
 
+    def set_bag_include_lidar(self, flag):
+        self.bag_include_lidar = bool(flag)
+
     def toggle_bag(self):
         if self.bag_recording:
             self.stop_bag()
@@ -416,10 +462,14 @@ class BaseHmiStateController:
         os.makedirs(self.bag_dir, exist_ok=True)
         ts = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         prefix = os.path.join(self.bag_dir, ts)
-        self.bag_process = subprocess.Popen(
-            ["rosbag", "record", "-a", "--split", "--size=10240", "-o", prefix],
-            preexec_fn=os.setsid,
-        )
+        cmd = ["rosbag", "record", "-a"]
+        # 토글 OFF면 LiDAR/인지 토픽을 제외 (-x 정규식, $ 앵커로 정확 매칭).
+        if not self.bag_include_lidar:
+            exclude_regex = "(" + "|".join(
+                re.escape(t) + "$" for t in self.optional_record_topics) + ")"
+            cmd += ["-x", exclude_regex]
+        cmd += ["--split", "--size=10240", "-o", prefix]
+        self.bag_process = subprocess.Popen(cmd, preexec_fn=os.setsid)
         self.bag_recording = True
         self.bag_info = ts
         rospy.loginfo("HMI: bag recording started: %s", prefix)

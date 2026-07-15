@@ -277,6 +277,27 @@ Visualization Manager:
       Foreground Alpha: 0.800000011920929
       Foreground Color: 25; 255; 240
       Invert Shadow: false
+      Name: GoAheadPopup
+      Overtake BG Color Properties: false
+      Overtake FG Color Properties: false
+      Overtake Position Properties: false
+      Topic: /rviz/jsk/go_ahead_popup
+      Value: true
+      font: DejaVu Sans Mono
+      height: 128
+      left: 0
+      line width: 2
+      text size: 12
+      top: 0
+      width: 128
+    - Align Bottom: false
+      Background Alpha: 0.800000011920929
+      Background Color: 0; 0; 0
+      Class: jsk_rviz_plugin/OverlayText
+      Enabled: true
+      Foreground Alpha: 0.800000011920929
+      Foreground Color: 25; 255; 240
+      Invert Shadow: false
       Name: OverlayText
       Overtake BG Color Properties: false
       Overtake FG Color Properties: false

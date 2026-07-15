@@ -5,7 +5,7 @@ V2X_DIAGNOSTIC_PUB::V2X_DIAGNOSTIC_PUB()
     v2x_obu = {{"192.168.1.2", 60000}};
     
     pub = nh.advertise<katech_diagnostic_msgs::v2x_diagnostic_msg>("/diagnostic/v2x", 1);
-    sub = nh.subscribe("/katri_v2x_node/katri_spat", 1, &V2X_DIAGNOSTIC_PUB::v2x_callback, this);
+    sub = nh.subscribe("/siheung_spat", 1, &V2X_DIAGNOSTIC_PUB::v2x_callback, this);
 
     timer_ = nh.createTimer(ros::Duration(0.1), &V2X_DIAGNOSTIC_PUB::timer_callback, this);
 

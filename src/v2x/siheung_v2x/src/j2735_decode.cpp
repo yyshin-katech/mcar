@@ -18,13 +18,20 @@
 
 #include <v2x_msgs/intersection_msg.h>
 #include <v2x_msgs/intersection_array_msg.h>
+#include <v2x_msgs/v2x_tim_total_msg.h>
+#include <v2x_msgs/v2x_pedes_assist_msg.h>
+#include <v2x_msgs/v2x_tim_can_go_msg.h>
 #include <j3224_msgs/sdsm.h>
 #include <mmc_msgs/to_control_team_from_local_msg.h>
 
 #include "siheung_v2x/sdsm_decode.h"
+#include "siheung_v2x/tim_publish.h"
 
 #define UDP_PORT 9999
 #define BUF_SIZE 4096
+
+// J2735 messageId
+#define J2735_MSG_ID_TIM 31
 
 // OBU 헤더 (5 bytes)
 // [0] Frame Type   : 0=OBU→PC, 1=PC→OBU
@@ -115,67 +122,25 @@ class SpatDecoder{
         }
 
         // SPaT 구조체 → ROS 메시지 변환 및 발행
-        // to_control_team의 intersection_id, signalGroupID, MANUAVER 기반으로
-        // 현재 링크에 필요한 신호만 필터링하여 발행
+        // 필터 없음: SPaT 안의 모든 intersection × movement 를 그대로 발행.
+        // ego 매칭(IID/SigGrp/MANUAVER)은 다운스트림(spat_CAN_writer 등)에서 수행.
         void publishSpat(j2735SPAT* spat, ros::Publisher& spat_pub)
         {
-            // 현재 링크 정보
-            int cur_intersection_id, cur_signal_group, cur_manuaver;
-            {
-                std::lock_guard<std::mutex> lock(g_link_info.mtx);
-                cur_intersection_id = g_link_info.intersection_id;
-                cur_signal_group = g_link_info.signal_group_id;
-                cur_manuaver = g_link_info.manuaver;
-            }
-
-            // MANUAVER → 타겟 movementName 매핑 (실제 디코딩 결과 기준)
-            // -1=LEFT, 0=STRAIGHT, 1=RIGHT
-            std::string target_name;
-            if (cur_manuaver == -1)
-                target_name = "LEFT";
-            else if (cur_manuaver == 1)
-                target_name = "RIGHT";
-            else
-                target_name = "STRAIGHT";
-
             v2x_msgs::intersection_array_msg spat_msg;
             spat_msg.time = ros::Time::now();
-
-            // 신호 불필요 링크: 모든 필드 0인 빈 메시지 발행
-            if (cur_intersection_id == 0)
-            {
-                v2x_msgs::intersection_msg zero_msg;
-                spat_msg.data.push_back(zero_msg);
-                spat_pub.publish(spat_msg);
-                return;
-            }
 
             for (size_t i = 0; i < spat->intersections.count; ++i)
             {
                 auto& intersection = spat->intersections.tab[i];
                 int iid = intersection.id.id;
 
-                // intersection_id 필터
-                if (iid != cur_intersection_id)
-                    continue;
-
                 for (size_t j = 0; j < intersection.states.count; ++j)
                 {
                     auto& movement = intersection.states.tab[j];
 
-                    // signalGroupID 필터
-                    if (cur_signal_group != 0 &&
-                        (int)movement.signalGroup != cur_signal_group)
-                        continue;
-
-                    // movementName 추출
                     std::string move_name;
                     if (movement.movementName_option && movement.movementName.buf)
                         move_name = std::string((char*)movement.movementName.buf, movement.movementName.len);
-
-                    // MANUAVER 방향 필터
-                    if (!move_name.empty() && move_name != target_name)
-                        continue;
 
                     v2x_msgs::intersection_msg int_msg;
                     int_msg.IntersectionID = iid;
@@ -205,38 +170,22 @@ class SpatDecoder{
 
             spat_pub.publish(spat_msg);
 
-            // 매칭 결과 로그
             if (!spat_msg.data.empty())
             {
                 auto& d = spat_msg.data[0];
-                const char* phase = "UNKNOWN";
-                switch (d.Movements.MovementPhaseStatus)
-                {
-                    case 0: phase = "unavailable"; break;
-                    case 1: phase = "dark"; break;
-                    case 2: phase = "stop-Then-Proceed"; break;
-                    case 3: phase = "STOP(red)"; break;
-                    case 4: phase = "pre-Movement"; break;
-                    case 5: phase = "GO(green-perm)"; break;
-                    case 6: phase = "GO(green-prot)"; break;
-                    case 7: phase = "clearance(perm)"; break;
-                    case 8: phase = "clearance(prot)"; break;
-                    case 9: phase = "caution"; break;
-                }
-                ROS_INFO("[SPaT] IntID=%d SigGrp=%d Move=%s Phase=%s minEnd=%.1fs",
-                         cur_intersection_id, cur_signal_group,
-                         target_name.c_str(), phase,
-                         d.Movements.TimeChangeDetails / 10.0);
-            }
-            else
-            {
-                ROS_DEBUG("[SPaT] IntID=%d SigGrp=%d Move=%s → 매칭 없음",
-                          cur_intersection_id, cur_signal_group, target_name.c_str());
+                ROS_INFO_THROTTLE(1.0,
+                    "[SPaT-OBU] published %zu items (sample IID=%d SigGrp=%d Move=%s Phase=%u minEnd=%.1fs)",
+                    spat_msg.data.size(),
+                    d.IntersectionID, d.Movements.SignalGroupID,
+                    d.Movements.MovementStateName.c_str(),
+                    d.Movements.MovementPhaseStatus,
+                    d.Movements.TimeChangeDetails / 10.0);
             }
         }
 
         // 메인 디코드 함수
-        void decode(const ReceivedMsg* rmsg, ros::Publisher& spat_pub, ros::Publisher& sdsm_pub)
+        void decode(const ReceivedMsg* rmsg, ros::Publisher& spat_pub, ros::Publisher& sdsm_pub,
+                    ros::Publisher& tim_pub, ros::Publisher& pedes_pub, ros::Publisher& go_ahead_pub)
         {
             const uint8_t* raw = rmsg->data.data();
             size_t raw_len = rmsg->len;
@@ -302,6 +251,33 @@ class SpatDecoder{
                         asn1_free_value(asn1_type_j2735MessageFrame, frame_msg);
                         return;
                     }
+                    else if (frame->messageId == J2735_MSG_ID_TIM)
+                    {
+                        // TIM 처리 (OBU → PC). 발행 로직은 tim_publish 공유 모듈 사용.
+                        j2735TravelerInformation* tim = nullptr;
+                        void* tim_standalone = nullptr;
+
+                        if (frame->value.type != nullptr)
+                        {
+                            tim = (j2735TravelerInformation*)frame->value.u.data;
+                        }
+                        else
+                        {
+                            ASN1String* raw_bytes = &frame->value.u.octet_string;
+                            asn1_ssize_t tim_ret = asn1_uper_decode(&tim_standalone, asn1_type_j2735TravelerInformation,
+                                                                     raw_bytes->buf, raw_bytes->len, &err);
+                            if (tim_ret > 0 && tim_standalone)
+                                tim = (j2735TravelerInformation*)tim_standalone;
+                        }
+
+                        if (tim)
+                            tim_publish::publish(tim, tim_pub, pedes_pub, go_ahead_pub);
+
+                        if (tim_standalone)
+                            asn1_free_value(asn1_type_j2735TravelerInformation, tim_standalone);
+                        asn1_free_value(asn1_type_j2735MessageFrame, frame_msg);
+                        return;
+                    }
 
                     asn1_free_value(asn1_type_j2735MessageFrame, frame_msg);
                 }
@@ -362,9 +338,26 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "siheung_v2x_node");
     ros::NodeHandle nh;
+    ros::NodeHandle pnh("~");
+
+    // 기본은 0.0.0.0(모든 인터페이스) — 실제 네이티브 Ubuntu 환경. WSL mirrored 테스트처럼
+    // 특정 인터페이스로만 바인드해야 하는 경우 launch 에서 ~bind_ip 로 override.
+    std::string bind_ip;
+    int bind_port = 0;
+    pnh.param<std::string>("bind_ip", bind_ip, "0.0.0.0");
+    pnh.param<int>("bind_port", bind_port, UDP_PORT);
+
+    // TIM 발행 토픽 (OBU TIM → PC). launch 에서 override 가능.
+    std::string tim_topic, tim_pedes_topic, tim_go_ahead_topic;
+    pnh.param<std::string>("tim_topic", tim_topic, "/v2x/tim_message");
+    pnh.param<std::string>("tim_pedes_topic", tim_pedes_topic, "/obu/v2x_pedes_assistance");
+    pnh.param<std::string>("tim_go_ahead_topic", tim_go_ahead_topic, "/v2x/tim_message/can_go_status");
 
     ros::Publisher spat_pub = nh.advertise<v2x_msgs::intersection_array_msg>("/siheung_spat", 1);
     ros::Publisher sdsm_pub = nh.advertise<j3224_msgs::sdsm>("/obu/sdsm", 1);
+    ros::Publisher tim_pub = nh.advertise<v2x_msgs::v2x_tim_total_msg>(tim_topic, 1);
+    ros::Publisher pedes_pub = nh.advertise<v2x_msgs::v2x_pedes_assist_msg>(tim_pedes_topic, 1);
+    ros::Publisher go_ahead_pub = nh.advertise<v2x_msgs::v2x_tim_can_go_msg>(tim_go_ahead_topic, 1);
     ros::Subscriber ctrl_sub = nh.subscribe("/localization/to_control_team", 1, toControlTeamCallback);
 
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -376,15 +369,21 @@ int main(int argc, char** argv)
 
     struct sockaddr_in addr {};
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(UDP_PORT);
-    addr.sin_addr.s_addr = INADDR_ANY;
-
-    if (bind(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0)
+    addr.sin_port = htons(static_cast<uint16_t>(bind_port));
+    if (inet_pton(AF_INET, bind_ip.c_str(), &addr.sin_addr) != 1)
     {
-        ROS_ERROR("Bind failed: %s", strerror(errno));
+        ROS_ERROR("Invalid bind_ip '%s'", bind_ip.c_str());
         close(sockfd);
         return 1;
     }
+
+    if (bind(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0)
+    {
+        ROS_ERROR("Bind failed on %s:%d : %s", bind_ip.c_str(), bind_port, strerror(errno));
+        close(sockfd);
+        return 1;
+    }
+    ROS_INFO("[siheung_v2x] UDP bound to %s:%d", bind_ip.c_str(), bind_port);
 
     if (set_nonblocking(sockfd) < 0)
     {
@@ -399,7 +398,8 @@ int main(int argc, char** argv)
     std::thread recv_thread(udpReceiverThread, sockfd, std::ref(queue));
     ros::Rate loop_rate(1000);
 
-    ROS_INFO("[siheung_v2x] started - SPaT(KSR1600) + SDSM(2020), publishing /siheung_spat, /obu/sdsm");
+    ROS_INFO("[siheung_v2x] started - SPaT(KSR1600) + SDSM(2020) + TIM, publishing /siheung_spat, /obu/sdsm, %s",
+             tim_topic.c_str());
     ROS_INFO("[siheung_v2x] UDP port=%d, OBU header=%d bytes", UDP_PORT, OBU_HEADER_SIZE);
 
     while (ros::ok())
@@ -407,7 +407,7 @@ int main(int argc, char** argv)
         ReceivedMsg msg;
         if (queue.pop(msg))
         {
-            decoder.decode(&msg, spat_pub, sdsm_pub);
+            decoder.decode(&msg, spat_pub, sdsm_pub, tim_pub, pedes_pub, go_ahead_pub);
         }
         ros::spinOnce();
         loop_rate.sleep();
