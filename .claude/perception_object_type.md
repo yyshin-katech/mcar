@@ -30,4 +30,7 @@ RoboSense(RS) perception SW 의 **실제 ObjectType enum**(사용자 소스 제�
 
 ## 함정
 - object_msg.status 를 "트래킹 상태"로 오해 금지 — class 다. 값집합 {1,2,3,4,6}(0/5/7 드묾)이면 ObjectType.
-- 새 소비자 작성 시 보행자류 = {2,3}, 차량 = {4,5,6}, 콘=1, 미상=0 로 매핑.
+- 새 소비자 작성 시 매핑은 아래 원복 주의사항 참고.
+
+## ⚠️ 원복 (2026-07-21) — 실데이터로 재확인
+enum상 2=PED/3=BIC 지만 **실주행 데이터에선 type3(BIC) 객체가 ≈5m 차량 크기**라, {2,3}=보행자 로 두면 web_hmi 가 **차량을 사람으로 표시**. → 앞서 정정한 5곳(percept_type_str C++/py · hmi_state · percept_topic_matcher · ped_detector)을 **이전 버전 `type==1`→보행자 / ped 필터 `status∈{1,2}` 로 전부 원복**. ped 필터는 크기 게이트도 제거하고 방향 게이트만 유지(사용자 요청). 즉 `{2,3}` 매핑은 현재 코드에 미적용 — enum 정의 자체만 참고용으로 유효.

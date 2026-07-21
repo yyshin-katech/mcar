@@ -48,8 +48,8 @@ constexpr std::size_t PERCEPT_MAX_POINTS_PER_TRACK = 256;
 constexpr float       PERCEPT_MIN_CONFIDENCE      = 0.9f;
 
 inline const char* percept_type_str(int t) {
-  // ObjectType: 2=PED, 3=BIC → 보행자류. 그 외(0=UNKNOW,1=CONE,4=CAR,5=TRUCK_BUS,6=ULTRA_VEHICLE)→car.
-  return (t == 2 || t == 3) ? "pedestrian" : "car";
+  // 이전 버전 복원: type==1 → pedestrian, 그 외 → car. (실데이터 web_hmi 에서 차량(type3)이 사람으로 표시되던 문제로 원복)
+  return (t == 1) ? "pedestrian" : "car";
 }
 
 inline double round_mm(double v) {

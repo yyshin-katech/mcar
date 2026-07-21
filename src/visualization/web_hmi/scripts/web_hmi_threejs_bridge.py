@@ -61,10 +61,9 @@ PERCEPT_MAX_POINTS_PER_TRACK = 256
 PERCEPT_MIN_CONFIDENCE = 0.9
 
 
-# coreinfo.type → lowercase string. ObjectType enum: 2=PED, 3=BIC → 보행자류.
-# 그 외(0=UNKNOW, 1=CONE, 4=CAR, 5=TRUCK_BUS, 6=ULTRA_VEHICLE)는 "car".
+# coreinfo.type → lowercase string. 이전 버전 복원: type==1 → pedestrian, 그 외 → car.
 def percept_type_str(type_int):
-    return "pedestrian" if type_int in (2, 3) else "car"
+    return "pedestrian" if type_int == 1 else "car"
 
 
 # Source CRS for K_CITY_2025 (.prj says WGS_1984_UTM_Zone_52N).

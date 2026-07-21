@@ -3,10 +3,9 @@
 // katech_ped_detector.py 의 C++ 포팅 (ped-detector-cpp 하네스, 01_spec.md).
 //
 // 원본 Python 검출 로직(횡단보도 보행자 on_crosswalk)을 동등 동작으로 이식하되,
-// 검출 파이프라인에 크기 게이트 + 방향 게이트 2개를 추가한다.
-//   필터 순서: ① 타입{2,3} → ② 크기 max(size_x,size_y)≤2.0
-//              → ③ 횡단보도 멤버십(LINK 게이팅 + ray-casting)
-//              → ④ 방향(이동 객체만, 절대속도가 길이축과 이루는 각 ≤ 40°)
+// 검출 파이프라인에 방향 게이트를 추가한다. (크기 게이트 제거 — 사용자 요청: 진행방향만 고려)
+//   필터 순서: ① 타입{1,2}(이전 버전) → ② 횡단보도 멤버십(LINK 게이팅 + ray-casting)
+//              → ③ 방향(이동 객체만, 절대속도가 길이축과 이루는 각 ≤ 40°)
 //
 // 토픽/메시지/좌표계/CW 값/occupancy 산출식은 Python 과 동일(신규는 size·direction 게이트뿐).
 //   sub: /localization/to_control_team (mmc_msgs/to_control_team_from_local_msg)
@@ -259,11 +258,11 @@ void CrosswalkDetector::objCb(const perception_ros_msg::object_array_msg& msg) {
     return;
   }
 
-  // ① 타입 필터 — PED(2)/BIC(3) 만
+  // ① 타입 필터 — 이전 버전 복원: status ∈ {1,2}
   std::vector<const perception_ros_msg::object_msg*> type_objs;
   type_objs.reserve(msg.data.size());
   for (const auto& o : msg.data) {
-    if (o.status == 2 || o.status == 3) type_objs.push_back(&o);
+    if (o.status == 1 || o.status == 2) type_objs.push_back(&o);
   }
 
   katech_custom_msgs::ped_crosswalk_check_array_msg arr;
@@ -281,9 +280,7 @@ void CrosswalkDetector::objCb(const perception_ros_msg::object_array_msg& msg) {
     for (const auto* op : type_objs) {
       const perception_ros_msg::object_msg& o = *op;
 
-      // ② 크기 게이트 (신규)
-      if (std::max(o.size_x, o.size_y) > ped_size_max_) continue;
-
+      // (② 크기 게이트 제거 — 방향 게이트만 사용, 사용자 요청 "진행방향만 고려")
       // 절대좌표 (§4.1): abs = host + R(yaw)*(x,y)
       const double abs_e = host_east_  + (o.x * c - o.y * s);
       const double abs_n = host_north_ + (o.x * s + o.y * c);

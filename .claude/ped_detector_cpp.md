@@ -31,3 +31,6 @@ metadata:
 
 ## 의도된 Python 대비 차이 2건(regression 아님)
 ① detection 엔트리 객체별 독립값(Python 의 ped_msg 참조 aliasing 버그 자연 교정, 엔트리 수 동일). ② occupancy 를 **완전 게이트 통과** 객체로 산출(Python 은 타입+멤버십만). zero-entry(타입객체 0→size1) / 빈배열(전원 탈락→size0) 규칙은 CAN writer 분기 정합 위해 보존.
+
+## ⚠️ 원복 (2026-07-21) — 크기 게이트 제거 + 타입 원복
+web_hmi 가 차량(type3=BIC≈5m)을 사람으로 표시 → 게이트 변경: **타입 `status∈{2,3}`→`{1,2}`(이전버전) 원복 + 크기 게이트 제거**(사용자 "진행방향만 고려"). **현재 순서 = 타입{1,2} → 멤버십(LINK) → 방향(≤40°, 정지 스킵)**. `ped_size_max_` param 은 코드에 남지만 미사용. 분류 원복 상세 [[perception-object-type]].
