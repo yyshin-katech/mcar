@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  test_ped_detector_replay.launch — 신규 C++ 보행자 검출 노드(katech_ped_detector) 테스트용.
+  bag(~/bag/20260508) 재생 + C++ 검출 노드 + 퓨전 + web_hmi 를 한 번에 띄운다.
+
+  구성:
+    1) web_hmi(threejs_f1)  — rosbridge(9090) + 브리지 + 웹서버(8088)
+    2) katech_ped_detector  — 신규 C++ 검출 노드(테스트 대상). sub /track_Multi_RS + /localization/to_control_team,
+                              pub /katech_msg/crosswalk_detection + /katech_msg/crosswalk_occupancy
+    3) crosswalk_ped_fusion — occupancy + OBU 보행자 퓨전 → HMI 표시
+    4) rosbag play(clock 사용) — 입력 토픽 재생. bag 에 이미 녹화된 /hmi/* 와
+                              /katech_msg/crosswalk_detection 는 라이브 노드와 충돌하므로 /sink 로 remap.
+
+  ※ 주의: ~/bag/20260508 5개 bag 은 ego 가 현재 senario 크로스워크 링크(CW_LINKS)를 지나지 않으므로
+    LINK 게이팅에 걸려 실제 검출은 안 뜬다(노드는 정상 동작, 출력은 zero-entry). 크로스워크를 지나며
+    /track_Multi_RS 가 녹화된 bag 이 있어야 검출이 표시된다.
+
+  사용법:
+    roslaunch launch/test_ped_detector_replay.launch
+    roslaunch launch/test_ped_detector_replay.launch bag:=2026-05-08-11-19-30_2026-05-08-11-28-27_4.bag
+  브라우저: http://localhost:8088/index_threejs_f1.html
+-->
+<launch>
+  <arg name="bag"          default="2026-05-08-11-19-30_2026-05-08-11-19-31_0.bag"/>
+  <arg name="bag_dir"      default="$(env HOME)/bag/20260508"/>
+  <arg name="rate"         default="1.0"/>
+  <arg name="open_browser" default="true"/>
+
+  <param name="use_sim_time" value="true"/>
+
+  <!-- 1) web_hmi (threejs_f1) -->
+  <include file="$(find web_hmi)/launch/web_hmi.launch">
+    <arg name="variant"      value="threejs_f1"/>
+    <arg name="open_browser" value="$(arg open_browser)"/>
+  </include>
+
+  <!-- 2) 신규 C++ 보행자 검출 노드 (테스트 대상) -->
+  <node name="katech_ped_detector_node" pkg="can" type="katech_ped_detector" output="screen"/>
+
+  <!-- 3) 횡단보도 보행자 퓨전 (HMI 표시용) -->
+  <node name="crosswalk_ped_fusion_node" pkg="can" type="crosswalk_ped_fusion.py" output="screen"/>
+
+  <!-- 4) bag 재생: 입력 토픽 재생, 라이브 노드와 충돌하는 녹화 토픽은 /sink 로 remap -->
+  <node name="ped_test_bag_player" pkg="rosbag" type="play" output="screen"
+        args="--clock --loop --rate $(arg rate) $(arg bag_dir)/$(arg bag)">
+    <!-- 라이브 C++ 검출 노드가 새로 발행 → bag 녹화분은 버림 -->
+    <remap from="/katech_msg/crosswalk_detection" to="/sink/crosswalk_detection"/>
+    <!-- 라이브 web_hmi 브리지가 새로 발행 → bag 녹화 /hmi/* 는 버림(dual-publisher 방지) -->
+    <remap from="/hmi/state"           to="/sink/hmi_state"/>
+    <remap from="/hmi/objects"         to="/sink/hmi_objects"/>
+    <remap from="/hmi/threejs/tracks"  to="/sink/hmi_threejs_tracks"/>
+    <remap from="/hmi/threejs/map"     to="/sink/hmi_threejs_map"/>
+    <remap from="/hmi/map"             to="/sink/hmi_map"/>
+    <remap from="/hmi/diagnostics"     to="/sink/hmi_diagnostics"/>
+    <remap from="/hmi/popup"           to="/sink/hmi_popup"/>
+    <remap from="/hmi/topic_hz"        to="/sink/hmi_topic_hz"/>
+    <remap from="/hmi/bag"             to="/sink/hmi_bag"/>
+  </node>
+</launch>
