@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RoboSense ObjectType 분류 조사 결과</title>
+<style>
+  :root{--bg:#f7f8fa;--fg:#1c2128;--card:#fff;--bd:#d8dee4;--mut:#57606a;--acc:#0969da;--warn:#9a6700;--warnbg:#fff8c5;--err:#cf222e;--errbg:#ffebe9;--ok:#1a7f37;--okbg:#dafbe1;--code:#f0f1f3;}
+  @media (prefers-color-scheme:dark){:root{--bg:#0d1117;--fg:#e6edf3;--card:#161b22;--bd:#30363d;--mut:#8b949e;--acc:#58a6ff;--warn:#d29922;--warnbg:#2d2200;--err:#f85149;--errbg:#2d0f0f;--ok:#3fb950;--okbg:#0f2417;--code:#1c2128;}}
+  *{box-sizing:border-box;}
+  body{margin:0;padding:2rem 1rem;background:var(--bg);color:var(--fg);font-family:"Pretendard","Segoe UI",system-ui,sans-serif;line-height:1.6;}
+  .wrap{max-width:960px;margin:0 auto;}
+  h1{font-size:1.7rem;margin:0 0 .3rem;}
+  h2{font-size:1.25rem;margin:2rem 0 .6rem;padding-bottom:.3rem;border-bottom:2px solid var(--bd);}
+  h3{font-size:1.05rem;margin:1.2rem 0 .4rem;}
+  .sub{color:var(--mut);font-size:.9rem;margin-bottom:1.2rem;}
+  .card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:1rem 1.2rem;margin:1rem 0;}
+  .box{border-left:4px solid var(--acc);border-radius:6px;padding:.8rem 1rem;margin:1rem 0;background:var(--card);}
+  .box.warn{border-color:var(--warn);background:var(--warnbg);}
+  .box.err{border-color:var(--err);background:var(--errbg);}
+  .box.ok{border-color:var(--ok);background:var(--okbg);}
+  table{border-collapse:collapse;width:100%;margin:.6rem 0;font-size:.92rem;overflow-x:auto;display:block;}
+  @media(min-width:640px){table{display:table;}}
+  th,td{border:1px solid var(--bd);padding:.45rem .6rem;text-align:left;vertical-align:top;}
+  th{background:var(--code);font-weight:600;}
+  code{background:var(--code);padding:.1rem .35rem;border-radius:4px;font-family:"JetBrains Mono",Consolas,monospace;font-size:.88em;}
+  pre{background:var(--code);border:1px solid var(--bd);border-radius:8px;padding:.8rem 1rem;overflow-x:auto;font-family:"JetBrains Mono",Consolas,monospace;font-size:.85rem;line-height:1.45;}
+  .tag{display:inline-block;font-size:.75rem;font-weight:600;padding:.1rem .5rem;border-radius:99px;}
+  .tag.veh{background:var(--errbg);color:var(--err);}
+  .tag.ped{background:var(--okbg);color:var(--ok);}
+  .path{color:var(--mut);font-size:.82rem;font-family:monospace;}
+  ul{margin:.3rem 0 .3rem 0;padding-left:1.3rem;}
+  li{margin:.2rem 0;}
+  .mut{color:var(--mut);}
+  .big{font-size:1.05rem;font-weight:600;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>RoboSense ObjectType 분류 조사 결과</h1>
+<div class="sub">대상: 횡단보도 보행자 검출 / web_hmi 오브젝트 표시 · 브랜치 siheung_dev · 조사일 2026-07-21 · SDK <code>~/SDK_20220818</code></div>
+
+<div class="box err">
+<div class="big">⚠ 핵심 결론</div>
+<b>ObjectType enum 정의는 정확하다(SDK 확인). 문제는 RoboSense AI 인지 모델이 <u>차량을 BIC(자전거)로 오분류</u>하는 것</b>이다.
+그 결과 <code>type∈{2,3}=보행자</code> 매핑을 쓰면 web_hmi 가 자차 좌/우 차량을 "사람"으로 표시했다. enum 을 바꿀 게 아니라, 라벨을 신뢰할 수 없으므로 <b>크기(size) 기반 보조 판정</b> 또는 <b>SDK 의 class 보정(type fusion) 활성화</b>가 필요하다.
+</div>
+
+<h2>1. 증상</h2>
+<ul>
+<li>web_hmi 지도에서 <b>자차 바로 좌/우의 차량이 "pedestrian(사람)"으로 표시</b>됨.</li>
+<li>bag <code>2026-07-21-16-53-32_..._0.bag</code> 녹화값(<code>/hmi/threejs/tracks</code>·<code>/hmi/objects</code>)에서 좌/우 객체 대부분 <code>type=pedestrian</code> 으로 기록 — 실제로는 차량.</li>
+</ul>
+
+<h2>2. ObjectType enum — SDK 에서 확인 (정의는 정확)</h2>
+<p>바이너리 SDK <code>~/SDK_20220818</code> 에서 소스·라이브러리 심볼 모두 동일한 enum 확인:</p>
+<table>
+<tr><th>출처</th><th>내용</th></tr>
+<tr><td class="path">release/libs/perception/include/rs_perception/common/external/basic_type/object_type.h</td><td><code>enum class ObjectType</code> 정의</td></tr>
+<tr><td class="path">release/rs_tool/.../proto_msg/Proto_msg.Percept.pb.h</td><td><code>enum ObjectType</code> (OBJECT_* 접두, 동일 값)</td></tr>
+<tr><td class="path">librs_perception_lidar_ai_detection.so (심볼)</td><td><code>kObjectType2NameMap</code> / <code>kObjectTypeName2TypeMap</code> — 바이너리도 동일 enum 사용</td></tr>
+</table>
+<pre>enum class ObjectType {
+    UNKNOW        = 0,
+    CONE          = 1,
+    PED           = 2,   // 보행자
+    BIC           = 3,   // "자전거" (라벨) — 그러나 실측은 차량 크기
+    CAR           = 4,
+    TRUCK_BUS     = 5,
+    ULTRA_VEHICLE = 6,
+    MAX_OBJ_TYPE_NUM = 7,
+};</pre>
+<div class="box ok">사용자가 코드에서 확인한 enum 과 <b>100% 일치</b> → <b>enum 매핑 오류 아님.</b></div>
+
+<h2>3. 실데이터 분석 — type 라벨 ↔ 실제 크기 불일치</h2>
+<p><code>/track_Multi_RS</code> 객체의 <code>status(=ObjectType)</code> 별 bounding box 최대변(size) 분포 (bag 20260508 · 2026-07-21):</p>
+<table>
+<tr><th>type</th><th>enum 라벨</th><th>실측 최대변</th><th>판정</th></tr>
+<tr><td>1</td><td>CONE</td><td>~0.72 m</td><td class="tag ped">일치(콘)</td></tr>
+<tr><td>2</td><td>PED</td><td>~1.85 m</td><td class="tag ped">일치(보행자)</td></tr>
+<tr><td><b>3</b></td><td><b>BIC (자전거)</b></td><td><b>~4.93 m (100% &gt;2.5m)</b></td><td class="tag veh">❌ 실제 차량 크기</td></tr>
+<tr><td>4</td><td>CAR</td><td>~10 m</td><td class="tag veh">트럭/버스급</td></tr>
+<tr><td>6</td><td>ULTRA_VEHICLE</td><td>~0.56 m</td><td class="mut">매우 작음</td></tr>
+</table>
+<p class="mut">→ 1(콘)·2(보행자)만 이름값과 맞고, <b>type 3(BIC)은 자전거가 아니라 5m 차량</b>. AI 모델이 차량을 BIC 로 예측(오분류).</p>
+
+<h3>자차 좌/우 오브젝트 (bag 2026-07-21-16-53-32, 21프레임)</h3>
+<table>
+<tr><th>위치</th><th>원시 status(=ObjectType)</th><th>녹화 HMI 표시</th></tr>
+<tr><td>좌측 (y&gt;0)</td><td>BIC(3) 213 · CONE(1) 8 · PED(2) 1</td><td>대부분 pedestrian (오표시)</td></tr>
+<tr><td>우측 (y&lt;0)</td><td>BIC(3) 72 (전부)</td><td>전부 pedestrian (오표시)</td></tr>
+</table>
+<p class="mut">좌/우 BIC(3) 객체 = 전부 size 5.0m = 차량. 녹화 시점 코드가 <code>{2,3}→pedestrian</code> 이라 화면에 사람으로 떴다.</p>
+
+<h2>4. SDK 인지 config 단서</h2>
+<table>
+<tr><th>config</th><th>내용</th></tr>
+<tr><td class="path">perception_config/rs_perception.yaml</td><td>마커 그룹: <b>box/cube = CAR/TRUCK_BUS/ULTRA_VEHICLE/BIC</b> · cylinder = PED/CONE → RoboSense 도 <b>BIC 를 차량형 box 로 취급</b>(작은 PED/CONE 과 별개)</td></tr>
+<tr><td class="path">perception_config/lidar/rs_lidar.yaml</td><td><code>enable_type_fusion: false</code> (목표 <b>클래스 보정 기능 — 꺼져 있음</b>) · <code>box_size_check: true</code> · <code>enable_estimate_exist_confidence: true</code></td></tr>
+<tr><td class="path">.../PseriesPerception/*/PolarisAiDetection/deepmodel</td><td>16MB 인코딩 blob(AI 모델) + <b>HASP/encryptor 암호화 라이브러리</b> → 분류 결정 로직(뉴럴넷) <b>리버스 불가</b></td></tr>
+</table>
+
+<h2>5. 원인</h2>
+<div class="box err">
+<b>enum(정의)은 정확 · RoboSense AI 모델이 5m 차량을 <code>BIC(3)</code>로 오분류</b>(모델 예측 정확도 문제). 모델은 암호화돼 있어 바이너리로 고칠 수 없음.
+</div>
+
+<h2>6. 조치 (이번 세션 코드 변경)</h2>
+<table>
+<tr><th>commit</th><th>내용</th></tr>
+<tr><td><code>a40ffea</code></td><td>분류 <code>type==1</code>→<code>{2,3}</code>(PED+BIC) 로 변경 → <b>BIC(차량)이 사람으로 표시되는 부작용</b></td></tr>
+<tr><td><code>107fd7f</code></td><td><b>원복</b>: 분류 4곳 <code>type==1</code> 복원, ped 필터 타입 <code>{1,2}</code> + <b>크기 게이트 제거·방향 게이트 유지</b> (순서 타입{1,2}→멤버십(LINK)→방향)</td></tr>
+</table>
+<p class="mut">원복으로 BIC(3)→"car" 가 되어 <b>결과적으로 좌/우 차량이 올바르게 "car" 로 표시</b>됨. (단 type==1 특성상 콘(1)은 "pedestrian" 으로 뜸 — 이 bag 에 콘 8개 존재.)</p>
+
+<h2>7. 권장</h2>
+<ol>
+<li><b>SDK class 보정 활성화</b>: <code>rs_lidar.yaml</code> 의 <code>enable_type_fusion: true</code> 로 켜고 재기동 → 차량이 CAR(4) 로 잡히는지 실측. (RoboSense 인지 config 측, 실차/재생 테스트 필요)</li>
+<li><b>크기 기반 보조 판정(확실)</b>: type 라벨을 못 믿으므로, 보행자 판정에 <b>size 조건</b> 추가 — 예: BIC(3)라도 <code>max(size_x,size_y) &gt; 2.5m</code> 이면 차량 취급. (앞서 제거한 크기 게이트가 정확히 이 목적)</li>
+<li><b>PED(2)만 신뢰</b>: PED(2)는 크기 1.8m 로 이름값 일치 확인됨 → 확실한 보행자 후보는 type==2.</li>
+</ol>
+
+<hr style="border:none;border-top:1px solid var(--bd);margin:2rem 0 1rem;">
+<p class="mut" style="font-size:.82rem;">생성: Claude Code · siheung_dev · 근거: SDK ~/SDK_20220818, bag ~/bag_data · 관련 파일: <code>katech_ped_detector.cpp</code>, <code>web_hmi_threejs_tracks_node.cpp</code>, <code>percept_topic_matcher.cpp</code>, <code>hmi_state.py</code></p>
+
+</div>
+</body>
+</html>
