@@ -54,7 +54,7 @@
     <arg name="mqtt_server" value="$(arg mqtt_server)" />
   </include>
 
-  <node pkg="can"          type="katech_ped_detector.py"          name="katech_ped_detector_node"             respawn="true" />
+  <node pkg="can"          type="katech_ped_detector"             name="katech_ped_detector_node"             respawn="true" />
   <node name="katech_ped_detector_can_writer_node"       type="ped_detector_can_writer"     pkg="can"  respawn="true" />
   <node pkg="can"          type="crosswalk_ped_fusion.py"          name="crosswalk_ped_fusion_node"            respawn="true" output="screen" />
   <!-- <node  name="my_rviz"  type="rviz"  pkg="rviz"  args="-d $(arg sweet_home)/mcar_v9/workspace_config/perception.rviz"/> -->
