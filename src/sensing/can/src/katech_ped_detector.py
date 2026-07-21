@@ -166,9 +166,8 @@ class ROSCrosswalkDetector:
             rospy.logwarn('자차 위치 정보가 아직 수신되지 않았습니다.')
             return
         
-        # status가 1인 오브젝트만 처리
-        # active_objects = [obj for obj in msg.data if obj.status == 1]
-        active_objects = [obj for obj in msg.data if obj.status in [1, 2]]
+        # ObjectType 2=PED, 3=BIC (보행자류)만 처리 — 콘(1)/차량(4~6)/미상(0) 제외
+        active_objects = [obj for obj in msg.data if obj.status in [2, 3]]
         
         if not active_objects:
             ped_msg.id = 0

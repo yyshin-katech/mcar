@@ -37,6 +37,7 @@
 - **bag 검증 함정**: `/hmi/state`/`/hmi/*` 녹화 bag 재생 시 live 브리지(web_hmi_bridge/qt bridge) 동시 기동 금지 → dual-publisher 진동. roscore + bag + 뷰어 노드만. bag 재생 시 `/hmi/map`·`/hmi/threejs/map` 을 `/dev/null/*` 로 remap.
 - **SPaT 활성 토픽은 브랜치마다 정반대** — siheung_dev `/siheung_spat`(→ 병합 `/spat_merged`) vs ioniq5_hmi_dev `/katri_v2x_node/katri_spat`. 점검 전 `git branch` 확인.
 - **crosswalk 좌표/CAN/게이팅**: katech_ped_detector.py `crosswalk_data`=EPSG:5179 폴리곤(오프라인 pyproj 4326→5179 리터럴). 검출 `/katech_msg/crosswalk_detection` → `katech_ped_detector_can_writer` CAN `Pedestrian_Stat`(528/529) `on_crosswalk=1`(crosswalk_id 없음·객체 4 cap). **`find_crosswalks_containing_object` 를 ego LINK_ID(`CW_LINKS` §134, detector·fusion 공유)로 게이팅 → 접근 크로스워크만**. occupancy_msg `uint8[] occupied_ids` 추가, fusion active 1~9(own=occupied_ids, obu #1·#2만). web_hmi CrosswalkZones=[E,N] 1~9 점멸, mat 뷰어 var CROSSWALK=[lat,lon].
+- **perception ObjectType(RS)**: `0=UNKNOW,1=CONE,2=PED,3=BIC,4=CAR,5=TRUCK_BUS,6=ULTRA_VEHICLE`. `/track_Multi_RS` object_msg.**status = class(type)**(트래킹상태 아님, `lidar_object_publisher_v2.py:282`). 보행자류={2,3}·차량={4,5,6}·콘=1. 코드가 1=보행자로 오분류하던 것 5곳 정정(2026-07-21, PED+BIC), `main_window.py:666` 대기. 상세 [perception ObjectType](perception_object_type.md).
 
 ## Diagnostic 구조
 | 토픽 | 메시지 타입 | 소스 노드 | 판단 기준 |
@@ -67,6 +68,7 @@
 - [mat 정지선 연장/트림](stopline_adj.md) — senario mat 링크를 B2_SURFACELINEMARK 정지선까지 연장 + 다음 링크 트림(L=L+N[1:k+1]+P / N=P+N[k+1:], station 재계산, 공유정점). mat=5179/shp=32652. 뷰어 var DATA 6 feature 패치. 하네스 stopline-adj
 - [global-nav-hmi 경로표시](project_global_nav_hmi.md) — web_hmi 주행 예정 경로 중앙차선 리본 + TIM(`on_block_link&&do_not_go_forward`) 트리거 old→new latch 전환. 오프라인 route JSON. 795117 절단(후반 ITS 미구현)
 - [crosswalk-position 횡단보도 좌표](crosswalk_position.md) — WGS84 폴리곤 → katech_ped_detector.py EPSG:5179 crosswalk_data(오프라인 pyproj 리터럴) + mat 뷰어 var CROSSWALK(이미 인프라有, [lat,lon] swap). 검출토픽 순회 자동커버 / occupancy 2필드·web_hmi CrosswalkZones 스코프차. 하네스 crosswalk-position
+- [perception ObjectType](perception_object_type.md) — RS perception class enum `1=CONE,2=PED,3=BIC,4=CAR,5=TRUCK_BUS,6=ULTRA`. object_msg.status=class(type). 코드 1=보행자 오분류 5곳 정정(PED+BIC 보행자), main_window.py 대기
 
 ## 피드백 메모리
 - [일본어 사용 금지](feedback_no_japanese.md) — 응답에 일본어(한자) 금지, 한국어만 사용

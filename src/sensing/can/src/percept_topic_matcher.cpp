@@ -136,7 +136,7 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
         unsigned int priority_id = coreinfo.priority_id.data;  // 우선순위 정렬용
         int attention_type = coreinfo.attention_type.data;     // attention_type 추출
         double confidence = coreinfo.exist_confidence.data;    // confidence 추출
-        uint8_t object_status = coreinfo.type.data;            // 객체 타입 (1=보행자)
+        uint8_t object_status = coreinfo.type.data;            // 객체 타입 (ObjectType: 2=PED, 3=BIC 보행자류)
                 
         // confidence 필터링 - 0.5 이하인 객체는 건너뛰기
         if (confidence <= min_confidence_threshold) {
@@ -203,7 +203,7 @@ void callback(const perception_ros_msg::RsPerceptionMsg::ConstPtr& data) {
 
         // 상태 저장(옵션)
         // current_objects[tracker_id] = {ads_obj, curr_time, curr_x, curr_y};
-        bool is_pedestrian = (object_status == 1);
+        bool is_pedestrian = (object_status == 2 || object_status == 3);
         current_objects[tracker_id] = {ads_obj, current_time, curr_x, 
             curr_y, 
             object_status, 

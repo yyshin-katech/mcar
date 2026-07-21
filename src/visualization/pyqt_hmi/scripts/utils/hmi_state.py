@@ -335,7 +335,7 @@ class BaseHmiStateController:
     def _cb_objects(self, msg):
         objects = []
         for obj in msg.data:
-            obj_type = 'pedestrian' if obj.status == 1 else 'car'
+            obj_type = 'pedestrian' if obj.status in (2, 3) else 'car'  # ObjectType 2=PED,3=BIC
             objects.append({
                 'id': obj.id,
                 'x': obj.x,
