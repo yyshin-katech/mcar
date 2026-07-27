@@ -75,5 +75,5 @@
 ## 피드백 메모리
 - [일본어 사용 금지](feedback_no_japanese.md) — 응답에 일본어(한자) 금지, 한국어만 사용
 - [존댓말만 사용](feedback_honorific.md) — 응답 종결은 "~합니다/입니다" 존댓말로 통일, 반말 금지
-- [web_hmi 어댑트 함정](web_hmi_adapt_pitfalls.md) — LAYER_STYLE 동기화 누락 / bag /hmi/* 충돌 (ROS만 패치하면 화면 안 나옴)
+- [web_hmi 어댑트 함정](web_hmi_adapt_pitfalls.md) — LAYER_STYLE 동기화 누락 / polyline `alpha` 무시(buildPolyline 패치로 지원, A2_LINK 0.2) / bag /hmi/* 충돌 (ROS만 패치하면 화면 안 나옴)
 - [CAN 완전 동결 additive](feedback_can_frozen_additive.md) — 차량 CAN-feeding 토픽은 수정 말고 additive 신규 토픽으로 우회(무변경 증명 git diff ∅/sha256). tim-pedes-display 에서 /katech_msg/crosswalk_occupancy 신설

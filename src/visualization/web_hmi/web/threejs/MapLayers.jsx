@@ -3,7 +3,7 @@
 // Convert JSON map payload (delta-coords from origin, EPSG:5179) to Three.js Object3Ds.
 // World axes here: +X = east_delta, +Z = north_delta, +Y = up. Map lies on Y=0 plane.
 
-function buildPolyline(line, color, width) {
+function buildPolyline(line, color, width, alpha) {
   // line: [[de, dn], ...] → LineSegments with paired vertices.
   const n = line.length;
   if (n < 2) return null;
@@ -18,6 +18,10 @@ function buildPolyline(line, color, width) {
   const geom = new THREE.BufferGeometry();
   geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   const mat = new THREE.LineBasicMaterial({ color, linewidth: width || 1.0 });
+  if (alpha != null && alpha < 1.0) {
+    mat.transparent = true;
+    mat.opacity = alpha;
+  }
   return new THREE.LineSegments(geom, mat);
 }
 
@@ -62,7 +66,7 @@ function buildLayer(name, layer) {
   group.name = name;
   if (layer.kind === 'polyline') {
     layer.data.forEach((line) => {
-      const obj = buildPolyline(line, style.color, style.width);
+      const obj = buildPolyline(line, style.color, style.width, style.alpha);
       if (obj) group.add(obj);
     });
   } else if (layer.kind === 'polygon') {
