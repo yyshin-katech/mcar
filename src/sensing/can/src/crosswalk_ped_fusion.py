@@ -5,13 +5,15 @@
 
 자체(라이다) 횡단보도 점유(/katech_msg/crosswalk_occupancy)와 OBU(V2X) 보행자
 (/obu/v2x_pedes_assistance)를, 현재 주행 링크(/localization/to_control_team 의
-LINK_ID)로 선택된 활성 횡단보도(#1~#9)에 대해 퓨전하여
+LINK_ID)로 선택된 활성 횡단보도(#1~#18)에 대해 퓨전하여
 /katech_msg/crosswalk_ped_fusion 으로 10 Hz 발행한다.
 
 횡단보도 <-> 링크/필드 매핑 (원천 crosswalk_position.md §134, 아래 CW_LINKS):
-  active_crosswalk_id : ego LINK_ID 가 속한 CW_LINKS[N] 의 N (없으면 0). 링크셋 disjoint.
+  active_crosswalk_id : ego LINK_ID 가 속한 CW_LINKS[N] 의 N (없으면 0).
+                        #15/#16 만 접근 링크(661/662)를 공유하며, 이때 작은 id(#15)가 선택된다.
+                        (검출/occupancy 는 두 크로스워크를 모두 검사하므로 own 판정에는 영향 없음)
   own  : occupied_ids(검출 노드가 링크-active 크로스워크 중 보행자 있는 id) 에 active 포함 여부.
-  obu  : #1 -> south_pedes, #2 -> east_pedes, #3~#9 -> 없음(단일 RSU 4방향 한계, own 만).
+  obu  : #1 -> south_pedes, #2 -> east_pedes, #3~#18 -> 없음(단일 RSU 4방향 한계, own 만).
 
 패턴: 콜백 -> 멤버 저장, 10 Hz rospy.Timer 에서 판정 후 발행 (CLAUDE.md 준용).
 """
@@ -34,6 +36,15 @@ CW_LINKS = {
     7: {1370, 1368, 1372, 1369, 1367, 1371},
     8: {1326, 1325, 1330, 1331},
     9: {1257, 1258},
+    10: {870, 871, 877},
+    11: {1163, 1164, 1165, 1166, 1167, 1971},
+    12: {1080, 1082, 1084, 1086},
+    13: {876, 953},
+    14: {574, 579, 580},
+    15: {661, 662},
+    16: {661, 662},
+    17: {787},
+    18: {2086, 2206, 2374},
 }
 
 
@@ -44,7 +55,7 @@ class CrosswalkPedFusion:
         # 최신 입력값 (콜백 -> 멤버 저장)
         self.occ1 = False        # crosswalk1_occupied (자체, #1)
         self.occ2 = False        # crosswalk2_occupied (자체, #2)
-        self.occupied_ids = []   # 링크-active 이고 보행자 있는 크로스워크 id 목록(1~9)
+        self.occupied_ids = []   # 링크-active 이고 보행자 있는 크로스워크 id 목록(1~18)
         self.obu_south = False   # south_pedes (OBU, #1)
         self.obu_east = False    # east_pedes  (OBU, #2)
         self.link_id = 0         # 현재 주행 LINK_ID
@@ -77,12 +88,13 @@ class CrosswalkPedFusion:
 
     # --- 타이머: 퓨전 판정 + 발행 ---
     def _publish_fusion(self, _event):
-        # active 크로스워크: 현재 LINK_ID 를 포함하는 CW_LINKS 키(없으면 0). 링크셋 disjoint → 0/1개.
+        # active 크로스워크: 현재 LINK_ID 를 포함하는 CW_LINKS 키(없으면 0).
+        # #15/#16 만 링크를 공유하며 이 경우 dict 순서상 작은 id(#15)가 선택된다.
         active = next((N for N, ls in CW_LINKS.items() if self.link_id in ls), 0)
 
         # 자체(라이다): 링크-active 이고 해당 크로스워크가 점유 목록에 있으면 present.
         own_present = active != 0 and (active in self.occupied_ids)
-        # OBU(V2X): 단일 RSU 4방향뿐 → #1=south_pedes, #2=east_pedes, 3~9 는 OBU 소스 없음.
+        # OBU(V2X): 단일 RSU 4방향뿐 → #1=south_pedes, #2=east_pedes, 3~18 은 OBU 소스 없음.
         if active == 1:
             obu_present = self.obu_south
         elif active == 2:
