@@ -5,13 +5,13 @@ metadata:
   node_type: memory
   type: project
   originSessionId: c2a74392-f1b6-49d8-91ad-e78f7a6568f9
-  modified: 2026-07-27T08:25:39.731Z
+  modified: 2026-07-27T08:49:11.512Z
 ---
 
 `claude_work_list/crosswalk_position.md`(WGS84 lon/lat 폴리곤)를 `src/sensing/can/src/katech_ped_detector.py` 의 EPSG:5179 `crosswalk_data` 로 교체 + senario mat 뷰어 표시. 하네스 `crosswalk-position`(2026-07-15, siheung_dev). 관련 [[reference_tim_pedes_bag_replay]], [[stopline_adj]].
 
 ## 대상/구조
-- **PART A** `katech_ped_detector.py` `initialize_crosswalks()` 의 `crosswalk_data` 딕셔너리(int id → [(east,north),...] EPSG:5179 폴리곤). `Crosswalk.point_in_rectangle` 은 이미 **임의 다각형 ray-casting**(사각형 아님 OK, 닫힘 자동). `find_crosswalks_containing_object` 가 전체 crosswalk 순회 → **검출토픽 `/katech_msg/crosswalk_detection` 은 crosswalk 개수 자동 커버**.
+- **PART A** (⚠️ 2026-07-21 이후 **활성 검출 노드는 C++ `katech_ped_detector.cpp`** — [[ped_detector_cpp]]. `.py` 는 레거시이나 같은 값 유지 중이므로 좌표/링크 수정 시 **양쪽 동시 갱신**) `initialize_crosswalks()` 의 `crosswalk_data` 딕셔너리(int id → [(east,north),...] EPSG:5179 폴리곤). `Crosswalk.point_in_rectangle` 은 이미 **임의 다각형 ray-casting**(사각형 아님 OK, 닫힘 자동). `find_crosswalks_containing_object` 가 전체 crosswalk 순회 → **검출토픽 `/katech_msg/crosswalk_detection` 은 crosswalk 개수 자동 커버**.
 - **PART B** `src/localization/gps_system_localizer/mapfiles/senario/mat_viewer_senario_260514c 1.html` — **이미 CROSSWALK 레이어 인프라 존재**: `var CROSSWALK`(≈1258행), 토글 버튼 `btn-crosswalk`(762), 범례(805), 렌더 IIFE(1256~). 좌표 추가 시 **배열 데이터만 교체**(버튼/범례/렌더 신규 불필요).
 
 ## 좌표계 (핵심 함정)
@@ -25,8 +25,9 @@ metadata:
 
 ## HMI 경보 (fusion → web_hmi) — Phase2 로 3~9 완성
 - **[Phase2]** occupancy_msg 에 `uint8[] occupied_ids` 추가(기존 crosswalk1/2_occupied 보존). detector 가 링크-active 이고 보행자 있는 크로스워크 id 를 채움. 소비자=fusion 뿐이라 확장 안전.
-- `crosswalk_ped_fusion.py`: active = `CW_LINKS` 조회(1~9, 하드코딩 1239/1238/1205 제거), own = `active in occupied_ids`, obu = #1→south_pedes/#2→east_pedes/**3~9→없음**(OBU v2x_pedes_assist 단일 RSU 4방향뿐 → 3~9 는 own/라이다만, present 시 source=1 주황).
-- **`web_hmi/web/threejs/CrosswalkZones.jsx`**: EPSG:5179 **[E,N] 절대좌표**(crosswalk_data 와 동일, swap 없음 — mat 뷰어 [lat,lon] 과 다름), `CROSSWALK_IDS=Object.keys(CROSSWALK_POLYS)` 루프로 1~9 표시. 점멸 조건 `crosswalk_ped_active===id && present` → **fusion 이 3~9 active 발행 시 자동 점멸/배너**(web_hmi 코드 추가변경 없이 Phase2 로 완성). web_hmi_bridge 는 active_id(uint8) 그대로 전달.
+- `crosswalk_ped_fusion.py`: active = `CW_LINKS` 조회(1~18, 하드코딩 1239/1238/1205 제거), own = `active in occupied_ids`, obu = #1→south_pedes/#2→east_pedes/**#3~#18→없음**.
+- **OBU 보행자는 #1/#2 전용** (2026-07-27 재확인): `/obu/v2x_pedes_assistance` 의 **유일한 소비자 = fusion 노드**(나머지는 siheung_v2x 발행측 tim_publish/j2735_*). 콜백이 읽는 필드도 `south_pedes`/`east_pedes` 둘뿐 — `north_pedes`/`west_pedes` **미사용**(단일 RSU 4방향 한계). 따라서 **#3~#18 은 source=1(자체/라이다 주황)만** 발생하고 source=2(OBU 빨강)·3(둘 다 자홍)은 #1/#2 에서만.
+- **`web_hmi/web/threejs/CrosswalkZones.jsx`**: EPSG:5179 **[E,N] 절대좌표**(crosswalk_data 와 동일, swap 없음 — mat 뷰어 [lat,lon] 과 다름), `CROSSWALK_IDS=Object.keys(CROSSWALK_POLYS)` 루프로 1~18 표시. 점멸 조건 `crosswalk_ped_active===id && present` → **fusion 이 #3 이상 active 발행 시 자동 점멸/배너**(web_hmi 코드 추가변경 없이 Phase2 로 완성). web_hmi_bridge 는 active_id(uint8) 그대로 전달.
 
 ## CW_LINKS (크로스워크→접근 LINK_ID)
 1~9 = md §145/§155 원문 `{1:{1239,1238,1242,1241},2:{1205},3:{465,467,463},4:{417},5:{1029,1025,1027},6:{1092,1094,1090,1091,1093,1089},7:{1370,1368,1372,1369,1367,1371},8:{1326,1325,1330,1331},9:{1257,1258}}`.

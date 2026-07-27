@@ -5,13 +5,14 @@ metadata:
   node_type: memory
   type: project
   originSessionId: c2a74392-f1b6-49d8-91ad-e78f7a6568f9
+  modified: 2026-07-27T08:49:19.993Z
 ---
 
 `katech_ped_detector.py`(횡단보도 보행자 `on_crosswalk` 검출)를 **C++ 노드로 포팅 + 크기 게이트 + 방향 게이트** 추가. 하네스 `ped-detector-cpp`(2026-07-21, siheung_dev). 관련 [[crosswalk_position]], [[perception_object_type]].
 
 ## 결과물 (2026-07-21)
 - **신규** `src/sensing/can/src/katech_ped_detector.cpp`(target `katech_ped_detector`). Python `katech_ped_detector.py` 는 **파일 유지, launch 에서만 교체**(`katech_test.launch` line 57 `type` `.py`→C++, node name 동일 → **dual-publisher 없음**). Python 이 유일 기동 지점이었음.
-- 동작 등가 보존: 토픽(sub `/track_Multi_RS`=perception_ros_msg::object_array_msg·`/localization/to_control_team` / pub `/katech_msg/crosswalk_detection`·`/katech_msg/crosswalk_occupancy`), crosswalk_data(1~9)·CW_LINKS(§134)·ray-casting·LINK 게이팅·occupancy(occupied_ids+crosswalk1/2) 전부 동일(값 오차 0). CAN writer·fusion·msg 무변경.
+- 동작 등가 보존: 토픽(sub `/track_Multi_RS`=perception_ros_msg::object_array_msg·`/localization/to_control_team` / pub `/katech_msg/crosswalk_detection`·`/katech_msg/crosswalk_occupancy`), crosswalk_data(**1~18**, 2026-07-27 확장 — [[crosswalk_position]])·CW_LINKS·ray-casting·LINK 게이팅·occupancy(occupied_ids+crosswalk1/2) 전부 동일(값 오차 0). CAN writer·fusion·msg 무변경.
 - CMakeLists(can): 신규 노드용 `find_package`/`catkin_package` 에 **perception_ros_msg·katech_custom_msgs 추가**(기존 CAN writer 는 공유 devel/include 로 우연히 빌드됐음). package.xml depend 3쌍.
 
 ## 게이트 (신규, 순서 타입→크기→멤버십→방향)
@@ -27,7 +28,7 @@ metadata:
 - object_msg 는 **flat 구조**(std_msgs 래핑 없음, `o.x/o.vx/o.size_x` 직접). (std_msgs 래핑은 CoreInfo 계열 얘기, object_msg 엔 무관.)
 
 ## 크로스워크 길이축
-폴리곤 vertices PCA(공분산 고유벡터/SVD) **major axis** = 길이방향(보행자 횡단방향). ctor 에서 9개 사전계산. 부호 무관(`|dot|`). 보행자 횡단=축평행(각 작음), 차량 통과=축수직(각 큼).
+폴리곤 vertices PCA(공분산 고유벡터/SVD) **major axis** = 길이방향(보행자 횡단방향). ctor 에서 크로스워크 수(현재 18개)만큼 사전계산. 부호 무관(`|dot|`). 보행자 횡단=축평행(각 작음), 차량 통과=축수직(각 큼).
 
 ## 의도된 Python 대비 차이 2건(regression 아님)
 ① detection 엔트리 객체별 독립값(Python 의 ped_msg 참조 aliasing 버그 자연 교정, 엔트리 수 동일). ② occupancy 를 **완전 게이트 통과** 객체로 산출(Python 은 타입+멤버십만). zero-entry(타입객체 0→size1) / 빈배열(전원 탈락→size0) 규칙은 CAN writer 분기 정합 위해 보존.
