@@ -45,11 +45,10 @@
 |------|-------------|-----------|-----------|
 | `/diagnostic/vcu` | `vcu_diagnostic_msg` | vcu_diagnostic | V_CAN GearInfo life_count |
 | `/diagnostic/adcu` | `k_adcu_diagnostic_msg` | chassis_CAN_reader | AD_CAN BrainState life_count |
-| `/diagnostic/cpt7_gps` | `cpt7_gps_diagnostic_msg` | cpt7_gps_diagnostic | ublox NavPVT carrSoln |
+| `/diagnostic/cpt7_gps` | `cpt7_gps_diagnostic_msg` | cpt7_gps_diagnostic | **Novatel** `/sensors/gps/bestpos`·`/inspva` (ublox 아님) |
 - 공통 패턴: 콜백에서 msg_received 플래그 설정, 타이머에서 플래그 확인 후 리셋
-- GPSRTK_StatCode: carrSoln 값 (0=No RTK, 1=Float, 2=Fixed)
-- stat_display GPS 색상: carrSoln>=2(Fixed) 초록, <2(Float/No RTK) 주황, 통신끊김 빨강
-- GPS fixType: 0=NO_FIX, 2=2D, 3=3D, 4=GNSS+DR (GPS_INS_SolutionStat에 사용)
+- GPSRTK_StatCode: **0x38(INS_RTKFIXED) 또는 0** 두 값뿐 (carrSoln 아님). GPS_INS_SolutionStat: `solution_status=="SOL_COMPUTED"`→0x00, else 0x01 (fixType 아님)
+- stat_display GPS 색상 / 경고 기준 상세 → [gps_warning_criteria.md](gps_warning_criteria.md) (빨강은 GPS 아닌 ping 8.8.8.8 실패)
 
 ## 추가 메모리 파일 (작업 이력 상세 = 각 토픽 파일)
 - [Project Build & Branch Status](project_build.md) — 빌드 경로, 브랜치 구조 / 브랜치 전환 직후 첫 빌드 msg 헤더 경합 실패(재빌드로 해소)
@@ -71,6 +70,7 @@
 - [crosswalk-position 횡단보도 좌표](crosswalk_position.md) — WGS84 폴리곤 → katech_ped_detector.py EPSG:5179 crosswalk_data(오프라인 pyproj 리터럴) + mat 뷰어 var CROSSWALK(이미 인프라有, [lat,lon] swap). 검출토픽 순회 자동커버 / occupancy 2필드·web_hmi CrosswalkZones 스코프차. 하네스 crosswalk-position
 - [perception ObjectType](perception_object_type.md) — RS perception class enum `1=CONE,2=PED,3=BIC,4=CAR,5=TRUCK_BUS,6=ULTRA`. object_msg.status=class(type). 코드 1=보행자 오분류 5곳 정정(PED+BIC 보행자), main_window.py 대기
 - [ped-detector-cpp 검출 포팅](ped_detector_cpp.md) — Python on_crosswalk 검출→C++(`katech_ped_detector.cpp`) + 크기(≤2m)·방향(PCA 길이축 vs 절대속도) 게이트, 순서 타입→크기→멤버십→방향. 객체 vx,vy=ego-상대(절대=R(yaw)·v+v_ego). 하네스 ped-detector-cpp
+- [GPS 경고 판정 기준](gps_warning_criteria.md) — rviz `/rviz/jsk/gps_stat` 색: 주황=`StatCode!=0x38 || std>5cm` / 빨강=`Network_Status`(ping 8.8.8.8 실패, GPS 무관). AliveCnt 검사 무력화(GPS 끊기면 색 동결), rviz `==0x38` vs HMI `<2` 판정 불일치, GPS_Over 죽은 필드(2026-07-27 트리거 제거, msg/CAN 유지)
 
 ## 피드백 메모리
 - [일본어 사용 금지](feedback_no_japanese.md) — 응답에 일본어(한자) 금지, 한국어만 사용
