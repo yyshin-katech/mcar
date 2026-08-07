@@ -40,12 +40,30 @@
 ## Project Overview
 - ROS Noetic catkin workspace for autonomous driving (KATECH)
 - Location: `/home/katech/mcar/`
-- Main branch: `main` (2026-01-07 이후 변경 없음), active branches: `ioniq5_hmi_dev`(2026-06 현행), `ioniq5`, `siheung_dev`
+- Main branch: `main` (2026-01-07 이후 변경 없음), active branches: `ioniq5_siheung_dev`(2026-08 현행), `ioniq5_release`, `ioniq5_kcity_tested`, `siheung_dev`, `siheung_release`
 - sudo password: `1`
 
+## 브랜치 계열 = 차량 플랫폼 (2026-08-07 확정)
+**브랜치 이름의 계열이 곧 차량 버전이다.** 코드나 git 이력만으로는 알 수 없음.
+
+| 계열 | 차량 |
+|------|------|
+| `siheung_*` (`siheung_dev`, `siheung_release`) | **아이오닉 EV** |
+| `ioniq5_*` (`ioniq5_release`, `ioniq5_kcity_tested`, `ioniq5_siheung_dev`) | **IONIQ 5** |
+
+두 계열은 차량 자체가 달라 DBC·CAN 시그널·`.msg` 정의·맵이 갈라진다. 브랜치 간 코드를 옮기거나 비교할 때 CAN/DBC·`.msg` 필드 차이는 버그가 아니라 **플랫폼 차이**일 수 있음. 공통 조상은 `main`(`cbe9d3c`).
+
+**2026-08-07 리네임 (로컬·원격 모두, 구 원격 브랜치 삭제됨):**
+- `ioniq5` → **`ioniq5_release`**
+- `ioniq5_hmi_dev` → **`ioniq5_kcity_tested`** (K-City 검증 완료 스냅샷)
+- 신규 `ioniq5_siheung_dev` = `ioniq5_release`(`9831727`)에서 분기한 IONIQ 5 개발 브랜치
+- `ioniq5_hmi_dev` 의 88 커밋은 리네임 전 `ioniq5` 에 fast-forward 병합됨 → ioniq5 계열 3개 모두 `9831727` 동일
+
+아래 문서 중 `ioniq5_hmi_dev` / `ioniq5` 로 적힌 것은 각각 `ioniq5_kcity_tested` / `ioniq5_release` 로 읽을 것.
+
 ## Branch별 지도/설정
-- **ioniq5_hmi_dev** (2026-06 현행 HMI 작업 브랜치): MAPFILE_PATH=`mapfiles/K_CITY_20260618` (katech_test.launch, 2026-06-18 갱신)
-- **ioniq5**: MAPFILE_PATH=`mapfiles/K_CITY_20251201` (K-City 지도)
+- **ioniq5_kcity_tested** (구 `ioniq5_hmi_dev`, 2026-06 HMI 작업 브랜치): MAPFILE_PATH=`mapfiles/K_CITY_20260618` (katech_test.launch, 2026-06-18 갱신). `ioniq5_release`·`ioniq5_siheung_dev` 도 병합 후 동일 내용
+- **ioniq5_release** (구 `ioniq5`): 병합 전 기준 MAPFILE_PATH=`mapfiles/K_CITY_20251201` (K-City 지도)
 - **siheung_dev**: MAPFILE_PATH=`mapfiles/$(arg scenario)` (senario1/senario3 선택), SHP_MAP_PATH=`src/shp_map/$(arg scenario)`
   - `scenario` arg: `senario1`(기본) 또는 `senario3`
   - senario3 mat: link_233, link_653, link_783 삭제됨 (2026-04 pull 반영)

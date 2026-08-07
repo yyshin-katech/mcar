@@ -9,7 +9,7 @@ metadata:
 
 2026-06 기준 활성 작업 상태와 주의점.
 
-- **브랜치**: `ioniq5_hmi_dev`
+- **브랜치**: `ioniq5_hmi_dev` → **2026-08-07 `ioniq5_kcity_tested` 로 리네임됨** (IONIQ 5 계열. `siheung_*` 계열은 아이오닉 EV — MEMORY.md "브랜치 계열 = 차량 플랫폼" 참조)
 - **활성 맵**: `katech_test.launch`가 `MAPFILE_PATH = mapfiles/K_CITY_20260608` 사용 (rosparam). `local_test.launch`는 `K_CITY_2025`. 맵은 `target_roads[k] = link_{k+1}.mat` 로 로드 (1-based LINK_ID → 0-based 인덱스).
 
 **Why/gotcha:** `to_control_team_demo.py`는 mat 파일의 `Speed_Limit`·신호정보(`look_at_signalGroupID`/`IntersectionID`)·`is_stop_line`을 일단 읽은 뒤, `pose_2d_cb`에서 **LINK_ID별 하드코딩 분기로 덮어쓴다**. 즉 mat 값만 바꿔서는 거동이 안 바뀌는 경우가 많음.
