@@ -3,7 +3,7 @@
 ## 프로젝트 개요
 - ROS (noetic) 기반 자율주행 시스템
 - 경로: `/home/ads/mcar_v13`
-- 메인 브랜치: `main`, 작업 브랜치: `ioniq5`, `siheung_dev`, `dev`
+- 메인 브랜치: `main`. **브랜치 계열 = 차량 플랫폼**: `siheung_*`(siheung_dev/siheung_release)=**아이오닉 EV**, `ioniq5_*`(ioniq5_release/ioniq5_kcity_tested/ioniq5_siheung_dev)=**IONIQ 5**. 상세 [project_build.md](project_build.md)
 - GitHub: `yyshin-katech/mcar`
 
 ## 주요 패키지 구조
@@ -35,7 +35,7 @@
 - **perception_ros_msg 오타 필드(포팅 시 그대로 유지)**: `CoreInfo.trakcer_id`, `Object.hassupplmentinfo`, `SupplementInfo.cloud_indices[k].data`(Int32 객체 배열).
 - **diagnostic_only.launch**: `lateral_offset_relay.py`/`gps_std_relay.py` = rviz overlay text 전용(web_hmi 무관), `ioniq_statdisplay.rviz` 가 구독하므로 유지 필요. base2ego TF frame_id 는 `/ego_frame`(슬래시 필수, rviz 매칭).
 - **bag 검증 함정**: `/hmi/state`/`/hmi/*` 녹화 bag 재생 시 live 브리지(web_hmi_bridge/qt bridge) 동시 기동 금지 → dual-publisher 진동. roscore + bag + 뷰어 노드만. bag 재생 시 `/hmi/map`·`/hmi/threejs/map` 을 `/dev/null/*` 로 remap.
-- **SPaT 활성 토픽은 브랜치마다 정반대** — siheung_dev `/siheung_spat`(→ 병합 `/spat_merged`) vs ioniq5_hmi_dev `/katri_v2x_node/katri_spat`. 점검 전 `git branch` 확인.
+- **SPaT 활성 토픽은 브랜치마다 정반대** — siheung_dev `/siheung_spat`(→ 병합 `/spat_merged`) vs ioniq5_kcity_tested(구 `ioniq5_hmi_dev`) `/katri_v2x_node/katri_spat`. 점검 전 `git branch` 확인.
 - **crosswalk 좌표/CAN/게이팅**: katech_ped_detector.py `crosswalk_data`=EPSG:5179 폴리곤(오프라인 pyproj 4326→5179 리터럴). 검출 `/katech_msg/crosswalk_detection` → `katech_ped_detector_can_writer` CAN `Pedestrian_Stat`(528/529) `on_crosswalk=1`(crosswalk_id 없음·객체 4 cap). **검출을 ego LINK_ID(`CW_LINKS`, detector cpp·py·fusion 공유)로 게이팅 → 접근 크로스워크만**. occupancy_msg `uint8[] occupied_ids` 추가, fusion active(own=occupied_ids, obu #1·#2만). **크로스워크 1~18**(2026-07-27, 10~18 은 md 링크표 없어 mat `is_stop_line`+선행 20m 규칙으로 도출; #15/#16 만 접근링크 661/662 공유). web_hmi CrosswalkZones=[E,N] 1~18 점멸, mat 뷰어 var CROSSWALK=[lat,lon]. **CAN writer 는 자체 검출 외에 `/katech_msg/crosswalk_ped_fusion` 추가 구독 → RSU present(source 2/3) 시 `on_crosswalk_1 = max(자체, RSU)` 로 OR(2s staleness). 자체=0 이어도 RSU=1 이면 CAN on_crosswalk=1 (2026-08-05).**
 - **perception ObjectType(RS)**: enum `0=UNKNOW,1=CONE,2=PED,3=BIC,4=CAR,5=TRUCK_BUS,6=ULTRA_VEHICLE`. `/track_Multi_RS` object_msg.**status = class(type)**(트래킹상태 아님, `lidar_object_publisher_v2.py:282`). ⚠️ **실데이터에선 type3(BIC) 이 ≈5m 차량크기** → {2,3}=보행자로 두면 web_hmi 가 차량을 사람으로 표시. 그래서 **차량/사람 분류는 이전버전 `type==1`→보행자 로 원복(2026-07-21)**. 상세 [perception ObjectType](perception_object_type.md).
 - **객체 속도 vx,vy = ego-상대**(perception object_msg, flat 구조). 절대 이동방향 = `R(host_yaw)·(vx,vy) + v_ego_map`(ego 가산 필수; to_control_team 에 host 속도 없어 위치 유한차분). 횡단보도 보행자 검출(on_crosswalk)은 C++ `katech_ped_detector.cpp`(Python 대체, katech_test.launch line57) — 게이트 **타입{1,2}(이전버전)→멤버십(LINK)→방향**(크로스워크 PCA 길이축 사이각≤40°, 정지 스킵). **크기 게이트는 제거됨**(사용자: 진행방향만 고려). 상세 [ped-detector-cpp](ped_detector_cpp.md).
@@ -51,7 +51,7 @@
 - stat_display GPS 색상 / 경고 기준 상세 → [gps_warning_criteria.md](gps_warning_criteria.md) (빨강은 GPS 아닌 ping 8.8.8.8 실패)
 
 ## 추가 메모리 파일 (작업 이력 상세 = 각 토픽 파일)
-- [Project Build & Branch Status](project_build.md) — 빌드 경로, 브랜치 구조 / 브랜치 전환 직후 첫 빌드 msg 헤더 경합 실패(재빌드로 해소)
+- [Project Build & Branch Status](project_build.md) — 빌드 경로, **브랜치 계열=차량 플랫폼(siheung_*=아이오닉 EV / ioniq5_*=IONIQ 5)**, 2026-08-07 리네임 이력 / 브랜치 전환 직후 첫 빌드 msg 헤더 경합 실패(재빌드로 해소)
 - [User Communication Style](user_style.md) — 한국어 짧은 명령 선호, 간결 응답
 - [siheung_dev 활성 맵](siheung_map_senario3.md) — shp_map 루트 두 .shp(POLYLINEZ 1770 + POLYGONZ 372), EPSG:32652→5179 변환
 - [web-hmi-adapt harness](web_hmi_adapt_harness.md) — 브랜치 간 web_hmi 어댑트 파이프라인. chassis_msg Curr_gear 필드+HMI 매핑(0=P→1,5=D→4,6=N→3,7=R→2), V2X 미수신 threshold 3s/StatCode≥2 WARN
