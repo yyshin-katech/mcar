@@ -10,7 +10,7 @@ originSessionId: 02987e96-3bce-4338-b524-4cc3596fca14
 - 신호-bearing(signal/intID != 0): 68개, MANUAVER LEFT 11 / RIGHT 7
 - SHP 원본: `src/localization/gps_system_localizer/src/shp_map/senario3/TB_senario_map_senario3.shp` (fid=LINK_ID, mc_MANEUVE 매핑)
 
-## senario mat 파일 (308개, 2026-05-18 정리 후)
+## senario mat 파일 (305개, 2026-06-22 기준)
 경로: `src/localization/gps_system_localizer/mapfiles/senario/`
 - `MANUAVER` 필드 추가(2026-05-18), `guard_zone` 필드 존재하지만 **현재 모두 0** (이전에 8개 1이었으나 일괄 0 처리)
 - 신호-bearing: 113개, MANUAVER LEFT 9 / RIGHT 3
@@ -21,6 +21,9 @@ originSessionId: 02987e96-3bce-4338-b524-4cc3596fca14
 - 2026-05-18 정리 작업 입력: `claude_work_list/20260518_mat_file_update.md`
   - 완전 제거 14개, 앞/뒤 트림 12개(정확히 N m, 보간 사용), NEXT_LINK_ID 변경 다수
   - 완전 제거된 link_id를 NEXT/RIGHT/LEFT로 참조하던 다른 mat 파일은 자동으로 0 처리
+- 2026-06-22 수정 (308→305): 417/1885/2377 앞부분 트림 **원복**(원본 geometry 복원),
+  그 평행차선 418/1886/2376 **삭제** + 참조 9곳(548/1074/2183 NEXT, 417/419/1885/1887/2377/2381 R·L) 0 처리
+  - gotcha: 0 처리로 548/1074/2183 의 NEXT=0(후속 없음) — 끝점이 417/1885/2377 시작점과 0m로 붙어 있어 그 지점 경로가 끊김. 재연결하려면 NEXT 를 생존링크로 지정 필요
 
 ## senario1 mat 파일
 - MANUAVER 필드 **없음** (64개 신호-bearing 링크 전부 누락) — 의도적으로 미작업

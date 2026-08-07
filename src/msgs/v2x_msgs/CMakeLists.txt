@@ -13,6 +13,7 @@ add_message_files(
  intersection_msg.msg
  intersection_array_msg.msg
  movement_msg.msg
+ v2x_tim_can_go_msg.msg
 )
 
 

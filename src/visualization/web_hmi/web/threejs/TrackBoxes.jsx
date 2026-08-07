@@ -1,4 +1,4 @@
-/* global React, THREE, window, useThree, useJsonTopic, useRosState,
+/* global React, THREE, window, useThree, useJsonTopic,
           OBJ_PALETTE, OBJ_DIMS */
 
 // Build a per-type bbox mesh (wireframe). Returns a THREE.Object3D.
@@ -44,34 +44,73 @@ function disposeMesh(obj) {
   });
 }
 
-function TrackBoxes({ showBoxes, showHeading, showIds }) {
+// Of the live tracks, return the set of ids for the N closest to ego.
+// Distance is the ego-frame range √(x²+y²); we sort on the squared value
+// (cheaper, same ordering). Returns null when capping is disabled.
+function nearestTrackIds(tracks, nearestOnly, nearestN) {
+  if (!nearestOnly || !tracks || !tracks.length) return null;
+  const n = nearestN || 5;
+  if (tracks.length <= n) return null; // nothing trimmed
+  return new Set(
+    tracks
+      .map((t) => ({ id: t.id, d2: (t.x || 0) * (t.x || 0) + (t.y || 0) * (t.y || 0) }))
+      .sort((a, b) => a.d2 - b.d2)
+      .slice(0, n)
+      .map((t) => t.id)
+  );
+}
+
+function TrackBoxes({ showBoxes, showHeading, showIds, nearestOnly, nearestN }) {
   const three = useThree();
   const tracks = useJsonTopic('/hmi/threejs/tracks', null);
   const map = useJsonTopic('/hmi/threejs/map', null);
-  const ego = useRosState();
   const slotsRef = React.useRef(new Map()); // id → { group, type }
 
-  // Reposition the trackGroup whenever ego pose or origin changes.
+  // Tracks are emitted in ego-frame at perception rate (~10 Hz). The bridge
+  // pairs each emission with the ego pose used to compute those local
+  // coords (`ego_at_emit`). Transforming the trackGroup with that snapshot
+  // — instead of the live 50 Hz /hmi/ego_pose — keeps tracks fixed in the
+  // world between perception ticks. (Using live ego makes them slide ~1 m
+  // every tick as ego drifts in the gap.)
   React.useEffect(() => {
     if (!three) return;
     const origin = (map && map.origin) || [0, 0];
-    const eEast  = (ego && ego.ego && ego.ego.east)  || 0;
-    const eNorth = (ego && ego.ego && ego.ego.north) || 0;
-    const eYaw   = (ego && ego.ego && ego.ego.yaw)   || 0;
+    const e = (tracks && tracks.ego_at_emit) || null;
+    const eEast  = (e && e.east)  || 0;
+    const eNorth = (e && e.north) || 0;
+    const eYaw   = (e && e.yaw)   || 0;
     three.trackGroup.position.set(eEast - origin[0], 0, eNorth - origin[1]);
     three.trackGroup.rotation.y = -eYaw;
-  });
+  }, [three, tracks, map]);
 
   // Add/update/remove tracks keyed by id.
   React.useEffect(() => {
     if (!three || !tracks || !tracks.tracks) return undefined;
     const seen = new Set();
+    // Two anti-flicker filters tuned against the live perception stream:
+    //  - confirm threshold: a new ID becomes visible only after its 2nd
+    //    sighting. Single-frame ghost detections (frequent, ~30% of new
+    //    IDs in the bag) are silently dropped.
+    //  - miss grace: keep the last pose for up to ~1 s of absence. The
+    //    tracker drops 43% of IDs for 1–6 frames at random; grace covers
+    //    those and lets a true disappearance clear within a second.
+    const TRACK_CONFIRM = 2;
+    // Lowered from 10 to 4: the bridge now caps tracks at the N nearest, so
+    // anything trimmed (further away) used to linger ~5 s on screen at the
+    // throttled rate. Shorter grace prunes those promptly.
+    const TRACK_MISS_GRACE = 4;
+    // When the "nearest N only" toggle is on, restrict visibility to the N
+    // tracks closest to ego; the rest stay tracked (slots kept) but hidden.
+    const allowed = nearestTrackIds(tracks.tracks, nearestOnly, nearestN);
     tracks.tracks.forEach((trk) => {
       seen.add(trk.id);
       let slot = slotsRef.current.get(trk.id);
-      if (!slot || slot.type !== trk.type
-          || slot.size_x !== trk.size_x || slot.size_y !== trk.size_y) {
-        // Geometry depends on type/size — rebuild if any changed.
+      if (!slot || slot.type !== trk.type) {
+        // Rebuild only on type change. Perception emits size_x/size_y at
+        // full float precision, fluctuating ~0.1 m every tick (~10 Hz);
+        // rebuilding the geometry on each fluctuation makes the box
+        // visibly flicker. The first-emission size is good enough — small
+        // ongoing variation is not worth the dispose/recreate cost.
         if (slot) {
           three.trackGroup.remove(slot.group);
           disposeMesh(slot.group);
@@ -82,13 +121,19 @@ function TrackBoxes({ showBoxes, showHeading, showIds }) {
         const arrow = buildHeadingArrow(trk.type, trk.size_x);
         arrow.name = 'arrow';
         group.add(arrow);
+        // Hidden until confirmed by a second sighting (set below).
+        group.visible = false;
         three.trackGroup.add(group);
-        slot = { group, type: trk.type, size_x: trk.size_x, size_y: trk.size_y };
+        slot = { group, type: trk.type, hits: 0 };
         slotsRef.current.set(trk.id, slot);
       }
+      slot.hits = (slot.hits || 0) + 1;
+      slot.missed = 0;
       slot.group.position.set(trk.x, 0, trk.y);
       slot.group.rotation.y = -trk.orientation;
-      slot.group.visible = !!showBoxes || !!showHeading;
+      const confirmed = slot.hits >= TRACK_CONFIRM;
+      const inNearest = !allowed || allowed.has(trk.id);
+      slot.group.visible = confirmed && inNearest && (!!showBoxes || !!showHeading);
       const arrow = slot.group.getObjectByName('arrow');
       if (arrow) arrow.visible = !!showHeading;
       // boxes themselves toggled via children visibility
@@ -97,15 +142,16 @@ function TrackBoxes({ showBoxes, showHeading, showIds }) {
         c.visible = !!showBoxes;
       });
     });
-    // Drop tracks no longer present.
     for (const [id, slot] of slotsRef.current) {
-      if (!seen.has(id)) {
+      if (seen.has(id)) continue;
+      slot.missed = (slot.missed || 0) + 1;
+      if (slot.missed > TRACK_MISS_GRACE) {
         three.trackGroup.remove(slot.group);
         disposeMesh(slot.group);
         slotsRef.current.delete(id);
       }
     }
-  }, [three, tracks, showBoxes, showHeading]);
+  }, [three, tracks, showBoxes, showHeading, nearestOnly, nearestN]);
 
   // Cleanup on unmount.
   React.useEffect(() => () => {
@@ -123,3 +169,4 @@ function TrackBoxes({ showBoxes, showHeading, showIds }) {
 
 window.TrackBoxes = TrackBoxes;
 window.__buildBox = buildBox;
+window.__nearestTrackIds = nearestTrackIds;

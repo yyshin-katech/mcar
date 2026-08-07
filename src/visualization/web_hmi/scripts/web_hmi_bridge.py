@@ -16,10 +16,12 @@ A second ``rospy.Timer`` (10 Hz) publishes the buffered state to:
   /hmi/traffic       std_msgs/String   (JSON, on change only)
   /hmi/bag           std_msgs/String   (JSON, on change only)
   /hmi/topic_hz      std_msgs/String   (JSON, 1 Hz)
+  /hmi/ego_pose      std_msgs/String   (JSON, ~50 Hz raw, rviz-grade follow)
 
 Inbound:
   /hmi/cmd/mode_request   std_msgs/Bool    → controller.request_mode(b.data)
   /hmi/cmd/bag_toggle     std_msgs/Empty   → controller.toggle_bag()
+  /hmi/cmd/bag_lidar      std_msgs/Bool    → controller.set_bag_include_lidar(b.data)
 """
 import json
 import os
@@ -29,11 +31,18 @@ from collections import defaultdict, deque
 
 import rospy
 from std_msgs.msg import Bool, Empty, String
+from v2x_msgs.msg import v2x_tim_can_go_msg
+from katech_custom_msgs.msg import crosswalk_ped_fusion_msg
 
 try:
     import shapefile  # pyshp — optional, only used to publish /hmi/map
 except ImportError:
     shapefile = None
+
+try:
+    from pyproj import Transformer
+except ImportError:
+    Transformer = None
 
 # Make pyqt_hmi.scripts importable for BaseHmiStateController.
 _PYQT_HMI_SCRIPTS = os.path.join(
@@ -85,6 +94,9 @@ class WebHmiBridge(BaseHmiStateController):
             'bag':         rospy.Publisher('/hmi/bag',         String, queue_size=4, latch=True),
             'topic_hz':    rospy.Publisher('/hmi/topic_hz',    String, queue_size=2),
             'map':         rospy.Publisher('/hmi/map',         String, queue_size=1, latch=True),
+            # 50 Hz raw ego pose stream (separate from /hmi/state's 10 Hz
+            # snapshot) so the Three.js camera follow can run at rviz cadence.
+            'ego_pose':    rospy.Publisher('/hmi/ego_pose',    String, queue_size=4),
         }
 
         # Last published payloads — used for deduplication on event topics
@@ -101,12 +113,33 @@ class WebHmiBridge(BaseHmiStateController):
         # Mode pulse timer handle
         self._mode_pulse_timer = None
 
+        # /v2x/tim_message/can_go_status staleness — set when do_not_go_forward
+        # is received True; checked with a 2.0 s window in /hmi/state.
+        self.can_go_stamp = None
+
+        # /katech_msg/crosswalk_ped_fusion — 최신 퓨전 상태 + staleness stamp.
+        self.crosswalk_ped_active = 0
+        self.crosswalk_ped_present = False
+        self.crosswalk_ped_source = 0
+        self.crosswalk_ped_stamp = None
+
         # Now build the controller (subscribes to ROS, starts tick)
         super().__init__()
 
         # Inbound command subscribers
         rospy.Subscriber('/hmi/cmd/mode_request', Bool, self._on_mode_request)
         rospy.Subscriber('/hmi/cmd/bag_toggle', Empty, self._on_bag_toggle)
+        rospy.Subscriber('/hmi/cmd/bag_lidar', Bool, self._on_bag_lidar)
+
+        # V2X "do not go forward" (RNST TIM) status — not published at a fixed
+        # rate, so consumers apply a 2.0 s staleness window (see /hmi/state).
+        rospy.Subscriber('/v2x/tim_message/can_go_status', v2x_tim_can_go_msg,
+                         self._can_go_cb, queue_size=1)
+
+        # Crosswalk pedestrian fusion (own lidar + OBU V2X) — not published at a
+        # fixed rate, so /hmi/state applies a 2.0 s staleness window.
+        rospy.Subscriber('/katech_msg/crosswalk_ped_fusion', crosswalk_ped_fusion_msg,
+                         self._crosswalk_ped_cb, queue_size=1)
 
         # Bag dir from rosparam if provided
         bag_dir = rospy.get_param('~bag_dir', None)
@@ -121,6 +154,11 @@ class WebHmiBridge(BaseHmiStateController):
 
         # One-shot map publish (latched)
         self._publish_map_once()
+
+        # Latch an explicit IDLE on /hmi/bag so subscribers don't fall back
+        # to the JSX prop default and don't get a stale REC from a co-played
+        # bag's latched message before the first real toggle.
+        self._emit('bag_state_changed', self.bag_recording, self.bag_info)
 
         rospy.loginfo("web_hmi_bridge: ready, publishing on /hmi/*")
 
@@ -162,6 +200,17 @@ class WebHmiBridge(BaseHmiStateController):
         if name == 'bag_state_changed':
             payload = {'recording': bool(args[0]), 'info': args[1]}
             self._publish_dedup('bag', payload)
+            return
+
+        if name == 'ego_pose_changed':
+            # Fired every /localization/to_control_team callback (~50 Hz),
+            # bypassing the 10 Hz snapshot timer so the web client can match
+            # rviz-grade camera follow smoothness.
+            self._pubs['ego_pose'].publish(String(data=json.dumps({
+                'east':  round(float(args[0]), 3),
+                'north': round(float(args[1]), 3),
+                'yaw':   round(float(args[2]), 4),
+            }, ensure_ascii=False)))
             return
 
         # Other signals are folded into the periodic /hmi/state snapshot —
@@ -211,6 +260,28 @@ class WebHmiBridge(BaseHmiStateController):
             'on_odd': int(self.on_odd),
             'road_state': int(self.road_state),
             'selected_mode': int(self.selected_mode),
+            # Block-display triggers (additive; see BlockZones.jsx / overlay).
+            'on_block_link': 1 if (
+                self.link_id and int(self.link_id) in (548, 550, 552, 417, 419, 420)
+            ) else 0,
+            'do_not_go_forward': 1 if (
+                self.can_go_stamp is not None
+                and (rospy.Time.now() - self.can_go_stamp).to_sec() < 2.0
+            ) else 0,
+            # Crosswalk pedestrian fusion (additive; see CrosswalkZones.jsx / banner).
+            # 2.0 s staleness so a dead fusion node can't leave a stuck alert.
+            'crosswalk_ped_active': int(self.crosswalk_ped_active) if (
+                self.crosswalk_ped_stamp is not None
+                and (rospy.Time.now() - self.crosswalk_ped_stamp).to_sec() < 2.0
+            ) else 0,
+            'crosswalk_ped_present': bool(self.crosswalk_ped_present) if (
+                self.crosswalk_ped_stamp is not None
+                and (rospy.Time.now() - self.crosswalk_ped_stamp).to_sec() < 2.0
+            ) else False,
+            'crosswalk_ped_source': int(self.crosswalk_ped_source) if (
+                self.crosswalk_ped_stamp is not None
+                and (rospy.Time.now() - self.crosswalk_ped_stamp).to_sec() < 2.0
+            ) else 0,
         }, ensure_ascii=False)))
 
         # /hmi/diagnostics snapshot
@@ -225,6 +296,12 @@ class WebHmiBridge(BaseHmiStateController):
             self._objects_dirty = False
 
     def _publish_objects(self, objects):
+        # Sort by ego-frame distance so the frontend renders close objects
+        # first. Upstream percept_topic_matcher already caps at 14.
+        objects = sorted(
+            objects,
+            key=lambda o: (o.get('x', 0.0) ** 2 + o.get('y', 0.0) ** 2),
+        )
         self._pubs['objects'].publish(String(data=json.dumps({
             'count': len(objects),
             'data': objects,
@@ -248,11 +325,24 @@ class WebHmiBridge(BaseHmiStateController):
         try:
             polylines = []
             sf = shapefile.Reader(map_shp)
+            # Optional reprojection: read sibling .prj; if it's not EPSG:5179
+            # (e.g. senario3 = WGS_1984_UTM_Zone_52N → EPSG:32652), reproject.
+            tx = None
+            prj_path = os.path.splitext(map_shp)[0] + ".prj"
+            if Transformer is not None and os.path.isfile(prj_path):
+                with open(prj_path) as f:
+                    wkt = f.read()
+                if "UTM_Zone_52N" in wkt or "UTM zone 52N" in wkt:
+                    tx = Transformer.from_crs("EPSG:32652", "EPSG:5179", always_xy=True)
             for shp in sf.shapes():
                 if not shp.points:
                     continue
                 # 1 cm precision is plenty for visualization; reduces payload.
-                polylines.append([[round(p[0], 2), round(p[1], 2)] for p in shp.points])
+                if tx is None:
+                    polylines.append([[round(p[0], 2), round(p[1], 2)] for p in shp.points])
+                else:
+                    polylines.append([[round(e, 2), round(n, 2)]
+                                      for e, n in (tx.transform(p[0], p[1]) for p in shp.points)])
             payload = json.dumps({'polylines': polylines}, ensure_ascii=False,
                                  separators=(',', ':'))
             self._pubs['map'].publish(String(data=payload))
@@ -276,6 +366,22 @@ class WebHmiBridge(BaseHmiStateController):
 
     def _on_bag_toggle(self, _msg):
         self.toggle_bag()
+
+    def _on_bag_lidar(self, msg):
+        # True: LiDAR/인지 토픽 포함 저장, False: 제외 저장. 녹화 시작 시 반영.
+        self.set_bag_include_lidar(msg.data)
+
+    def _can_go_cb(self, msg):
+        # Stamp only on a positive "do not go forward" so the 2.0 s window in
+        # /hmi/state expires naturally when TIM stops asserting.
+        if msg.do_not_go_forward:
+            self.can_go_stamp = rospy.Time.now()
+
+    def _crosswalk_ped_cb(self, msg):
+        self.crosswalk_ped_active = int(msg.active_crosswalk_id)
+        self.crosswalk_ped_present = bool(msg.pedestrian_present)
+        self.crosswalk_ped_source = int(msg.source)
+        self.crosswalk_ped_stamp = rospy.Time.now()
 
 
 def main():

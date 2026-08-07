@@ -91,6 +91,37 @@ function useClockF1(intervalMs = 250) {
   return now;
 }
 
+// Map-canvas overlay: "전방 직진 주행 금지" banner + 좌/우 진행 가능 화살표.
+// Banner shows on (on_block_link || do_not_go_forward); the ←/→ arrows (좌/우
+// 진행 가능) show only on on_block_link. Subscribes /hmi/state independently so
+// it stays in sync with BlockZones without threading props through the shell.
+function BlockBanner() {
+  const state = useRosState();
+  const onLink = state && state.on_block_link === 1;
+  const doNotGo = state && state.do_not_go_forward === 1;
+  if (!(onLink && doNotGo)) return null;
+  return (
+    <div style={{
+      position: "absolute", top: 64, left: "50%", transform: "translateX(-50%)",
+      zIndex: 30, display: "flex", alignItems: "center", gap: 18,
+      padding: "12px 26px", borderRadius: 8,
+      background: "rgba(120,12,12,0.62)",
+      border: "1px solid rgba(255,80,80,0.85)",
+      boxShadow: "0 6px 24px rgba(0,0,0,0.5)",
+      color: "#ffdede", fontWeight: 700, letterSpacing: "0.04em",
+      fontFamily: "Inter, Pretendard, system-ui, sans-serif",
+      pointerEvents: "none", userSelect: "none",
+    }}>
+      {onLink ? <span style={{ fontSize: 30, color: "#ff7a7a" }}>←</span> : null}
+      <span style={{ fontSize: 22, color: "#ff5050", textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}>
+        ⚠ 전방 직진 주행 금지
+      </span>
+      {onLink ? <span style={{ fontSize: 30, color: "#ff7a7a" }}>→</span> : null}
+    </div>
+  );
+}
+window.BlockBanner = BlockBanner;
+
 function ThreejsF1Screen() {
   // ─── F1 dashboard data ─────────────────────────────────────
   const conn  = useRosConnection();
@@ -122,10 +153,10 @@ function ThreejsF1Screen() {
   const utcText = formatUtcF1(dNow);
   const kstText = formatKstF1(dNow);
   const tickText = ((now - pageLoadAtRef.current) / 1000).toFixed(3) + "s";
-  const adcuOk = (hz.adcu || 0) > 0.5;
-  const rosOk = conn.connected && adcuOk;
+  const anyTopicOk = Object.values(hz).some(v => v > 0.5);
+  const rosOk = conn.connected && anyTopicOk;
   const rosLabel = !conn.connected ? "ROS · OFFLINE"
-    : adcuOk ? "ROS · /ad_can OK"
+    : anyTopicOk ? "ROS · ONLINE"
     : "ROS · WAITING";
   const netText = (conn.lastMessageAgeMs === Infinity || !conn.connected)
     ? "—" : `${Math.round(conn.lastMessageAgeMs)}ms`;
@@ -162,6 +193,25 @@ function ThreejsF1Screen() {
   const [showClouds,  setShowClouds]  = React.useState(true);
   const [pointSize,   setPointSize]   = React.useState(0.08);
   const [cameraMode,  setCameraMode]  = React.useState('iso');
+  const [nearestOnly, setNearestOnly] = React.useState(false);
+  const NEAREST_N = 5;
+
+  // ROSBAG: include LiDAR/perception topics in the next recording (default on).
+  // Read by the bridge at start_bag time, so we publish on every toggle.
+  const [bagIncludeLidar, setBagIncludeLidar] = React.useState(true);
+  const onBagLidarToggle = React.useCallback(() => {
+    setBagIncludeLidar((prev) => {
+      const next = !prev;
+      conn.publishBagLidar(next);
+      return next;
+    });
+  }, [conn]);
+  // Re-assert the LiDAR flag right before starting, so a bridge restart can't
+  // leave the next recording out of sync with the on-screen toggle.
+  const onBagToggle = React.useCallback(() => {
+    if (!(bag && bag.recording)) conn.publishBagLidar(bagIncludeLidar);
+    conn.publishBagToggle();
+  }, [conn, bag, bagIncludeLidar]);
 
   const onLayerVis = React.useCallback((name, val) => {
     setLayerVis((prev) => ({ ...prev, [name]: val }));
@@ -172,11 +222,18 @@ function ThreejsF1Screen() {
     <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: "#04060a" }}>
       <window.ThreeScene>
         <window.MapLayers layerVisibility={layerVis} />
-        <window.TrackBoxes showBoxes={showBoxes} showHeading={showHeading} showIds={false} />
-        <window.TrackPointClouds showClouds={showClouds} pointSize={pointSize} />
+        <window.BlockZones />
+        <window.CrosswalkZones />
+        <window.RouteLayer />
+        <window.TrackBoxes showBoxes={showBoxes} showHeading={showHeading} showIds={false}
+                           nearestOnly={nearestOnly} nearestN={NEAREST_N} />
+        <window.TrackPointClouds showClouds={showClouds} pointSize={pointSize}
+                           nearestOnly={nearestOnly} nearestN={NEAREST_N} />
         <window.EgoMesh />
         <window.CameraController mode={cameraMode} />
       </window.ThreeScene>
+      <window.BlockBanner />
+      <window.CrosswalkPedBanner />
       <div style={{
         position: "absolute", top: 140, right: 8, width: 240, maxHeight: "calc(92% - 140px)",
         zIndex: 10, overflowY: "auto",
@@ -192,6 +249,7 @@ function ThreejsF1Screen() {
           showHeading={showHeading} onShowHeading={setShowHeading}
           showClouds={showClouds} onShowClouds={setShowClouds}
           pointSize={pointSize} onPointSize={setPointSize}
+          nearestOnly={nearestOnly} onNearestOnly={setNearestOnly} nearestN={NEAREST_N}
           cameraMode={cameraMode} onCameraMode={setCameraMode} />
       </div>
     </div>
@@ -222,7 +280,9 @@ function ThreejsF1Screen() {
       egoYaw={(state.ego && state.ego.yaw) || 0}
       bagRecording={!!(bag && bag.recording)}
       bagInfo={(bag && bag.info) || ""}
-      onBagToggle={conn.publishBagToggle}
+      onBagToggle={onBagToggle}
+      bagIncludeLidar={bagIncludeLidar}
+      onBagLidarToggle={onBagLidarToggle}
       bottom={bottom}
       mainContent={mainContent}
     />

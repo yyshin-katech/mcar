@@ -21,10 +21,20 @@
   <!-- variant: f1 | default | threejs | threejs_f1 -->
   <arg name="variant"      default="threejs_f1"/>
   <arg name="page"         default="$(eval {'f1':'index_f1.html','default':'index.html','threejs':'index_threejs.html','threejs_f1':'index_threejs_f1.html'}.get(arg('variant'), 'index.html'))"/>
-  <!-- HD map shapefile to overlay on the F1 environment (EPSG:5179). Empty = disabled. -->
-  <arg name="map_shp"      default="$(find gps_system_localizer)/src/A2_LINK_epsg5179.shp"/>
-  <!-- threejs variant: K_CITY_2025 shapefile dir (UTM52N → EPSG:5179 inside the bridge). -->
-  <arg name="threejs_mapdir" default="$(find gps_system_localizer)/mapfiles/K_CITY_2025"/>
+  <!-- HD map shapefile dir. senario_shp_20260623 = 시흥 시범운행 맵 (UTM52N /
+       EPSG:32652 → EPSG:5179 재투영은 브리지 안에서 수행). 11개 표준 레이어. -->
+  <arg name="shp_scenario" default="senario_shp_20260623"/>
+  <arg name="shp_mapdir"   default="$(find gps_system_localizer)/src/shp_map/$(arg shp_scenario)"/>
+  <!-- f1 variant: single A2_LINK overlay on the F1 environment. Empty = disabled. -->
+  <arg name="map_shp"      default="$(arg shp_mapdir)/A2_LINK.shp"/>
+  <!-- threejs variant: full 11-layer shapefile dir. -->
+  <arg name="threejs_mapdir" default="$(arg shp_mapdir)"/>
+  <!-- Planned-route ribbon (global_nav_hmi). extract_route.py output, EPSG:5179. -->
+  <arg name="route_json"   default="$(find web_hmi)/scripts/route_senario_20260623.json"/>
+  <!-- Point cloud that percept cloud_indices index into. /percept_origin_rviz is
+       the organized (1800×128) cloud used by this platform's perception stack;
+       siheung_release uses /fusion_lidar_points (different ordering). -->
+  <arg name="cloud_topic"  default="/percept_origin_rviz"/>
 
   <!-- 1. rosbridge WebSocket server -->
   <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch">
@@ -43,7 +53,9 @@
     <param name="map_shp" value="$(arg map_shp)"/>
   </node>
 
-  <!-- 2b. Three.js bridge — when variant=threejs or threejs_f1. -->
+  <!-- 2b. Three.js bridge (Python) — map / shapefile only. /hmi/threejs/tracks
+       is moved to the C++ node below; ~publish_tracks=false keeps Python from
+       advertising or subscribing to the percept/cloud hot path. -->
   <node if="$(eval arg('variant') in ('threejs', 'threejs_f1'))"
         name="web_hmi_threejs_bridge"
         pkg="web_hmi"
@@ -51,6 +63,21 @@
         output="screen"
         required="true">
     <param name="mapdir" value="$(arg threejs_mapdir)"/>
+    <!-- global_nav_hmi: pre-extracted planned-route JSON (latched on
+         /hmi/threejs/route). The shipped file is the siheung senario route —
+         swap it (extract_route.py) when running a different site. -->
+    <param name="route_json" value="$(arg route_json)"/>
+    <param name="publish_tracks" value="false"/>
+  </node>
+
+  <!-- 2c. Three.js tracks (C++) — percept → /hmi/threejs/tracks at 10 Hz. -->
+  <node if="$(eval arg('variant') in ('threejs', 'threejs_f1'))"
+        name="web_hmi_threejs_tracks_cpp"
+        pkg="web_hmi"
+        type="web_hmi_threejs_tracks_cpp"
+        output="screen"
+        required="true">
+    <param name="cloud_topic" value="$(arg cloud_topic)"/>
   </node>
 
   <!-- 3. Static asset HTTP server -->

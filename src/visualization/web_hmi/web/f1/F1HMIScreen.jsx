@@ -157,6 +157,21 @@ function F1HMIScreen() {
   const bag = useBag();
   const map = useMap();
 
+  // ROSBAG LiDAR/perception include toggle (read by bridge at start_bag time).
+  const [bagIncludeLidar, setBagIncludeLidar] = React.useState(true);
+  const onBagLidarToggle = React.useCallback(() => {
+    setBagIncludeLidar((prev) => {
+      const next = !prev;
+      conn.publishBagLidar(next);
+      return next;
+    });
+  }, [conn]);
+  // Re-assert the LiDAR flag right before starting (survives bridge restart).
+  const onBagToggle = React.useCallback(() => {
+    if (!(bag && bag.recording)) conn.publishBagLidar(bagIncludeLidar);
+    conn.publishBagToggle();
+  }, [conn, bag, bagIncludeLidar]);
+
   const now = useClock(250);
   const pageLoadAtRef = React.useRef(Date.now());
 
@@ -178,10 +193,10 @@ function F1HMIScreen() {
   const utcText = formatUtc(dNow);
   const kstText = formatKst(dNow);
   const tickText = formatTick(now - pageLoadAtRef.current);
-  const adcuOk = (hz.adcu || 0) > 0.5;
-  const rosOk = conn.connected && adcuOk;
+  const anyTopicOk = Object.values(hz).some(v => v > 0.5);
+  const rosOk = conn.connected && anyTopicOk;
   const rosLabel = !conn.connected ? "ROS · OFFLINE"
-    : adcuOk ? "ROS · /ad_can OK"
+    : anyTopicOk ? "ROS · ONLINE"
     : "ROS · WAITING";
   const netText = (conn.lastMessageAgeMs === Infinity || !conn.connected)
     ? "—"
@@ -239,7 +254,9 @@ function F1HMIScreen() {
       egoYaw={(state.ego && state.ego.yaw) || 0}
       bagRecording={!!(bag && bag.recording)}
       bagInfo={(bag && bag.info) || ""}
-      onBagToggle={conn.publishBagToggle}
+      onBagToggle={onBagToggle}
+      bagIncludeLidar={bagIncludeLidar}
+      onBagLidarToggle={onBagLidarToggle}
       bottom={bottom}
     />
   );

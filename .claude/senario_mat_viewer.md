@@ -23,6 +23,12 @@ originSessionId: 02987e96-3bce-4338-b524-4cc3596fca14
 - 이 환경은 pyproj 미설치 → `cs2cs` CLI subprocess 사용
 - TM 파라미터: `+proj=tmerc +lat_0=38 +lon_0=127.5 +k=0.9996 +x_0=1000000 +y_0=2000000 +ellps=GRS80`
 
+## shp 오버레이 (var DATA=mat 와 별개, HDMap_Oido_New shp 임베드)
+`regen_mat_viewer.py` 가 만드는 `var DATA`(line 822, mat 도로링크)와 **별개**로, HD맵 shp 레이어를 EPSG:32652→WGS84 변환해 임베드한 오버레이가 있다. 부제 "link_*.mat 만 사용 (shp 없음)"은 **도로링크 한정**이고 아래는 예외적으로 shp 사용:
+- **노면표시 Type5** = `var TYPE5`(line 1210, 461 폴리곤), `btn-type5` 토글. 원본 `src/localization/gps_system_localizer/src/shp_map/HDMap_Oido_New/B3_SURFACEMARK.shp` 중 **Type==5**. 색 #f9e2af.
+- **노면선표시 B2** = `var LINEMARK`(4101 폴리라인), `btn-linemark` 토글(기본 OFF). 원본 동 폴더 `B2_SURFACELINEMARK.shp` 전체(차선/경계선; PolyLineZ, Type=111/211/212 등). 2026-07-15 추가. 색 #94e2d5.
+- 이 오버레이는 `regen_mat_viewer.py` 범위 **밖**(그건 var DATA만 교체). shp 재추출/주입은 별도(pyshp+pyproj 로 shp→JS 배열 → HTML `<script>` 블록 주입, 이 환경은 pyproj 설치됨). B2 추가로 HTML 740K→1.82MB.
+
 ## 검증 체크포인트
 - features 개수 (현재 322)
 - signal-bearing 개수 (현재 117)

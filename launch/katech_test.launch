@@ -4,9 +4,11 @@
 
   <param name="EPSG" value="5179" />
 
-  <!-- 맵 경로 설정 -->
-  <param name="MAPFILE_PATH" 
-        value="$(find gps_system_localizer)/mapfiles/K_CITY_20260618" />
+  <!-- 맵 경로 설정. mat_scenario = to_control_team_demo.py 가 읽는 link_*.mat 셋.
+       senario = 시흥 시범운행 맵 (293개, LINK_ID 417~3877 비연속). siheung_release 와 동일. -->
+  <arg name="mat_scenario" default="senario" />
+  <param name="MAPFILE_PATH"
+        value="$(find gps_system_localizer)/mapfiles/$(arg mat_scenario)" />
 
   <node pkg="tf2_ros"                 type="static_transform_publisher" name="gps2base_link" args="0.0 0.0 -1.5 0.0 0.0 0.0 gps base_link" />
 

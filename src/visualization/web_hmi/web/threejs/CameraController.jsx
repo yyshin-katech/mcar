@@ -1,9 +1,11 @@
-/* global React, THREE, window, useThree, useJsonTopic, useRosState */
+/* global React, THREE, window, useThree, useJsonTopic, useEgoPose */
 
 // Switches the scene camera between two presets:
 //   'iso' — chase-cam ~60m behind ego, 60m up, looking at ego
 //   'top' — bird's-eye 100m above ego, north-up
 // (plan also lists 'free'; OrbitControls deferred — use bag replay + iso.)
+// Ego pose comes from /hmi/ego_pose (~50 Hz raw) instead of /hmi/state's
+// 10 Hz throttled snapshot, matching rviz follow smoothness.
 
 const ISO_BACK = 60;
 const ISO_HEIGHT = 60;
@@ -15,7 +17,7 @@ const WHEEL_SENS = 0.001;
 function CameraController({ mode }) {
   const three = useThree();
   const map = useJsonTopic('/hmi/threejs/map', null);
-  const ego = useRosState();
+  const ego = useEgoPose();
   const [zoom, setZoom] = React.useState(1);
 
   // Mouse-wheel zoom on the scene canvas. zoom>1 = closer, zoom<1 = farther.
@@ -35,9 +37,9 @@ function CameraController({ mode }) {
     if (!three) return;
     const cam = three.camera;
     const origin = (map && map.origin) || [0, 0];
-    const eEast  = (ego && ego.ego && ego.ego.east)  || 0;
-    const eNorth = (ego && ego.ego && ego.ego.north) || 0;
-    const eYaw   = (ego && ego.ego && ego.ego.yaw)   || 0;
+    const eEast  = (ego && ego.east)  || 0;
+    const eNorth = (ego && ego.north) || 0;
+    const eYaw   = (ego && ego.yaw)   || 0;
     // Scene has scale.z = -1, so a child placed at +north_delta has its world
     // z = -(north_delta). The camera lives in world space (not added to scene),
     // so we must compute ego's world z directly.

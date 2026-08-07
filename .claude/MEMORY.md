@@ -37,6 +37,40 @@
 - [project_gps_status_takeover.md](project_gps_status_takeover.md) — 2026-06-10 GPS 고장 기준 통일(RTK Fixed 아님/std>15cm=고장, >5cm=경고; pyqt 기본·A-1 + stat_display). TOR는 stat_display→/diagnostic/system→to_control_team_demo 경유(pyqt는 표시 전용). any(s!=0)이라 경고도 TOR 유발(현행 유지). 발행 1s 주기·RTK 플랩핑 false TOR 주의
 - [project_spat_can_writer_switch.md](project_spat_can_writer_switch.md) — 2026-06-17 spat_CAN_writer 교차로 처리 구조. switch(intersection_id)는 temp_intersection_id_msg=교차로ID/100 설정하나 dead store(미사용). 실제 (교차로,그룹) 발화는 look_at_IntersectionID/signalGroupID(to_control_team) 매칭으로 결정. case(100)→1, case(1500)→15 추가. signalGroup 16/10은 switch 무관, look_at 경유
 
+### 차량 머신(katech NUC) auto-memory
+`siheung_dev` 계열에서 축적된 메모리. 2026-08-07 `ioniq5_siheung_dev` 로 동기화.
+- [project_build.md](project_build.md) — 빌드 경로, **브랜치 계열=차량 플랫폼(siheung_*=아이오닉 EV / ioniq5_*=IONIQ 5)**, 2026-08-07 리네임 이력 / 브랜치 전환 직후 첫 빌드 msg 헤더 경합 실패(재빌드로 해소)
+- [project_ioniq5_siheung_port.md](project_ioniq5_siheung_port.md) — **이 브랜치의 현행 작업**: web_hmi + senario 맵(293링크 417~3877 비연속) + to_control_team_demo.py 를 siheung_release 에 정렬. K-City 하드코딩 제거로 `else: Speed_Limit=30` 맵값 파괴 버그 해소. msg int8→int32 + MANUAVER, DBC v8 LOCAL_MAP_INFO 12bit 전체 repack(제어팀 동기화 필요)
+- [can_package.md](can_package.md) — sensing/can 패키지 구조, 실행파일/DBC/채널 매핑
+- [user_style.md](user_style.md) — 한국어 짧은 명령 선호, 간결 응답
+- [feedback_honorific.md](feedback_honorific.md) — 응답 종결은 "~합니다/입니다" 존댓말로 통일
+- [feedback_can_frozen_additive.md](feedback_can_frozen_additive.md) — 차량 CAN-feeding 토픽은 수정 말고 additive 신규 토픽으로 우회(무변경 증명 git diff ∅/sha256)
+- [siheung_map_senario3.md](siheung_map_senario3.md) — shp_map 루트 두 .shp(POLYLINEZ 1770 + POLYGONZ 372), EPSG:32652→5179 변환
+- [reference_a2_link_shp.md](reference_a2_link_shp.md) — senario_shp_20260623 A2_LINK, UTM52N(32652)→5179, 좌/중/우 3차선, ITSLinkID 1:N, ToNode→FromNode 위상. web_hmi 지도/경로 원천
+- [stopline_adj.md](stopline_adj.md) — senario mat 링크를 B2_SURFACELINEMARK 정지선까지 연장 + 다음 링크 트림(station 재계산, 공유정점). mat=5179/shp=32652
+- [lanelet_fiona_geometry.md](lanelet_fiona_geometry.md) — POINTZ `'float' not subscriptable` 크래시, A2_LINK 전용화, geom_type별 coordinates 구조 차이
+- [senario_gps_pub_harness.md](senario_gps_pub_harness.md) — senario HTML 주행 link 시퀀스 → 40 km/h GPS 시뮬레이션 publisher
+- [web_hmi_adapt_harness.md](web_hmi_adapt_harness.md) — 브랜치 간 web_hmi 어댑트 파이프라인. chassis_msg Curr_gear 필드+HMI 매핑, V2X 미수신 threshold 3s/StatCode≥2 WARN
+- [web_hmi_adapt_pitfalls.md](web_hmi_adapt_pitfalls.md) — LAYER_STYLE 동기화 누락 / polyline `alpha` 무시 / bag `/hmi/*` 충돌 (ROS만 패치하면 화면 안 나옴)
+- [project_qt_hmi.md](project_qt_hmi.md) — 50Hz ego pose 패턴; ego-frame 트랙은 emit-time ego 스냅샷(`ego_at_emit`)과 페어링 필수
+- [project_bridge_cpp_port.md](project_bridge_cpp_port.md) — Python `/hmi/threejs/tracks` 0.78→9.98 Hz. zero-copy PointCloud2 + dual-publisher 회피(`~publish_tracks` 가드)
+- [project_global_nav_hmi.md](project_global_nav_hmi.md) — web_hmi 주행 예정 경로 중앙차선 리본 + TIM 트리거 latch. 오프라인 route JSON
+- [project_bag_replay_hmi.md](project_bag_replay_hmi.md) — bag 에 `/hmi/*` 까지 녹화돼 있어 live 브리지와 dual-publisher. `/hmi/*:=/sink/*` remap 필수
+- [reference_tim_pedes_bag_replay.md](reference_tim_pedes_bag_replay.md) — `web_hmi_replay.launch`(bag→web_hmi threejs_f1). 구 bag 으론 퓨전 own 경로 검증 불가
+- [percept_filter_policy.md](percept_filter_policy.md) — percept_topic_matcher.cpp+rviz_filter.cpp 3-zone OR, 우측컷, 14개 cap. 두 파일 ROI 동시 갱신
+- [perception_object_type.md](perception_object_type.md) — RS class enum `1=CONE,2=PED,3=BIC,4=CAR,5=TRUCK_BUS,6=ULTRA`. object_msg.status=class(type). 실데이터 type3(BIC)이 차량크기 → 보행자 판정은 `type==1` 로 원복
+- [crosswalk_position.md](crosswalk_position.md) — 횡단보도 1~18 폴리곤(WGS84→EPSG:5179 리터럴), CW_LINKS 게이팅, OBU 는 #1/#2 전용
+- [ped_detector_cpp.md](ped_detector_cpp.md) — on_crosswalk 검출 Python→C++ 포팅. 게이트 타입→멤버십→방향(PCA 길이축 ≤40°). 객체 vx,vy=ego-상대
+- [spat_merge_obu_mqtt.md](spat_merge_obu_mqtt.md) — `spat_merge_node` 교차로(IID) 단위 OBU 우선 병합(`/spat_merged`), MQTT-only 교차로 302 전달
+- [spat_dir_match.md](spat_dir_match.md) — MANUAVER -1/0/1 ↔ MovementStateName(LEFT/STR/RIGHT). HMI 방향필터 부재로 알파벳순 LEFT 오선택 버그
+- [spat_viewer_run.md](spat_viewer_run.md) — SPaT ① 라이브 Leaflet 뷰어 ② offline bag 리플레이 뷰어(ego 방향매칭 신호등 재생/스크럽)
+- [spat_viewer_build_harness.md](spat_viewer_build_harness.md) — spat_viewer 패키지 신규(rosbridge:9090 + http.server:8080). 데이터는 `mapfiles/senario/link_*.mat` 직접 추출
+- [project_mqtt_v2n_spat.md](project_mqtt_v2n_spat.md) — 시흥 V2N MQTT payload 앞 16 byte = 경찰청 V2N container. fid/psid 는 메시지 타입별 상이
+- [reference_v2n_fid_psid.md](reference_v2n_fid_psid.md) — 경찰청 V2N 메시지별 fid/psid/방향/토픽 xlsx 위치 (16-byte 헤더 단일 출처)
+- [mqtt_vpn_setup_harness.md](mqtt_vpn_setup_harness.md) — MQTT V2N 트래픽만 시흥시 VPN split-tunnel. 실환경은 SecuwaySSL, 하네스 사양은 OpenVPN 기준
+- [project_vehicle_tracker.md](project_vehicle_tracker.md) — BSM 기반 차량 위치 관제, EC2 배포 구성
+- [gps_warning_criteria.md](gps_warning_criteria.md) — rviz `/rviz/jsk/gps_stat` 색: 주황=`StatCode!=0x38 || std>5cm`, 빨강=`Network_Status`(ping 8.8.8.8, GPS 무관)
+
 ## Project Overview
 - ROS Noetic catkin workspace for autonomous driving (KATECH)
 - Location: `/home/katech/mcar/`
@@ -62,7 +96,8 @@
 아래 문서 중 `ioniq5_hmi_dev` / `ioniq5` 로 적힌 것은 각각 `ioniq5_kcity_tested` / `ioniq5_release` 로 읽을 것.
 
 ## Branch별 지도/설정
-- **ioniq5_kcity_tested** (구 `ioniq5_hmi_dev`, 2026-06 HMI 작업 브랜치): MAPFILE_PATH=`mapfiles/K_CITY_20260618` (katech_test.launch, 2026-06-18 갱신). `ioniq5_release`·`ioniq5_siheung_dev` 도 병합 후 동일 내용
+- **ioniq5_siheung_dev** (현행): MAPFILE_PATH=`mapfiles/senario` (`mat_scenario` arg default, 2026-08-07 K_CITY_20260618→senario). web_hmi `map_shp`/`threejs_mapdir`=`src/shp_map/senario_shp_20260623`. 모두 `siheung_release` 와 동일 셋
+- **ioniq5_kcity_tested** (구 `ioniq5_hmi_dev`, 2026-06 HMI 작업 브랜치): MAPFILE_PATH=`mapfiles/K_CITY_20260618` (katech_test.launch, 2026-06-18 갱신). `ioniq5_release` 도 병합 후 동일 내용
 - **ioniq5_release** (구 `ioniq5`): 병합 전 기준 MAPFILE_PATH=`mapfiles/K_CITY_20251201` (K-City 지도)
 - **siheung_dev**: MAPFILE_PATH=`mapfiles/$(arg scenario)` (senario1/senario3 선택), SHP_MAP_PATH=`src/shp_map/$(arg scenario)`
   - `scenario` arg: `senario1`(기본) 또는 `senario3`
@@ -100,9 +135,9 @@
 
 ## Localization Details
 - **통일 좌표계: EPSG:5179** (Korea 2000 / Unified CS)
-- `to_control_team_demo.py`: .mat file based, Frenet coordinate, ODD判定
-  - **gotcha**: mat의 Speed_Limit·신호정보·is_stop_line을 읽은 뒤 LINK_ID별 하드코딩 분기로 덮어씀 → mat만 바꿔선 안 바뀜. 속도제한 등은 코드 분기 먼저 확인 (else 기본 30, 2026-06-01)
-  - `MAX_LANE_ID = 88` (2026-06-18, link_86/87/88 추가로 85→88 갱신). `range(MIN_LANE_ID, MAX_LANE_ID+1)` 로 mat 로드
+- `to_control_team_demo.py`: .mat file based, Frenet coordinate, ODD 판정
+  - **2026-08-07 (ioniq5_siheung_dev)**: K-City LINK_ID 하드코딩 분기 전면 제거 → mat 의 Speed_Limit·신호정보·is_stop_line 이 그대로 나간다. 구 `else: Speed_Limit = 30` 이 맵값을 덮어쓰던 버그도 함께 해소. `ioniq5_kcity_tested`/`ioniq5_release` 에는 아직 구 로직이 남아 있음
+  - **로더도 siheung 방식**: `sorted(glob('link_*.mat'))` → `MAX_LANE_ID`/`road_{i}` 동적 속성 없음. `lane_id` 는 사전순 인덱스라 LINK_ID 와 무관(링크 417 → `road_210`/`lane_id 211`). 상세 [project_ioniq5_siheung_port.md](project_ioniq5_siheung_port.md)
   - 링크 매칭은 frenet min-|d|. 물리적 겹침 링크(78↔79, 78 끝 s≈27·36~37m)는 old_lane_id 기반 hysteresis로 조기전환 방지 (2026-06-02)
 - `to_control_team_demo_shp.py`: .shp file based (siheung_dev)
 - Key msgs: `localization2D_msg`, `to_control_team_from_local_msg`, `chassis_msg`

@@ -1,0 +1,290 @@
+/* global React, THREE, window, useThree, useJsonTopic, useRosState */
+
+// "전방 보행자 주의" — 횡단보도 보행자 퓨전(자체 라이다 + OBU V2X) 지면 표시.
+//
+// #1/#2 횡단보도 다각형을 지면(y≈0.12) 위에 상시 표시하고, 퓨전 노드가
+// active(=LINK_ID 기반)로 지목하고 pedestrian_present 인 횡단보도만 붉은색으로
+// 점멸시킨다. 좌표는 EPSG:5179 절대좌표를 map `origin` 으로 시프트 (MapLayers /
+// BlockZones 와 동일 규약: +X=east_delta, +Z=north_delta, scene scale.z=-1).
+// state 소스: /hmi/state 의 crosswalk_ped_active / crosswalk_ped_present /
+// crosswalk_ped_source (web_hmi_bridge 가 additive 로 발행).
+//
+// ThreeScene 은 per-frame 훅(useFrame)을 노출하지 않으므로 점멸은
+// setInterval + material.opacity 토글로 구현한다.
+
+// SINGLE SOURCE: 좌표는 src/sensing/can/src/katech_ped_detector.py:106-107 의
+// crosswalk_data 와 반드시 동일하게 유지할 것 (검출 판정과 표시가 어긋나면 안 됨).
+const CROSSWALK_POLYS = {
+  1: [
+    [930819.312725, 1929593.158143], [930807.530293, 1929580.608639], [930804.537889, 1929582.883314],
+    [930803.754045, 1929582.693963], [930800.736230, 1929585.001303], [930798.147151, 1929585.252169],
+    [930814.166390, 1929602.326491], [930814.430028, 1929599.606956], [930813.356668, 1929598.462133],
+    [930816.299566, 1929596.210116], [930816.286256, 1929595.495250],
+  ],
+  2: [
+    [930819.933061, 1929617.498679], [930817.484334, 1929614.491229], [930817.695865, 1929613.842349],
+    [930815.283504, 1929610.895521], [930813.983369, 1929609.298809], [930788.698959, 1929628.204441],
+    [930789.932348, 1929629.623349], [930790.729092, 1929629.069490], [930793.150823, 1929631.994565],
+    [930792.937083, 1929632.723870], [930795.460264, 1929635.651967],
+  ],
+  3: [
+    [931618.480129, 1928668.245223], [931602.430990, 1928680.837104], [931604.756398, 1928683.910106],
+    [931604.535801, 1928684.329460], [931606.966005, 1928687.602070], [931606.359503, 1928688.086279],
+    [931607.641929, 1928689.732141], [931625.739121, 1928675.649309], [931624.307032, 1928673.985063],
+    [931623.131051, 1928674.888081], [931620.632328, 1928671.712353], [931620.838390, 1928671.200786],
+  ],
+  4: [
+    [931746.802920, 1928832.583676], [931731.083283, 1928844.947864], [931732.751645, 1928847.093707],
+    [931731.718782, 1928848.551824], [931733.372971, 1928850.708445], [931731.845245, 1928851.916781],
+    [931731.955025, 1928853.249105], [931733.455832, 1928853.860780], [931753.293170, 1928838.226088],
+    [931753.572679, 1928835.924257], [931752.549467, 1928835.643084], [931750.919243, 1928836.947748],
+    [931749.116990, 1928834.923729], [931748.438488, 1928834.717009],
+  ],
+  5: [
+    [931584.965262, 1928973.697114], [931581.771173, 1928976.155563], [931581.323971, 1928975.925517],
+    [931578.234135, 1928978.366626], [931585.070821, 1928987.307505], [931587.654537, 1928990.733507],
+    [931592.420497, 1928996.805367], [931595.503240, 1928994.370156], [931596.434902, 1928995.316672],
+    [931599.639435, 1928992.892383], [931593.808205, 1928985.349048], [931591.235266, 1928981.811252],
+  ],
+  6: [
+    [931483.574338, 1929056.144024], [931480.594260, 1929058.534888], [931479.977918, 1929058.443113],
+    [931477.062238, 1929060.808009], [931476.218800, 1929059.782930], [931473.932140, 1929060.184437],
+    [931490.058985, 1929080.188544], [931491.167411, 1929078.441717], [931490.336670, 1929077.309865],
+    [931493.266962, 1929074.906220], [931493.902490, 1929075.049275], [931496.819689, 1929072.651420],
+  ],
+  7: [
+    [931280.158279, 1929216.475039], [931277.153107, 1929218.935474], [931276.793565, 1929218.787803],
+    [931273.626088, 1929221.207678], [931272.885465, 1929220.381162], [931270.311425, 1929220.938055],
+    [931285.571652, 1929240.179616], [931287.512710, 1929238.690955], [931286.833061, 1929237.801428],
+    [931289.877390, 1929235.393598], [931290.379072, 1929235.592503], [931293.393199, 1929233.197194],
+  ],
+  8: [
+    [931109.745208, 1929350.398237], [931107.517502, 1929352.183155], [931106.537442, 1929352.114020],
+    [931104.362517, 1929353.968414], [931102.217096, 1929355.490024], [931123.572270, 1929370.300755],
+    [931122.889192, 1929366.812558], [931125.221841, 1929364.919769], [931126.143806, 1929365.194742],
+    [931128.402187, 1929363.248166],
+  ],
+  9: [
+    [930949.468998, 1929473.449621], [930947.294577, 1929475.114827], [930945.901475, 1929474.049849],
+    [930943.694736, 1929475.722102], [930941.696300, 1929476.343399], [930953.418371, 1929492.148083],
+    [930954.726980, 1929490.412941], [930956.895444, 1929488.757050], [930957.668540, 1929488.887335],
+    [930959.876393, 1929487.248217],
+  ],
+  10: [
+    [931009.892314, 1929869.347714], [930989.422158, 1929884.718851], [930990.840403, 1929886.596273],
+    [930992.370996, 1929885.438507], [930994.597744, 1929888.430465], [930993.428509, 1929889.951139],
+    [930995.704454, 1929892.954529], [931015.198660, 1929878.182050], [931012.906789, 1929875.190725],
+    [931013.102253, 1929874.469843], [931010.822240, 1929871.488405], [931011.260692, 1929871.156762],
+  ],
+  11: [
+    [931212.263960, 1930136.355868], [931193.918693, 1930150.708746], [931196.209713, 1930153.726499],
+    [931195.138942, 1930155.165075], [931197.449529, 1930158.192332], [931196.977609, 1930158.562419],
+    [931198.259128, 1930160.208038], [931218.954002, 1930144.040402], [931217.640006, 1930142.358489],
+    [931216.704028, 1930143.092506], [931214.404972, 1930140.144679], [931214.573071, 1930139.397542],
+  ],
+  12: [
+    [931400.789431, 1930377.100777], [931377.662387, 1930395.166111], [931388.157495, 1930408.808547],
+    [931411.249244, 1930390.865166],
+  ],
+  13: [
+    [931566.243088, 1930606.958922], [931550.328599, 1930618.891965], [931552.605269, 1930621.890547],
+    [931551.541686, 1930623.327522], [931553.806946, 1930626.322392], [931553.472129, 1930626.575649],
+    [931554.687866, 1930628.205072], [931573.001803, 1930614.490055], [931571.785671, 1930612.843513],
+    [931570.606114, 1930613.719660], [931568.344859, 1930610.730212], [931568.518059, 1930609.988166],
+  ],
+  14: [
+    [931352.846202, 1930782.826228], [931349.858383, 1930785.122693], [931349.131475, 1930784.979381],
+    [931346.109525, 1930787.268650], [931345.565184, 1930786.559611], [931343.954436, 1930787.820737],
+    [931360.219697, 1930809.253150], [931361.251073, 1930807.147970], [931359.631316, 1930805.055679],
+    [931362.667769, 1930802.767926], [931364.070372, 1930803.826035], [931367.075453, 1930801.530354],
+  ],
+  15: [
+    [931152.906209, 1930951.869593], [931149.849024, 1930954.184512], [931149.036778, 1930954.088520],
+    [931146.069882, 1930956.350450], [931145.845868, 1930956.166210], [931144.124700, 1930957.392427],
+    [931153.298176, 1930965.321247], [931154.671952, 1930963.835662], [931153.624067, 1930962.961196],
+    [931156.674913, 1930960.641370], [931157.489833, 1930960.738407], [931160.532077, 1930958.481263],
+  ],
+  16: [
+    [931145.949481, 1930939.625515], [931142.875002, 1930941.936252], [931142.241202, 1930941.683648],
+    [931139.166345, 1930944.007382], [931138.950054, 1930943.606514], [931137.240376, 1930944.604723],
+    [931142.099591, 1930954.803818], [931143.836682, 1930953.677868], [931143.508956, 1930953.037144],
+    [931146.613575, 1930950.765446], [931147.201312, 1930950.994365], [931150.315106, 1930948.674230],
+  ],
+  17: [
+    [931150.628541, 1930993.535675], [931121.428225, 1931013.690255], [931123.048078, 1931016.201683],
+    [931123.925548, 1931015.607832], [931126.084990, 1931018.699356], [931125.898143, 1931019.462050],
+    [931128.040561, 1931022.529483], [931155.890378, 1931003.177928], [931153.792914, 1931000.150670],
+    [931153.963149, 1930999.391808], [931151.830824, 1930996.346387], [931152.275721, 1930996.057667],
+  ],
+  18: [
+    [931590.186643, 1931656.769042], [931587.251728, 1931657.481834], [931585.930903, 1931656.116009],
+    [931582.747422, 1931656.855280], [931580.076216, 1931657.388505], [931594.432587, 1931675.332380],
+    [931595.254946, 1931672.690294], [931593.559388, 1931670.413925], [931596.258215, 1931669.702358],
+    [931595.873220, 1931668.205892], [931598.831104, 1931667.463536],
+  ],
+};
+
+// #1~#18 모두 자체(라이다) 검출 경보(붉은 점멸) 대상 — 검출 노드가 occupied_ids 로,
+// 퓨전 노드가 active(ego LINK 기준) 로 전달한다. OBU(V2X) 소스는 #1(south)/#2(east) 뿐이라
+// #3~#18 은 자체 검출 색만 사용한다.
+const CROSSWALK_IDS = Object.keys(CROSSWALK_POLYS).map(Number);
+
+const CROSSWALK_Y = 0.12;          // BlockZones(0.1) 위에 살짝 띄워 z-fighting 회피
+const BASE_COLOR = 0x5cf2ff;       // 상시 표시(중립) — 옅은 시안
+const BASE_OPACITY = 0.15;
+const ALERT_COLOR = 0xff3030;      // 점멸 붉은색 (요구: 영역은 붉은 점멸)
+const BLINK_HI = 0.55, BLINK_LO = 0.12, BLINK_MS = 400;
+
+// Build a filled polygon (centroid triangle-fan) from N absolute [E, N] corners,
+// shifted by origin (+X=east_delta, +Z=north_delta). DoubleSide +
+// depthWrite:false → flat, semi-transparent fill (same material recipe as
+// BlockZones.buildQuad). Correct for convex / star-convex outlines.
+function buildPolygon(corners, origin) {
+  if (!corners || corners.length < 3) return null;
+  const n = corners.length;
+  let cx = 0, cy = 0;
+  for (let i = 0; i < n; i++) { cx += corners[i][0]; cy += corners[i][1]; }
+  cx /= n; cy /= n;
+
+  const positions = new Float32Array((n + 1) * 3);
+  // vertex 0 = centroid
+  positions[0] = cx - origin[0];   // +X = east_delta
+  positions[1] = CROSSWALK_Y;      // ground
+  positions[2] = cy - origin[1];   // +Z = north_delta
+  // vertices 1..n = polygon corners
+  for (let i = 0; i < n; i++) {
+    positions[(i + 1) * 3 + 0] = corners[i][0] - origin[0];
+    positions[(i + 1) * 3 + 1] = CROSSWALK_Y;
+    positions[(i + 1) * 3 + 2] = corners[i][1] - origin[1];
+  }
+  // triangle-fan around the centroid: (0, i+1, i+2 wrap)
+  const indices = [];
+  for (let i = 0; i < n; i++) {
+    indices.push(0, i + 1, ((i + 1) % n) + 1);
+  }
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geom.setIndex(indices);
+  geom.computeVertexNormals();
+  const mat = new THREE.MeshBasicMaterial({
+    color: BASE_COLOR,
+    transparent: true,
+    opacity: BASE_OPACITY,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+  return new THREE.Mesh(geom, mat);
+}
+
+function disposeGroup(group) {
+  group.traverse((obj) => {
+    if (obj.geometry) obj.geometry.dispose();
+    if (obj.material) {
+      const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+      mats.forEach((m) => m && m.dispose && m.dispose());
+    }
+  });
+}
+
+function CrosswalkZones() {
+  const three = useThree();
+  const map = useJsonTopic('/hmi/threejs/map', null);
+  const state = useRosState();
+  const groupRef = React.useRef(null);
+  const meshRef = React.useRef({});
+  const [blinkOn, setBlinkOn] = React.useState(false);
+
+  // (Re)build both crosswalk polygons whenever the map origin changes.
+  React.useEffect(() => {
+    if (!three || !map || !map.origin) return undefined;
+    const origin = map.origin;
+
+    if (groupRef.current) {
+      three.mapGroup.remove(groupRef.current);
+      disposeGroup(groupRef.current);
+      groupRef.current = null;
+      meshRef.current = {};
+    }
+
+    const group = new THREE.Group();
+    group.name = 'crosswalk_zones';
+    const meshes = {};
+    CROSSWALK_IDS.forEach((id) => {
+      const mesh = buildPolygon(CROSSWALK_POLYS[id], origin);
+      if (mesh) { group.add(mesh); meshes[id] = mesh; }
+    });
+    three.mapGroup.add(group);
+    groupRef.current = group;
+    meshRef.current = meshes;
+
+    return () => {
+      if (groupRef.current) {
+        three.mapGroup.remove(groupRef.current);
+        disposeGroup(groupRef.current);
+        groupRef.current = null;
+        meshRef.current = {};
+      }
+    };
+  }, [three, map]);
+
+  // Blink toggle — ThreeScene exposes no per-frame hook (useFrame), so drive the
+  // alert opacity from a setInterval instead.
+  React.useEffect(() => {
+    const id = setInterval(() => setBlinkOn((v) => !v), BLINK_MS);
+    return () => clearInterval(id);
+  }, []);
+
+  // Every render: both polygons stay visible; only the active+present one blinks
+  // red, the rest sit at the neutral base color/opacity.
+  React.useEffect(() => {
+    const meshes = meshRef.current;
+    CROSSWALK_IDS.forEach((id) => {
+      const mesh = meshes[id];
+      if (!mesh) return;
+      const alert = state && state.crosswalk_ped_active === id && state.crosswalk_ped_present === true;
+      if (alert) {
+        mesh.material.color.setHex(ALERT_COLOR);
+        mesh.material.opacity = blinkOn ? BLINK_HI : BLINK_LO;
+      } else {
+        mesh.material.color.setHex(BASE_COLOR);
+        mesh.material.opacity = BASE_OPACITY;
+      }
+      mesh.visible = true;
+    });
+  });
+
+  return null;
+}
+window.CrosswalkZones = CrosswalkZones;
+
+// Map-canvas overlay: "전방 보행자 주의" banner. Shown while
+// crosswalk_ped_present; text/border color encodes the fusion source
+// (1=own/lidar=주황 #ff9800, 2=obu/v2x=빨강 #ff3030, 3=both=자홍 #ff30ff). Placed
+// below BlockBanner (top:64) so the two never overlap. Subscribes /hmi/state
+// independently to stay in sync with CrosswalkZones without threading props
+// through the shell.
+function CrosswalkPedBanner() {
+  const state = useRosState();
+  const present = state && state.crosswalk_ped_present === true;
+  if (!present) return null;
+  const src = (state && state.crosswalk_ped_source) || 0;
+  const color = ({ 1: '#ff9800', 2: '#ff3030', 3: '#ff30ff' })[src] || '#ff3030';
+  return (
+    <div style={{
+      position: "absolute", top: 112, left: "50%", transform: "translateX(-50%)",
+      zIndex: 30, display: "flex", alignItems: "center",
+      padding: "10px 24px", borderRadius: 8,
+      background: "rgba(10,12,18,0.72)",
+      border: `1px solid ${color}`,
+      boxShadow: "0 6px 24px rgba(0,0,0,0.5)",
+      fontWeight: 700, letterSpacing: "0.04em",
+      fontFamily: "Inter, Pretendard, system-ui, sans-serif",
+      pointerEvents: "none", userSelect: "none",
+    }}>
+      <span style={{ fontSize: 22, color, textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}>
+        ⚠ 전방 보행자 주의
+      </span>
+    </div>
+  );
+}
+window.CrosswalkPedBanner = CrosswalkPedBanner;

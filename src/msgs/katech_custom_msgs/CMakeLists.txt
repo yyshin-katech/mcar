@@ -13,6 +13,7 @@ add_message_files(
  ped_crosswalk_check_array_msg.msg
  ioniq5_ad_can_msg.msg
  v_can_msg.msg
+ crosswalk_ped_fusion_msg.msg
 )
 
 ## Generate added messages and services with any dependencies listed here

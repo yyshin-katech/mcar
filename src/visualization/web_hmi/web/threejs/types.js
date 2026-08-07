@@ -41,7 +41,7 @@ function deriveType(obj) {
 // HD map layer palette (cyan-on-dark, NGII-inspired).
 const LAYER_STYLE = {
   A1_NODE:                    { color: '#5cf2ff', size: 0.4,  kind: 'point' },
-  A2_LINK:                    { color: '#00e5ff', width: 1.0, kind: 'polyline' },
+  A2_LINK:                    { color: '#00e5ff', width: 1.0, alpha: 0.2, kind: 'polyline' },
   A3_DRIVEWAYSECTION:         { color: '#4d7fa3', alpha: 0.18, kind: 'polygon' },
   A4_SUBSIDIARYSECTION:       { color: '#3a5f7d', alpha: 0.16, kind: 'polygon' },
   A5_PARKINGLOT:              { color: '#5a8fb4', alpha: 0.20, kind: 'polygon' },
@@ -53,16 +53,20 @@ const LAYER_STYLE = {
   C4_SPEEDBUMP:               { color: '#fb923c', alpha: 0.45, kind: 'polygon' },
   C5_HEIGHTBARRIER:           { color: '#a78bfa', width: 1.0, kind: 'polyline' },
   C6_POSTPOINT:               { color: '#94a3b8', size: 0.3,  kind: 'point' },
+  // siheung_dev shp_map root layers (POLYLINEZ road network + POLYGONZ surface marks).
+  TB_senario_map:             { color: '#00e5ff', width: 1.0,  kind: 'polyline' },
+  TB_senario_surfaceMARK:     { color: '#94a3b8', alpha: 0.28, kind: 'polygon' },
 };
 
 // Default layer visibility (mirrors plan's ControlPanel defaults).
 const DEFAULT_LAYER_VIS = {
-  A1_NODE: false,  A2_LINK: false,  A3_DRIVEWAYSECTION: true,
+  A1_NODE: false,  A2_LINK: true,  A3_DRIVEWAYSECTION: true,
   A4_SUBSIDIARYSECTION: false,  A5_PARKINGLOT: false,
   B1_SAFETYSIGN: false,  B2_SURFACELINEMARK: true,
   B3_SURFACEMARK: true,  C1_TRAFFICLIGHT: false,
   C3_VEHICLEPROTECTIONSAFETY: false,  C4_SPEEDBUMP: false,
   C5_HEIGHTBARRIER: false,  C6_POSTPOINT: false,
+  TB_senario_map: true,  TB_senario_surfaceMARK: true,
 };
 
 window.OBJ_PALETTE = OBJ_PALETTE;

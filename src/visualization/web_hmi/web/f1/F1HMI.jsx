@@ -245,17 +245,19 @@ function Environment({
         const rotDeg = -((o.orientation || 0) * 180 / Math.PI);
         const lblOff = Math.max(o.w, o.h) / 2 + 6; // clear rotated bbox
         return (
-          <g key={o.id || i}>
-            <g transform={`translate(${o.sx},${o.sy}) rotate(${rotDeg.toFixed(2)})`}>
+          <g key={o.id || i} transform={`translate(${o.sx},${o.sy})`}
+            style={{ transition: "transform 200ms linear" }}>
+            <g transform={`rotate(${rotDeg.toFixed(2)})`}
+              style={{ transition: "transform 200ms linear" }}>
               <rect x={-o.w / 2} y={-o.h / 2} width={o.w} height={o.h} rx="2"
                 fill={`${o.color}14`} stroke={o.color} strokeWidth="1.3" />
               <path d={`M ${-3} ${-o.h / 2 + 2} L 0 ${-o.h / 2 - 4} L ${3} ${-o.h / 2 + 2}`}
                 fill="none" stroke={o.color} strokeWidth="1.2"
                 strokeLinecap="round" strokeLinejoin="round" />
             </g>
-            <text x={o.sx + lblOff} y={o.sy - lblOff + 10}
+            <text x={lblOff} y={-lblOff + 10}
               fontFamily={mono} fontSize="10" fill={o.color} letterSpacing="1">{o.id}  ·  {o.kind}</text>
-            <text x={o.sx + lblOff} y={o.sy - lblOff + 24}
+            <text x={lblOff} y={-lblOff + 24}
               fontFamily={mono} fontSize="9" fill={T.text2}>{o.dist}  {o.spd}</text>
           </g>
         );
@@ -332,6 +334,7 @@ function F1HMIShell(props) {
     mapPolylines = [], egoEast = 0, egoNorth = 0, egoYaw = 0,
     bagRecording = false, bagInfo = "",
     onBagToggle = () => {},
+    bagIncludeLidar = true, onBagLidarToggle = () => {},
     // bottom strip
     bottom = [],
     // Optional main-area override (e.g. Three.js scene). When provided,
@@ -530,6 +533,15 @@ function F1HMIShell(props) {
             <div style={{ marginTop: 8, color: T.text1, fontSize: 10, wordBreak: "break-all" }}>
               {bagInfo || "—"}
             </div>
+            {/* 녹화 중에는 LiDAR 포함 여부 변경 불가 — 현재 상태만 표시. */}
+            <div style={{ marginTop: 8, padding: "5px 10px",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              background: `${T.bg2}99`, opacity: 0.7,
+              color: bagIncludeLidar ? T.green : T.text3,
+              letterSpacing: 1, fontWeight: 700 }}>
+              <span>LiDAR</span>
+              <span>{bagIncludeLidar ? "ON" : "OFF"}</span>
+            </div>
             <div onClick={onBagToggle} style={{
               marginTop: 8, padding: "6px 10px",
               background: T.red, color: T.text0,
@@ -546,6 +558,17 @@ function F1HMIShell(props) {
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: T.text3 }} />
               <span style={{ color: T.text3, letterSpacing: 2 }}>IDLE</span>
               <span style={{ marginLeft: "auto", color: T.text3, letterSpacing: 1 }}>ROSBAG</span>
+            </div>
+            {/* LiDAR/인지 토픽 저장 포함 토글. stopPropagation: 패널 클릭(녹화 시작)과 분리. */}
+            <div onClick={(e) => { e.stopPropagation(); onBagLidarToggle(); }}
+              style={{ marginTop: 8, padding: "5px 10px",
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                background: T.bg2,
+                border: `1px solid ${bagIncludeLidar ? T.green : T.line}`,
+                color: bagIncludeLidar ? T.green : T.text3,
+                letterSpacing: 1, fontWeight: 700, cursor: "pointer" }}>
+              <span>LiDAR</span>
+              <span>{bagIncludeLidar ? "ON" : "OFF"}</span>
             </div>
             <div style={{ marginTop: 8, padding: "6px 10px", background: T.bg2, color: T.text1,
               textAlign: "center", letterSpacing: 3, fontWeight: 700 }}>START</div>
