@@ -61,9 +61,7 @@ PERCEPT_MAX_POINTS_PER_TRACK = 256
 PERCEPT_MIN_CONFIDENCE = 0.9
 
 
-# coreinfo.type → lowercase string. percept_topic_matcher.cpp:163 documents
-# `1=보행자`. Everything else falls through to "car" so the magenta box still
-# renders. Refine when other type ids are confirmed.
+# coreinfo.type → lowercase string. 이전 버전 복원: type==1 → pedestrian, 그 외 → car.
 def percept_type_str(type_int):
     return "pedestrian" if type_int == 1 else "car"
 

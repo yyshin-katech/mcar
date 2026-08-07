@@ -48,6 +48,7 @@ constexpr std::size_t PERCEPT_MAX_POINTS_PER_TRACK = 256;
 constexpr float       PERCEPT_MIN_CONFIDENCE      = 0.9f;
 
 inline const char* percept_type_str(int t) {
+  // 이전 버전 복원: type==1 → pedestrian, 그 외 → car. (실데이터 web_hmi 에서 차량(type3)이 사람으로 표시되던 문제로 원복)
   return (t == 1) ? "pedestrian" : "car";
 }
 

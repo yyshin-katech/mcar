@@ -1,8 +1,9 @@
 ---
 name: web_hmi 어댑트 알려진 함정
-description: web_hmi 어댑트 시 ROS 측 패치만으로 화면이 안 나오는 두 가지 함정 (LAYER_STYLE 동기화 + bag /hmi/* 충돌)
+description: web_hmi 어댑트 시 ROS 측 패치만으로 화면이 안 나오는 함정 (LAYER_STYLE 동기화 / polyline alpha 무시 / bag /hmi/* 충돌)
 type: feedback
 originSessionId: 3ea36247-9ca8-4af1-aa8b-d69a44426fbf
+modified: 2026-07-27T05:16:19.559Z
 ---
 web_hmi 어댑트는 ROS 측 LAYERS_ALL/launch만 패치하면 화면이 안 나온다. 두 가지 추가 검증 필수:
 
@@ -16,6 +17,17 @@ web_hmi 어댑트는 ROS 측 LAYERS_ALL/launch만 패치하면 화면이 안 나
 - web_hmi 어댑트 시 `LAYERS_ALL`과 `LAYER_STYLE` 동기화를 검증 단계의 필수 체크로 둘 것.
 - types.js는 정적 파일이라 수정 후 노드 재기동 불필요. **브라우저 강제 새로고침 (Ctrl+Shift+R)** 필요 — index_threejs_*.html에 cache-busting 쿼리스트링이 없어 일반 새로고침은 캐시 그대로 받음.
 - match-detective가 LAYERS_ALL만 보고 LAYER_STYLE은 안 보므로 `bridge-adapter` 또는 `adapt-verifier`에 LAYER_STYLE 매칭 검사를 추가하는 게 좋음.
+
+## 1b. LAYER_STYLE `alpha` 는 polygon 전용이었음 (polyline 무시)
+
+지도 레이어 색/두께/투명도의 **단일 원천은 `web/threejs/types.js:LAYER_STYLE`** 이다. 단, `alpha` 는 원래 `buildPolygonOutline` 만 읽었고 `buildPolyline` 은 `color`/`width` 만 받아 **polyline 레이어에 `alpha` 를 써도 아무 효과가 없었다**. 2026-07-27 `MapLayers.jsx:buildPolyline` 에 `alpha` 인자를 추가(`alpha != null && < 1.0` 일 때만 `transparent+opacity`)해 지원. `alpha` 미지정 레이어는 종전대로 불투명.
+
+**Why:** "A2 Lane lines 를 연하게" 요청 시 types.js 값만 바꾸면 반영될 것처럼 보이지만 빌더가 무시한다. 실제로 두 파일을 함께 고쳐야 한다.
+
+**How to apply:**
+- polyline 레이어(A2_LINK, B2_SURFACELINEMARK, TB_senario_map, C3, C5) 농도 조절 = `types.js` `alpha` 값 하나. 현재 `A2_LINK: alpha 0.2`(연함), 나머지는 미지정=불투명.
+- `width`(linewidth) 는 대부분의 WebGL 환경에서 1px 로 고정되어 굵기 조절이 안 되므로, 강조/약화는 색상+`alpha` 로 한다.
+- 정적 파일이라 catkin 빌드·노드 재기동 불필요. **Ctrl+Shift+R** 만 하면 됨(위 1번과 동일).
 
 ## 2. bag 재생 시 /hmi/* latched 토픽 충돌
 

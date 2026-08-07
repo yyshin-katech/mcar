@@ -253,3 +253,33 @@ diff /home/ads/.claude/projects/-home-ads-mcar-v13/memory/MEMORY.md /home/ads/mc
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
 | 2026-07-15 | 초기 구성 + 1회 실행 | agents 3 (stopline-adj-{analyst,coder,verifier}) + skills/stopline-adj + `_stopline_adj_workspace/` | `stop_line_adj_20260715.md`: 링크 871/870/877 을 B2209W001421(Kind530 정지선)까지 +2.9m 연장(66→68.9m), 3871/3870/3877 트림. verifier 6항목 PASS(정지선 수직거리 0m, 287 mat 불변) |
+
+## 하네스: crosswalk-position
+
+**목표:** `claude_work_list/crosswalk_position.md` 의 횡단보도 폴리곤(WGS84)을 `src/sensing/can/src/katech_ped_detector.py` 의 EPSG:5179 `crosswalk_data` 로 교체(오프라인 pyproj 변환 후 리터럴)하고 senario mat 뷰어(`mapfiles/senario/mat_viewer_senario_260514c 1.html`)에 각 횡단보도 다각형(채움+토글+범례)을 표시. 원천: `claude_work_list/crosswalk_position.md`, 확정사실: `_crosswalk_position_workspace/00_constraints.md`.
+
+**트리거:** "횡단보도 좌표", "crosswalk_position", "횡단보도 다각형", "ped_detector 좌표", "횡단보도 뷰어 표시", "횡단보도 좌표 다시" 요청 시 `crosswalk-position` 스킬 사용. 단순 조회는 직접 응답.
+
+**확정 결정 (Phase1):** 범위=좌표+뷰어+검증만(occupancy_msg·CAN·HMI 무변경, 검출토픽 순회로 자동 커버) · 변환 `pyproj EPSG:4326→5179 always_xy=True` 입력(lon,lat) · .py 는 `crosswalk_data` 딕셔너리만 교체(리터럴) · 뷰어 추가-온리 · 원본 백업.
+
+**확정 결정 (Phase2, 사용자 "둘 다"):** Phase1 의 CAN/occupancy 무변경 제약 **해제** · 크로스워크→접근 LINK_ID `CW_LINKS`(원천 `crosswalk_position.md` §134, detector·fusion 공유 dict) · detector `find_crosswalks_containing_object` 를 ego LINK_ID 로 **게이팅**(on_crosswalk·occupancy 동시, 접근 크로스워크만) · occupancy_msg `uint8[] occupied_ids` 추가(기존 2필드 보존) · fusion active=CW_LINKS 조회(1~9), own=`active in occupied_ids`, obu=#1·#2만(3~9 OBU 없음) · CAN writer/web_hmi(CrosswalkZones) 무변경(3~9 점멸은 자동).
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-07-15 | 초기 구성 | agents 3 (crosswalk-position-{analyst,coder,verifier}) + skills/crosswalk-position + `_crosswalk_position_workspace/00_constraints.md` | `crosswalk_position.md` 9개 횡단보도(1·2 기존=동일, 3~9 신규) 좌표를 ped_detector 에 반영 + mat 뷰어 표시 요청. 사용자 결정 2건(범위=좌표+뷰어만, 뷰어=채움 다각형+토글+범례) |
+| 2026-07-15 | Phase1 실행 | katech_ped_detector.py(crosswalk_data 1~9) + mat 뷰어 var CROSSWALK + CrosswalkZones.jsx(표시 1~9) | 9개 좌표 반영·뷰어·web_hmi 표시(표시 전용). verifier 7/7 (aaefdc4/fd1baee) |
+| 2026-07-15 | Phase2 (LINK 게이팅+HMI 경보, "둘 다") | katech_ped_detector.py(LINK 게이팅+occupied_ids) + crosswalk_occupancy_msg(`uint8[] occupied_ids`) + crosswalk_ped_fusion.py(active 1~9) | §134 크로스워크→LINK 매핑으로 on_crosswalk(CAN) 링크 게이팅 + fusion active 3~9 → web_hmi 3~9 점멸. catkin_make EXIT0, verifier 7/7. CAN writer/web_hmi 무변경 |
+
+## 하네스: ped-detector-cpp
+
+**목표:** `katech_ped_detector.py`(횡단보도 보행자 `on_crosswalk` 검출)를 **C++ ROS 노드로 포팅** + **크기 게이트 + 방향 게이트**(횡단보도 길이축 vs 객체 절대 이동방향) 추가. 필터 순서 **타입→크기→멤버십(LINK)→방향**. 확정사실: `_ped_detector_cpp_workspace/00_constraints.md`.
+
+**트리거:** "ped detector cpp", "보행자 검출 cpp 포팅", "크기 게이트", "방향 게이트", "on_crosswalk cpp", "횡단보도 검출 cpp" 요청 시 `ped-detector-cpp` 스킬 사용. 단순 조회는 직접 응답.
+
+**확정 결정:** 객체 `vx,vy`=**ego-상대속도** → 절대속도 `R(yaw)·(vx,vy)+v_ego_map`(ego 가산 필수) · 정지(sp<0.3m/s)=방향 스킵·타입+크기로 유지(서 있는 보행자 보호), 이동만 횡단각≤40° · 임계 크기 max변≤2.0m·이동≥0.3m/s·각≤40°(상수 튜닝) · 길이축=폴리곤 PCA major axis · 동작 등가(토픽/메시지/crosswalk_data 1~9/CW_LINKS/ray-casting/LINK 게이팅/occupancy) 보존, 신규=size·direction 게이트만 · CAN writer/fusion/msg 불침범 · launch dual-publisher 금지(Python↔C++ 택1).
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-07-21 | 초기 구성 | agents 3 (ped-detector-cpp-{analyst,coder,verifier}) + skills/ped-detector-cpp + `_ped_detector_cpp_workspace/00_constraints.md` | Python 검출 로직 C++ 포팅 + 크기/방향 게이트 요청. 사용자 결정 2건(정지=타입+크기 유지, 기본 임계값). 속도 프레임 ego-relative 검증 완료 |

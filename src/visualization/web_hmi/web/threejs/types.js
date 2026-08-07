@@ -41,7 +41,7 @@ function deriveType(obj) {
 // HD map layer palette (cyan-on-dark, NGII-inspired).
 const LAYER_STYLE = {
   A1_NODE:                    { color: '#5cf2ff', size: 0.4,  kind: 'point' },
-  A2_LINK:                    { color: '#00e5ff', width: 1.0, kind: 'polyline' },
+  A2_LINK:                    { color: '#00e5ff', width: 1.0, alpha: 0.2, kind: 'polyline' },
   A3_DRIVEWAYSECTION:         { color: '#4d7fa3', alpha: 0.18, kind: 'polygon' },
   A4_SUBSIDIARYSECTION:       { color: '#3a5f7d', alpha: 0.16, kind: 'polygon' },
   A5_PARKINGLOT:              { color: '#5a8fb4', alpha: 0.20, kind: 'polygon' },
