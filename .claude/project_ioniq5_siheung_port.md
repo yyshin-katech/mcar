@@ -78,10 +78,25 @@ siheung_release 의 맵/로직을 그대로 가져와야 한다. K-City 링크 �
   `spat_CAN_writer.cpp:33-37 movement_matches_manuaver` 가 `man==0` 에서 둘 다 허용하므로 방향매칭 무발신 없음.
 - phase 분포 {3:1128, 5:332, 6:161, 7:14} → **permissive 5/7 이 21.2%** (3/6/8 만 인식하면 1/5 를 놓침)
 
-**DBC v8 비트폭 부족 (제어팀 미합의, 시흥에서 즉시 발현)**: `V2X_SPaT_1.Intersection_ID_1` 4bit /
-`signalGroup_1` 5bit, `LOCAL_MAP_INFO.look_at_IntersectionID`·`look_at_signalGroupID` 각 4bit.
-IID 519·SG 70 수용 불가. 설계상의 "IID 축약표"는 **구현돼 있지 않다**(`spat_CAN_writer.cpp:139` 원값 전달).
+**DBC v8 비트폭 — `V2X_SPaT_1` 해소 / `LOCAL_MAP_INFO` 잔존 (2026-08-20)**
 `kvaDbStoreSignalValuePhys` 는 초과분을 잘라내고도 **status=0 반환**(무성). 절단 vs 클램프는 CANoe 로 확정 필요.
+- **해소**: `BO_ 769 V2X_SPaT_1` 을 siheung_dev `CANdb_IONIQev_PCAN1.dbc` 와 **비트 동일**하게 확장 —
+  DLC **4→8**, `signalGroup_1` `16|5`→**`16|8`**, `Intersection_ID_1` `28|4`→**`32|16`**.
+  **`spat_CAN_writer.cpp:44 dlc` 도 4→8 필수** (`can_data[dlc]`·`sizeof(can_data)`·`canWrite` 가 모두 이 값에 묶임 —
+  DLC 를 안 올리면 바이트 4-5 로 옮겨간 IID 가 전송조차 안 됨). 시흥 IID 10종×SG 2종 왕복 무손실 확인.
+  단, siheung_dev 구형 `_251126.dbc`/`_old.dbc` 는 여전히 4bit → **참조 시 최신 `CANdb_IONIQev_PCAN1.dbc` 만 볼 것.**
+- **잔존**: `LOCAL_MAP_INFO.look_at_IntersectionID`·`look_at_signalGroupID` 각 4bit. **siheung_dev 도 미확장**(전제 불성립).
+  `BO_ 1824` 는 64bit 중 63bit 점유 → **빈 비트 1개(bit 63)** 뿐인데 필요폭 9bit ⇒ **repack 없이는 불가**.
+  기준 차량(아이오닉 EV)도 같은 4bit 로 시흥 미션 수행 중이고 교차로 식별은 `V2X_SPaT_1` 담당 → **현행 유지 판단**.
+- **`look_at_IntersectionID` 는 비트폭 이전에 이미 죽어 있다 (2026-08-20 확인, 앞선 "302→14 절단" 기록 정정)**:
+  `local_CAN_writer.cpp:232` 에 **K-City 축약표**(`200→2, 300→3, 400→4, 610→6, 700→7, default: break`)가 있고,
+  `temp_intersection_id_msg` 는 콜백마다 0 으로 초기화된다. 시흥 IID 17종 중 표에 걸리는 값이 **하나도 없어
+  버스에는 항상 0**. 절단이 아니라 축약표에서 소실. `look_at_signalGroupID` 만 원값 전달이라 실제 절단(60→12, 70→6, 80→0).
+- **3-way 대조 결과 `siheung_dev` = `siheung_release` = `ioniq5_siheung_dev` 완전 동일** —
+  `BO_ 1824` 시그널 12개 정의(SG_ 나열 순서만 다름), 축약표·`temp_data` 조립부 문자 단위 일치,
+  senario `.mat` 293개 blob 해시 집합 일치. **아이오닉 EV 도 시흥에서 IID=0 / SG 절단 상태로 주행 중** → 포팅 회귀 아님.
+  `BO_ 769` 도 siheung_release 가 확장판을 갖고 있어 v8 확장 후 세 브랜치 동일.
+설계상의 "IID 축약표"는 **구현돼 있지 않다**(`spat_CAN_writer.cpp:139` 원값 전달) — 확장으로 불필요해짐.
 
 **pyqt `main_window.py` 는 활성 경로가 아니다** — `main_display.py` 는 `pyqt_hmi/launch/hmi.launch` 에만 있고
 `katech_test.launch`·`diagnostic_only.launch` 어느 쪽도 include 하지 않는다(`roslaunch --nodes` 확인).

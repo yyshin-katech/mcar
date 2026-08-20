@@ -182,12 +182,12 @@ BO_ 64 On_ODD_Stat: 3 NUC
  SG_ Road_State : 1|2@1+ (1,0) [0|3] "" Vector__XXX
  SG_ On_ODD : 0|1@1+ (1,0) [0|1] "" Vector__XXX
 
-BO_ 769 V2X_SPaT_1: 4 NUC
+BO_ 769 V2X_SPaT_1: 8 NUC
  SG_ movementName_1 : 24|4@1+ (1,0) [0|2] "" Vector__XXX
  SG_ minEndTime_1 : 0|12@1+ (1,0) [0|4095] "" Vector__XXX
  SG_ eventState_1 : 12|4@1+ (1,0) [0|9] "" Vector__XXX
- SG_ signalGroup_1 : 16|5@1+ (1,0) [0|16] "" Vector__XXX
- SG_ Intersection_ID_1 : 28|4@1+ (1,0) [0|9] "" Vector__XXX
+ SG_ signalGroup_1 : 16|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ Intersection_ID_1 : 32|16@1+ (1,0) [0|65535] "" Vector__XXX
 
 BO_ 276 CPT7_Longitude_Acc: 8 NUC
  SG_ cpt7_longAcc : 0|64@1- (1,0) [-1.7E+308|1.7E+308] "m/s^2" Vector__XXX

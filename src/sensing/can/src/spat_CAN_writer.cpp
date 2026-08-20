@@ -41,7 +41,7 @@ class SPAT_CAN_WRITER{
     ros::Subscriber sub1, sub2;
 
     unsigned int kvaDb_flags = 0;
-    unsigned int dlc = 4;
+    unsigned int dlc = 8;
 
     double time1 = -1;
     float new_time = 0;
