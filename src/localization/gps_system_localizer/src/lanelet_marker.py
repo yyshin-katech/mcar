@@ -12,9 +12,13 @@ from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import Point
 from mmc_msgs.msg import to_control_team_from_local_msg
 
-# MAPFILE_PATH = rospy.get_param("MAPFILE_PATH_kiapi")
-MAPFILE_PATH = '/home/katech/mcar/src/localization/gps_system_localizer/src'
-# MAPFILE_PATH = '/home/yuyeong/mcar/src/localization/gps_system_localizer/src'
+# shp 경로는 SHP_MAP_PATH rosparam 으로 주입 (미지정 시 아래 기본값)
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_SHP_MAP_PATH = os.path.join(SCRIPT_DIR, 'shp_map', 'senario_shp_20260623')
+
+# SHP(EPSG:32652) -> EPSG:5179 좌표 변환기. senario shp 원본이 UTM52N 이고
+# ego pose(/localization/to_control_team)는 5179 라 변환 없이는 마커가 수백 km 밖에 그려진다.
+_shp_to_5179 = pyproj.Transformer.from_crs('EPSG:32652', 'EPSG:5179', always_xy=True)
 
 def lanelet_data_initialize(shp_file):
     """Initialize data from a single shapefile"""
@@ -41,6 +45,9 @@ def lanelet_data_initialize(shp_file):
             for i, points in enumerate(shape.points):
                 location = [coord for coord in points]
                 east, north = location
+
+                # EPSG:32652 -> EPSG:5179
+                east, north = _shp_to_5179.transform(east, north)
 
                 wp['e'].append(east)
                 wp['n'].append(north)
@@ -134,7 +141,10 @@ class lanelet_marker(object):
 
         # Load multiple shapefiles
         # Option 1: Load all .shp files in the directory
-        self.wps = load_multiple_shapefiles(MAPFILE_PATH, "*.shp")
+        shp_map_path = rospy.get_param('~SHP_MAP_PATH', DEFAULT_SHP_MAP_PATH)
+        # senario shp 는 11개 레이어인데 A2_LINK 외 4개가 포인트 레이어라
+        # 그대로 로드하면 1점짜리 LINE_STRIP 이 5064개 생긴다. 차선 링크만 쓴다.
+        self.wps = load_multiple_shapefiles(shp_map_path, "A2_LINK.shp")
         self.e_ego = 0.0
         self.n_ego = 0.0
         self.vehicle_yaw = 0.0

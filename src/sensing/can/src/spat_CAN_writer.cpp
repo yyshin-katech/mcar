@@ -27,7 +27,14 @@
 
 using namespace std;
 
-#define MAX_SPAT_MSG 7
+// ego 진행방향(MANUAVER) ↔ movement 방향문자열 매칭.
+// MANUAVER -1=LEFT, 0=STR/STRAIGHT, 1=RIGHT. MQTT 는 약어(STR), OBU 는 풀네임(STRAIGHT) 을 쓰므로
+// 직진은 두 철자 모두 허용. PED/PEDESTRIAN/BUS/BYC 는 어느 집합에도 없어 자동 배제, empty 는 스킵.
+static bool movement_matches_manuaver(const std::string& mn, int man) {
+  if (man == -1) return mn == "LEFT";
+  if (man ==  1) return mn == "RIGHT";
+  return mn == "STR" || mn == "STRAIGHT";   // man == 0 (직진)
+}
 
 class SPAT_CAN_WRITER{
   public:
@@ -44,6 +51,7 @@ class SPAT_CAN_WRITER{
     
     unsigned short g_intersection_id = 0;
     unsigned char g_signalGroup_id = 0;
+    int g_manuaver = 0;   // to_control_team.MANUAVER (-1=LEFT, 0=STR, 1=RIGHT)
 
     vector<tuple<char*, vector<char*>>> msg_list;
 
@@ -69,6 +77,7 @@ void SPAT_CAN_WRITER::CALLBACK_LOCAL_TEAM(const mmc_msgs::to_control_team_from_l
 
   g_intersection_id = msg.look_at_IntersectionID;
   g_signalGroup_id = msg.look_at_signalGroupID;
+  g_manuaver = msg.MANUAVER;
 }
 
 void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg ){
@@ -95,102 +104,58 @@ void SPAT_CAN_WRITER::CALLBACK_SPAT(const v2x_msgs::intersection_array_msg& msg 
   int re_value = 0;
   
   // ROS_INFO("SPaT msg CALLBACK@!!!!!!!!");
-  int temp_time =0;
-  unsigned char temp_phase = 0;
-
-  uint16_t temp_intersection_id = 0;
-  uint8_t temp_intersection_id_msg = 0;
-
-  for(int i = 0; i<MAX_SPAT_MSG; i++)
+  if(g_intersection_id == 0)
   {
-    // g_intersection_id = 200;
-    // g_signalGroup_id = 9;
-    if(g_intersection_id != 0)
-    {
-      if(msg.data[i].IntersectionID == g_intersection_id)
-      {
-        // ROS_INFO("%d", msg.data[i].IntersectionID);
-        if(msg.data[i].Movements.SignalGroupID == g_signalGroup_id)
-        {
-          target_msg = (char*)"V2X_SPaT_1";
-          temp_intersection_id = msg.data[i].IntersectionID;
+    target_msg = (char*)"V2X_SPaT_1";
+    temp_data = {(char)0,
+    (int)0,
+    (unsigned char)0,
+    (double)0,
+    (double)0};
 
-          switch(temp_intersection_id){
-            case(100):
-              temp_intersection_id_msg = 1;
-              break;
+    msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
+    kvaDbGetMsgByName(dh, target_msg, &mh);
+    kvaDbGetMsgId(mh, &id_write, &flag);
 
-            case(200):
-              temp_intersection_id_msg = 2;
-              break;
-
-            case(300):
-              temp_intersection_id_msg = 3;
-              break;
-
-            case(400):
-              temp_intersection_id_msg = 4;
-              break;
-
-            case(610):
-              temp_intersection_id_msg = 6;
-              break;
-
-            case(700):
-              temp_intersection_id_msg = 7;
-              break;
-
-            case(1500):
-              temp_intersection_id_msg = 15;
-              break;
-
-            default:
-              break;
-          }
-        
-          temp_data = {(char)0,
-          (int)msg.data[i].Movements.TimeChangeDetails,
-          (unsigned char)msg.data[i].Movements.MovementPhaseStatus,
-          (double)msg.data[i].Movements.SignalGroupID,
-          (double)msg.data[i].IntersectionID};
-
-          msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
-          kvaDbGetMsgByName(dh, target_msg, &mh);
-          kvaDbGetMsgId(mh, &id_write, &flag);
-
-          for(int j=0; j!=get<1>(msg_list[msg_idx]).size(); j++){
-            kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[j], &sh);
-            kvaDbStoreSignalValuePhys(sh, &can_data, sizeof(can_data), temp_data[j]);
-          }
-          re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
-          memset(can_data, 0, sizeof(can_data));
-
-          ROS_INFO("Intersection ID : %d", msg.data[i].IntersectionID);
-          ROS_INFO("signalGroup : %d", msg.data[i].Movements.SignalGroupID);
-          ROS_INFO("eventState : %d", temp_phase);
-          ROS_INFO("minEndTime : %d", temp_time);
-        }
-      }
+    for(int j=0; j!=get<1>(msg_list[msg_idx]).size(); j++){
+      kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[j], &sh);
+      kvaDbStoreSignalValuePhys(sh, &can_data, sizeof(can_data), temp_data[j]);
     }
-    else
+    re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
+    memset(can_data, 0, sizeof(can_data));
+  }
+  else
+  {
+    for(int i = 0; i<(int)msg.data.size(); i++)
     {
-      target_msg = (char*)"V2X_SPaT_1";
-      temp_data = {(char)0,
-      (int)0,
-      (unsigned char)0,
-      (double)0,
-      (double)0};
+      if(msg.data[i].IntersectionID == g_intersection_id &&
+         msg.data[i].Movements.SignalGroupID == g_signalGroup_id &&
+         movement_matches_manuaver(msg.data[i].Movements.MovementStateName, g_manuaver))
+      {
+        target_msg = (char*)"V2X_SPaT_1";
 
-      msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
-      kvaDbGetMsgByName(dh, target_msg, &mh);
-      kvaDbGetMsgId(mh, &id_write, &flag);
+        temp_data = {(char)0,
+        (int)msg.data[i].Movements.TimeChangeDetails,
+        (unsigned char)msg.data[i].Movements.MovementPhaseStatus,
+        (double)msg.data[i].Movements.SignalGroupID,
+        (double)msg.data[i].IntersectionID};
 
-      for(int j=0; j!=get<1>(msg_list[msg_idx]).size(); j++){
-        kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[j], &sh);
-        kvaDbStoreSignalValuePhys(sh, &can_data, sizeof(can_data), temp_data[j]);
+        msg_idx = FIND_MSG_IDX(target_msg, &msg_list);
+        kvaDbGetMsgByName(dh, target_msg, &mh);
+        kvaDbGetMsgId(mh, &id_write, &flag);
+
+        for(int j=0; j!=get<1>(msg_list[msg_idx]).size(); j++){
+          kvaDbGetSignalByName(mh, get<1>(msg_list[msg_idx])[j], &sh);
+          kvaDbStoreSignalValuePhys(sh, &can_data, sizeof(can_data), temp_data[j]);
+        }
+        re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
+        memset(can_data, 0, sizeof(can_data));
+
+        ROS_INFO("Intersection ID : %d", msg.data[i].IntersectionID);
+        ROS_INFO("signalGroup : %d", msg.data[i].Movements.SignalGroupID);
+
+        break;
       }
-      re_value = canWrite(hCAN, id_write, &can_data, dlc, canMSG_STD);
-      memset(can_data, 0, sizeof(can_data));
     }
   }
 }
@@ -271,7 +236,7 @@ int main(int argc, char **argv){
   string relative_path = ros::package::getPath("can");
   char filename[100];
 
-  strcpy(filename, (relative_path + "/dbc/CANdb_IONIQ5_AD_CAN_v6.dbc").c_str());
+  strcpy(filename, (relative_path + "/dbc/CANdb_IONIQ5_AD_CAN_v8.dbc").c_str());
   int channel_num = 0;
   bool init_access_flag = false;
 
@@ -279,7 +244,7 @@ int main(int argc, char **argv){
 
   can_status = SPaTCW.OPEN_CAN_CHANNEL_AND_READ_DB(channel_num, filename, init_access_flag);
 
-  ros::Subscriber sub1 = node.subscribe("/katri_v2x_node/katri_spat", 1, &SPAT_CAN_WRITER::CALLBACK_SPAT, &SPaTCW);
+  ros::Subscriber sub1 = node.subscribe("/spat_merged", 1, &SPAT_CAN_WRITER::CALLBACK_SPAT, &SPaTCW);
   // ros::Subscriber sub1 = node.subscribe("/ktri_obu_interface_node/katri_spat", 1, &SPAT_CAN_WRITER::CALLBACK_SPAT, &SPaTCW);
   ros::Subscriber sub2 = node.subscribe("/localization/to_control_team", 1, &SPAT_CAN_WRITER::CALLBACK_LOCAL_TEAM, &SPaTCW);
 

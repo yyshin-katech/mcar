@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BSM partII 주행예정 링크 시퀀스 확장 규격 (v1)</title>
+<style>
+  :root{--bg:#0f1419;--card:#1a212b;--line:#2b3440;--fg:#e6edf3;--mut:#9aa7b4;
+        --acc:#5ec8f0;--acc2:#fab387;--ok:#7ee787;--warn:#f0b429;--code:#0b0f14;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font-family:-apple-system,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;
+       line-height:1.65;font-size:15px}
+  .wrap{max-width:960px;margin:0 auto;padding:32px 24px 80px}
+  h1{font-size:26px;margin:0 0 4px;color:#fff}
+  h2{font-size:20px;margin:38px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--line);color:var(--acc)}
+  h3{font-size:16px;margin:22px 0 8px;color:var(--acc2)}
+  .sub{color:var(--mut);margin:0 0 8px}
+  .badges{margin:14px 0 8px}
+  .badge{display:inline-block;background:var(--card);border:1px solid var(--line);
+         border-radius:999px;padding:4px 12px;margin:0 6px 6px 0;font-size:13px;color:var(--mut)}
+  .badge b{color:var(--fg)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:14px 0}
+  code{background:var(--code);color:#cbe6ff;padding:2px 6px;border-radius:5px;font-size:13px;
+       font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:14px 16px;
+      overflow:auto;font-size:13px;font-family:"SF Mono",Menlo,Consolas,monospace;color:#cbe6ff}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:#222b36;color:var(--fg)}
+  td code{white-space:nowrap}
+  .note{border-left:3px solid var(--warn);background:rgba(240,180,41,.08);padding:10px 14px;border-radius:0 8px 8px 0;margin:12px 0}
+  .ok{border-left:3px solid var(--ok);background:rgba(126,231,135,.08);padding:10px 14px;border-radius:0 8px 8px 0;margin:12px 0}
+  .mono{font-family:"SF Mono",Menlo,Consolas,monospace}
+  .small{font-size:13px;color:var(--mut)}
+  .tag{display:inline-block;background:#243; color:var(--ok);border-radius:4px;padding:1px 7px;font-size:12px}
+  .kv{display:grid;grid-template-columns:200px 1fr;gap:4px 16px;font-size:14px}
+  .kv div:nth-child(odd){color:var(--mut)}
+  footer{margin-top:50px;color:var(--mut);font-size:12px;border-top:1px solid var(--line);padding-top:16px}
+  .flow{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:13px;color:#cbe6ff;
+        background:var(--code);border:1px solid var(--line);border-radius:8px;padding:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>BSM partII 주행예정 링크 시퀀스 확장 규격</h1>
+  <p class="sub">J2735 BasicSafetyMessage 사설 확장 — 차량이 곧 지날 링크 ID 순서열 전송</p>
+  <div class="badges">
+    <span class="badge">버전 <b>v1</b></span>
+    <span class="badge">메시지 <b>J2735 BSM (messageId 20)</b></span>
+    <span class="badge">확장 위치 <b>partII</b></span>
+    <span class="badge">partII_Id <b>63</b></span>
+    <span class="badge">payload <b>UTF-8 JSON</b></span>
+    <span class="badge">인코딩 <b>UPER (MessageFrame)</b></span>
+    <span class="badge">작성일 <b>2026-06-11</b></span>
+  </div>
+
+  <div class="note">
+    <b>주의 — 사설(non-standard) 확장.</b> 본 규격은 SAE J2735 표준이 정의한 컨텐츠가 아니라
+    시흥 V2N 폐쇄망 내부에서만 통용되는 사설 확장이다. 표준 J2735 수신기는 이 partII 블록을
+    <em>무시</em>하므로 정상 동작에는 영향이 없으나, 본 데이터를 해석하려면 수신측이
+    <code>partII_Id = 63</code> 과 아래 JSON 포맷을 사전에 알아야 한다.
+  </div>
+
+  <h2>1. 목적</h2>
+  <p>자율주행 차량이 <b>현재 주행 중인 링크</b>와 <b>곧 지나갈 링크들</b>의 ID 순서열을
+     10&nbsp;Hz BSM 에 실어 관제(V2N 센터)로 전송한다. 링크 ID 는 시흥 HD맵(senario)
+     <code>link_*.mat</code> 의 <code>LINK_ID_string</code> 값(예: <code>A222BF785106</code>)을 사용한다.</p>
+
+  <h2>2. 메시지 위치 (계층)</h2>
+  <div class="flow">
+V2N 컨테이너(16B 헤더, fid=0xFF10, psid=0x00014082)<br>
+&nbsp;└─ <b>UPER MessageFrame</b> (messageId = 20, BSM)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;└─ BasicSafetyMessage<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├─ coreData ………………… (기존: 위치/속도/방위/가속/조향/브레이크/크기)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└─ <b>partII</b>  SEQUENCE OF PartIIcontent<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└─ [0] { partII_Id = <b>63</b>, partII_Value = OpenType(raw) = <b>JSON</b> }
+  </div>
+  <p class="small">기존 coreData 는 그대로 유지된다. 본 확장은 <code>partII</code> 리스트에 원소 1개를 추가할 뿐이다.</p>
+
+  <h2>3. partII 컨테이너</h2>
+  <table>
+    <tr><th>필드</th><th>값 / 타입</th><th>설명</th></tr>
+    <tr><td><code>partII_Id</code></td><td><code>63</code> (INTEGER 0..63)</td>
+        <td>사설 식별자. 표준 0/1/2 (vehicleSafetyExt / specialVehicleExt / supplementalVehicleExt) 회피.</td></tr>
+    <tr><td><code>partII_Value</code></td><td>OpenType, <code>type = NULL</code></td>
+        <td>raw octet string 모드. 내용 = UTF-8 JSON 바이트(아래 §4). UPER 상 length-prefix + 옥텟.</td></tr>
+  </table>
+  <div class="note">
+    <b>partII_Id 범위.</b> J2735 <code>PartII-Id ::= INTEGER (0..63)</code>. 64 이상은
+    UPER 인코딩이 실패한다. 본 규격은 범위 상단의 미할당 값 <b>63</b> 을 예약한다.
+  </div>
+
+  <h2>4. payload — JSON 스키마 (v1)</h2>
+  <p><code>partII_Value</code> 의 octet string 내용은 다음 UTF-8 JSON 객체이다.</p>
+  <table>
+    <tr><th>키</th><th>타입</th><th>필수</th><th>설명</th></tr>
+    <tr><td><code>v</code></td><td>integer</td><td>Y</td><td>포맷 버전. 현재 <code>1</code>.</td></tr>
+    <tr><td><code>links</code></td><td>array&lt;string&gt;</td><td>Y</td>
+        <td>주행 링크 ID 순서열. <code>links[0]</code> = 현재 링크, 이후 = 곧 지날 링크
+            (NEXT_LINK_ID 체인 순). 각 원소는 mat <code>LINK_ID_string</code> (예 <code>"A222BF785106"</code>).</td></tr>
+    <tr><td><code>n</code></td><td>integer</td><td>Y</td>
+        <td><code>links</code> 원소 개수. <code>1 ≤ n ≤ route_lookahead</code> (기본 cap 10).</td></tr>
+  </table>
+
+  <h3>예시</h3>
+  <pre>{"v":1,"links":["A222BF785057","A222BF785082","A222BF795015",
+                "A222BF795016","A222BF795116","A222BF795100",
+                "A222BF795109","A222BF795110","A222BF795103",
+                "A222BF795179"],"n":10}</pre>
+  <p class="small">위 예시는 현재 링크 <code>A222BF785057</code> (mat LINK_ID 417) 에서 NEXT_LINK_ID 체인을
+     10개까지 따라간 결과이다.</p>
+
+  <h3>LINK_ID_string 포맷</h3>
+  <p class="mono small">예: <b>A222BF785106</b> — 시흥 HD맵 링크 문자열 식별자.
+     숫자형 <code>LINK_ID</code>(예 5106 계열) 와 1:1 대응되며, 본 규격은 항상 문자열형을 싣는다.</p>
+
+  <h2>5. 와이어 인코딩</h2>
+  <div class="kv">
+    <div>코덱</div><div>UPER (Unaligned PER), ffasn1-j2735-2026-KSR1600</div>
+    <div>래핑</div><div>MessageFrame { messageId = 20, value = BSM }</div>
+    <div>OpenType 인코딩</div><div><code>type = NULL</code> + octet_string(JSON bytes) → UPER 가 길이-접두 옥텟열로 인코딩</div>
+    <div>V2N 컨테이너</div><div>16B 고정 헤더 prepend: container_type=0x04, fid=0xFF10(BSM), psid=0x00014082, message_length(BE)</div>
+    <div>MQTT 토픽</div><div><code>V2N/1321103202/bsm</code> (prod), 10&nbsp;Hz</div>
+    <div>참고 크기</div><div>coreData + partII(JSON 10링크) ≈ MessageFrame UPER <b>218 byte</b> (검증값)</div>
+  </div>
+
+  <h2>6. 수신측 디코딩 절차</h2>
+  <ol>
+    <li>V2N 16B 헤더 제거 → 잔여 = UPER MessageFrame.</li>
+    <li>MessageFrame UPER 디코드 → <code>messageId == 20</code> 확인, value = BasicSafetyMessage.</li>
+    <li><code>partII</code> 리스트 순회 → <code>partII_Id == 63</code> 원소 탐색.</li>
+    <li>해당 <code>partII_Value</code> 의 octet string(raw)을 UTF-8 로 해석 → JSON 파싱.</li>
+    <li><code>v</code> 확인 후 <code>links[]</code> 사용. (TIM rx 노드의 <code>jsonCandidatesFromOpenType()</code> 로직 재사용 가능.)</li>
+  </ol>
+  <div class="ok">
+    <b>round-trip 검증 완료.</b> partII_Id=63 + JSON 부착 → MessageFrame UPER 인코딩(218B)
+    → 디코딩 시 <code>partII_Id=63</code>, octet_string 이 원본 JSON 과 바이트 단위 일치 (PASS).
+  </div>
+
+  <h2>7. 송신측 구현 / 파라미터</h2>
+  <div class="kv">
+    <div>노드</div><div><code>siheung_v2x / mqtt_bsm_tx_node</code></div>
+    <div>현재 링크 소스</div><div><code>/localization/to_control_team</code> 의 <code>LINK_ID</code> (정수)</div>
+    <div>링크맵</div><div><code>config/senario_link_map.csv</code> (<code>link_id,link_id_string,next_link_id</code>, 308 링크)<br>
+        생성: <code>scripts/build_senario_link_map.py</code> (senario <code>link_*.mat</code> → CSV)</div>
+    <div>시퀀스 생성</div><div>현재 LINK_ID 부터 NEXT_LINK_ID 체인을 <code>route_lookahead</code> 개까지 추적, 사이클 시 중단</div>
+  </div>
+  <h3>launch 파라미터 (siheung.launch · mqtt_bsm_tx_node)</h3>
+  <table>
+    <tr><th>파라미터</th><th>기본값</th><th>설명</th></tr>
+    <tr><td><code>enable_route_partii</code></td><td><code>false</code></td>
+        <td>partII 확장 on/off. <code>roslaunch … enable_route_partii:=true</code> 로 활성화.</td></tr>
+    <tr><td><code>route_partii_id</code></td><td><code>63</code></td><td>partII_Id (0..63, 자동 클램프).</td></tr>
+    <tr><td><code>route_lookahead</code></td><td><code>10</code></td><td>현재 포함 최대 링크 개수 N (1..100).</td></tr>
+    <tr><td><code>route_topic</code></td><td><code>/localization/to_control_team</code></td><td>현재 LINK_ID 소스 토픽.</td></tr>
+    <tr><td><code>link_map_path</code></td><td><code>$(find siheung_v2x)/config/senario_link_map.csv</code></td><td>링크맵 CSV 경로.</td></tr>
+  </table>
+  <div class="note">
+    <b>비활성 시 동작.</b> <code>enable_route_partii=false</code> 또는 to_control_team 미수신,
+    링크맵에 없는 LINK_ID 인 경우 partII 는 생략되고 기존 <em>coreData-only</em> BSM 으로 송신된다.
+  </div>
+
+  <h2>8. 제약 / 한계</h2>
+  <ul>
+    <li>사설 확장 — 시흥 V2N 폐쇄망 + 사전 합의 수신측에서만 해석. 표준 수신기는 무시.</li>
+    <li>단일 <code>NEXT_LINK_ID</code> 체인만 추적 — 분기/차선변경 등 다중 경로는 미표현. <code>next=0</code> 이면 종료.</li>
+    <li>10&nbsp;Hz 브로드캐스트 — 링크열 변동이 없으면 매 프레임 동일 payload 재전송. 개수 cap 으로 크기 관리.</li>
+    <li>링크 ID 어휘는 senario HD맵에 종속 — 맵 갱신 시 CSV 재생성 필요.</li>
+  </ul>
+
+  <h2>9. 버전 이력</h2>
+  <table>
+    <tr><th>버전</th><th>일자</th><th>내용</th></tr>
+    <tr><td>v1</td><td>2026-06-11</td><td>초안. partII_Id=63, JSON {v,links[],n}, LINK_ID_string 사용.</td></tr>
+  </table>
+
+  <footer>
+    siheung_v2x · BSM partII 주행예정 링크 시퀀스 확장 규격 v1 ·
+    구현: <span class="mono">mqtt_bsm_tx_node.cpp</span> ·
+    관련 설계: <span class="mono">claude_work_list/bsm_route_link_seq.md</span>
+  </footer>
+
+</div>
+</body>
+</html>

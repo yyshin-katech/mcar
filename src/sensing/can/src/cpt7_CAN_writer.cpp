@@ -239,7 +239,7 @@ int main(int argc, char **argv){
   string relative_path = ros::package::getPath("can");
   char filename[100];
 
-  strcpy(filename, (relative_path + "/dbc/CANdb_IONIQ5_AD_CAN_v6.dbc").c_str());
+  strcpy(filename, (relative_path + "/dbc/CANdb_IONIQ5_AD_CAN_v8.dbc").c_str());
   int channel_num = 0;
   bool init_access_flag = false;
 

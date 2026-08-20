@@ -14,7 +14,7 @@
     
 #include <perception_ros_msg/object_array_msg.h>
 #include <perception_ros_msg/object_msg.h>
-#include <novatel_gps_msgs/Inspva.h>
+#include <katech_custom_msgs/v_can_msg.h>
 
 
 #include <algorithm>
@@ -54,7 +54,7 @@ class TRACK_CAN_WRITER_NO_GRID{
 
     TRACK_CAN_WRITER_NO_GRID();
 
-    void CALLBACK_INSPVA(const novatel_gps_msgs::InspvaConstPtr& data);
+    void CALLBACK_VCAN(const katech_custom_msgs::v_can_msg::ConstPtr& data);
     void CALLBACK_TRACK      (const perception_ros_msg::object_array_msg& data);
     short FIND_MSG_IDX(char* target_msg, vector<tuple<char*, vector<char*>>>* msg_list);
     canStatus OPEN_CAN_CHANNEL_AND_READ_DB(int channel_num, char *filename, bool init_access_flag);
@@ -438,10 +438,8 @@ TRACK_CAN_WRITER_NO_GRID::TRACK_CAN_WRITER_NO_GRID(){
 }
 
 
-void TRACK_CAN_WRITER_NO_GRID::CALLBACK_INSPVA(const novatel_gps_msgs::InspvaConstPtr& data){
-    double east_velocity = data->east_velocity;
-    double north_velocity = data->north_velocity;
-    speed_ego = std::sqrt(east_velocity * east_velocity + north_velocity * north_velocity);
+void TRACK_CAN_WRITER_NO_GRID::CALLBACK_VCAN(const katech_custom_msgs::v_can_msg::ConstPtr& data){
+    speed_ego = (data->wheel_speed_fl + data->wheel_speed_fr + data->wheel_speed_rl + data->wheel_speed_rr) / 4.0;
 }
 
 void TRACK_CAN_WRITER_NO_GRID::CALLBACK_TRACK(const perception_ros_msg::object_array_msg& data) {
@@ -771,7 +769,7 @@ int main(int argc, char **argv){
   can_status = TCW.OPEN_CAN_CHANNEL_AND_READ_DB(channel_num, filename, init_access_flag);
 
   ros::Subscriber sub5 = node.subscribe("/track_Multi_RS",               1, &TRACK_CAN_WRITER_NO_GRID::CALLBACK_TRACK,       &TCW);
-  ros::Subscriber sub6 = node.subscribe("/sensors/gps/inspva",           1, &TRACK_CAN_WRITER_NO_GRID::CALLBACK_INSPVA,       &TCW);
+  ros::Subscriber sub6 = node.subscribe("/sensors/v_can",                1, &TRACK_CAN_WRITER_NO_GRID::CALLBACK_VCAN,         &TCW);
 
 
   TCW.LOOP();

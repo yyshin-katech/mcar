@@ -59,3 +59,35 @@ siheung_release 의 맵/로직을 그대로 가져와야 한다. K-City 링크 �
 
 **How to apply:** 이 브랜치에서 맵/링크 관련 코드를 만질 땐 K-City 방식(인덱스==ID, 링크별 하드코딩)을
 되살리지 말 것. 링크별 예외가 필요하면 mat 필드로 넣는다. 관련 [[web_hmi_adapt_harness]] [[map_data]]
+
+## 포팅 검증 (2026-08-20)
+
+**포팅이 만든 회귀 = 1건뿐.** `stat_display` SPaT staleness→TOR 무력화.
+- 원인 패턴(재사용 가치 있는 함정): **이벤트 구동 토픽 → 자유구동(타이머) 토픽으로 갈아탈 때 "콜백 진입 = 수신"
+  으로 판정하던 staleness 로직이 소리없이 죽는다.** `/katri_v2x_node/katri_spat`(SPaT 있을 때만 발행)
+  → `/spat_merged`(`spat_merge_node.cpp:120` 이 빈 배열도 10 Hz 무조건 발행).
+  `spat_stale` 영구 false → `if(tl_needed && spat_stale) v2x_status=2`(TOR) 절대 미성립.
+- 수정: `stat_display.cpp:86` 을 `if (!msg->data.empty())` 로 가드. spat_merge_node 는 무수정(공유 V2X, siheung_dev diff ∅ 유지).
+- **siheung_dev 에는 이 staleness 로직 자체가 없다**(ioniq5 브랜치 고유 안전기능). 회귀 판정의 근거.
+
+**시흥 SPaT 실측 정의역** (출처 `src/visualization/spat_viewer/web/data/replay_timeline.json`,
+실주행 3 bag / 2026-06-24 / 512.6 s / 2427 샘플):
+- `IntersectionID` = {134,136,165,302,508,509,516,517,518,519} — 10곳, 최대 519
+- `SignalGroupID` = {60, 70} / `TimeChangeDetails` = 10~2550
+- `MovementStateName` = {LEFT 394, STR 170, STRAIGHT 1071} — MQTT 약어·OBU 풀네임 **둘 다 실재**.
+  `spat_CAN_writer.cpp:33-37 movement_matches_manuaver` 가 `man==0` 에서 둘 다 허용하므로 방향매칭 무발신 없음.
+- phase 분포 {3:1128, 5:332, 6:161, 7:14} → **permissive 5/7 이 21.2%** (3/6/8 만 인식하면 1/5 를 놓침)
+
+**DBC v8 비트폭 부족 (제어팀 미합의, 시흥에서 즉시 발현)**: `V2X_SPaT_1.Intersection_ID_1` 4bit /
+`signalGroup_1` 5bit, `LOCAL_MAP_INFO.look_at_IntersectionID`·`look_at_signalGroupID` 각 4bit.
+IID 519·SG 70 수용 불가. 설계상의 "IID 축약표"는 **구현돼 있지 않다**(`spat_CAN_writer.cpp:139` 원값 전달).
+`kvaDbStoreSignalValuePhys` 는 초과분을 잘라내고도 **status=0 반환**(무성). 절단 vs 클램프는 CANoe 로 확정 필요.
+
+**pyqt `main_window.py` 는 활성 경로가 아니다** — `main_display.py` 는 `pyqt_hmi/launch/hmi.launch` 에만 있고
+`katech_test.launch`·`diagnostic_only.launch` 어느 쪽도 include 하지 않는다(`roslaunch --nodes` 확인).
+현 화면은 web_hmi_bridge → `hmi_state.py`. 그래서 main_window 의 방향필터·phase 5/7 누락은 **잠복 결함**.
+
+**기존 결함(포팅 무관, 상속)**: `guard_zone` 생산자 부재 / `/sensors/rpm` 발행자 부재(MOTOR_RPM 미송신) /
+`movementName_1` 항상 0 / `Pedestrian_Stat.rel_pos_x` 정의역 [-10.24,30.71] 이라 전방 40 m → -0.96 m 로 반전 /
+`crosswalk_ped_fusion.py:93` 이 링크 661/662 에서 항상 CW#15 선택(CW#16 HMI 경보 누락, CAN 은 정상) /
+CW#18 접근링크가 percept ROI 우측컷 밖. **percept ROI 5개 상수·3-zone 로직은 siheung_dev 와 동일** → 기준차량과 같은 한계.

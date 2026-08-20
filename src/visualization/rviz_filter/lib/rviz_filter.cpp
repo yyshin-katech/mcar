@@ -189,6 +189,62 @@ void RVIZ_FILTER::percept_callback(const perception_ros_msg::object_array_msg::C
     marker_array.markers.push_back(text_marker);
     }
 
+    // ───── ROI 영역 외곽선 (percept_topic_matcher 정책과 동일) ─────
+    // A) box        : |y| <= 5,  x in [-40, 80]
+    // B) front-side : |y| >  5,  x in [   5, 80]
+    // C) rear-side  : |y| >  5,  x in [ -40,  0]
+    // 같은 상수가 percept_topic_matcher.cpp 에서도 정의되어 있으니 동시에 갱신할 것.
+    const double ROI_FRONT_X      = 80.0;
+    const double ROI_REAR_X       = -40.0;
+    const double ROI_LAT          = 5.0;
+    const double ROI_NEAR_X       = 10.0;   // 전방 측면 시작 x
+    const double ROI_REAR_NEAR_X  = -10.0;  // 박스 후방 끝 x (후방 10m 사각지대)
+    const double ROI_TICK         = 2.0;    // 측면 영역 양 끝 외향 tick 길이 (m)
+    auto make_marker = [&](int id, float r, float g, float b) {
+        visualization_msgs::Marker m;
+        m.header.frame_id = "ego_frame";
+        m.header.stamp = now;
+        m.ns = "roi";
+        m.id = id;
+        m.type = visualization_msgs::Marker::LINE_STRIP;
+        m.action = visualization_msgs::Marker::ADD;
+        m.scale.x = 0.15;
+        m.color.r = r; m.color.g = g; m.color.b = b; m.color.a = 0.75;
+        m.pose.orientation.w = 1.0;
+        m.lifetime = ros::Duration(1.0);
+        return m;
+    };
+    auto add_point = [](visualization_msgs::Marker& m, double x, double y) {
+        geometry_msgs::Point p; p.x = x; p.y = y; p.z = 0.0;
+        m.points.push_back(p);
+    };
+    // A: 박스 (cyan) — x ∈ [REAR_X, FRONT_X], |y| ≤ LAT. 후방 40m 전체 포함.
+    {
+        auto m = make_marker(0, 0.0f, 1.0f, 1.0f);
+        add_point(m, ROI_REAR_X,  -ROI_LAT);
+        add_point(m, ROI_FRONT_X, -ROI_LAT);
+        add_point(m, ROI_FRONT_X,  ROI_LAT);
+        add_point(m, ROI_REAR_X,   ROI_LAT);
+        add_point(m, ROI_REAR_X,  -ROI_LAT);
+        marker_array.markers.push_back(m);
+    }
+    // 측면 영역(B/C)은 "ㄷ"자 — 안쪽 |y|=±LAT 라인 + 양 끝 외향 tick(길이 ROI_TICK).
+    // 외곽(|y|=무한대) 라인 미표시로 영역이 외부로 열려있음을 표현.
+    auto add_open_side = [&](int id, double x0, double x1, double y_inner_signed,
+                             float r, float g, float b) {
+        auto m = make_marker(id, r, g, b);
+        double y_tick = y_inner_signed + (y_inner_signed >= 0 ? ROI_TICK : -ROI_TICK);
+        add_point(m, x0, y_tick);          // 시작 외향 tick 끝
+        add_point(m, x0, y_inner_signed);  // 안쪽 라인 시작
+        add_point(m, x1, y_inner_signed);  // 안쪽 라인 끝
+        add_point(m, x1, y_tick);          // 끝 외향 tick 끝
+        marker_array.markers.push_back(m);
+    };
+    // B: 전방 좌측 측면 (orange) — y > +5, x ∈ [10, 80]. 우측은 cut.
+    add_open_side(1, ROI_NEAR_X, ROI_FRONT_X, ROI_LAT, 1.0f, 0.55f, 0.0f);
+    // C: 후방 좌측 측면 (yellow) — y > +5, x ∈ [-40, -10]. 우측은 cut.
+    add_open_side(3, ROI_REAR_X, ROI_REAR_NEAR_X, ROI_LAT, 1.0f, 1.0f, 0.0f);
+
     marker_pub.publish(marker_array);
 }
 

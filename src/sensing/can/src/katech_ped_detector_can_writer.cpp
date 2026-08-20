@@ -14,6 +14,7 @@
 #include <std_msgs/Header.h>
 #include <katech_custom_msgs/ped_crosswalk_check_array_msg.h>
 #include <katech_custom_msgs/ped_crosswalk_check_msg.h>
+#include <katech_custom_msgs/crosswalk_ped_fusion_msg.h>
 
 #include <algorithm>
 #include <math.h>
@@ -36,6 +37,12 @@ class PED_DETECTOR_CAN_WRITTER{
         ros::NodeHandle nh;
 
         ros::Subscriber sub;
+        ros::Subscriber sub_fusion;
+
+        // RSU(V2X) 보행자 신호: fusion(source 2=obu / 3=both)에서 present 여부.
+        // 자체 라이다 on_crosswalk 와 OR 하여 CAN on_crosswalk 을 1 로 만든다.
+        bool rsu_present_ = false;
+        ros::Time rsu_stamp_;
 
         ros::Timer timer_;
 
@@ -46,6 +53,7 @@ class PED_DETECTOR_CAN_WRITTER{
 
         void timerCallback(const ros::TimerEvent&);
         void PED_DETECTOR_CALLBACK(const katech_custom_msgs::ped_crosswalk_check_array_msg& msg);
+        void FUSION_CALLBACK(const katech_custom_msgs::crosswalk_ped_fusion_msg& msg);
         short FIND_MSG_IDX(char* target_msg, vector<tuple<char*, vector<char*>>>* msg_list);
         void LOOP();
 };
@@ -53,6 +61,7 @@ class PED_DETECTOR_CAN_WRITTER{
 PED_DETECTOR_CAN_WRITTER::PED_DETECTOR_CAN_WRITTER()
 {
     sub = nh.subscribe("/katech_msg/crosswalk_detection", 1, &PED_DETECTOR_CAN_WRITTER::PED_DETECTOR_CALLBACK, this);
+    sub_fusion = nh.subscribe("/katech_msg/crosswalk_ped_fusion", 1, &PED_DETECTOR_CAN_WRITTER::FUSION_CALLBACK, this);
 
     msg_list.push_back(make_tuple((char*)"Pedestrian_Stat",  vector<char*> {(char*)"rel_pos_y_1",\
                                                                     (char*)"rel_pos_x_1",\
@@ -87,9 +96,22 @@ void PED_DETECTOR_CAN_WRITTER::timerCallback(const ros::TimerEvent&)
 
 }
 
+void PED_DETECTOR_CAN_WRITTER::FUSION_CALLBACK(const katech_custom_msgs::crosswalk_ped_fusion_msg& msg)
+{
+    // source 2=obu(v2x) / 3=both → RSU 보행자 신호 present.
+    rsu_present_ = (msg.source == 2 || msg.source == 3);
+    rsu_stamp_ = ros::Time::now();
+}
+
 void PED_DETECTOR_CAN_WRITTER::PED_DETECTOR_CALLBACK(const katech_custom_msgs::ped_crosswalk_check_array_msg& msg)
 {
     uint8_t can_data[8];
+
+    // RSU(V2X) present (2s staleness) → 자체 라이다 on_crosswalk 와 OR.
+    bool rsu = rsu_present_ && !rsu_stamp_.isZero()
+               && (ros::Time::now() - rsu_stamp_).toSec() < 2.0;
+    double rsu_val = rsu ? 1.0 : 0.0;
+
     char* target_msg_1;
     char* target_msg_2;
     unsigned short msg_idx;
@@ -103,7 +125,8 @@ void PED_DETECTOR_CAN_WRITTER::PED_DETECTOR_CALLBACK(const katech_custom_msgs::p
     {
         target_msg_1 = (char*)"Pedestrian_Stat";
         temp_data_1 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    
+        temp_data_1[2] = std::max(temp_data_1[2], rsu_val);   // on_crosswalk_1 = 자체(없음) OR RSU
+
         msg_idx = FIND_MSG_IDX(target_msg_1, &msg_list);
         kvaDbGetMsgByName(dh, target_msg_1, &mh);
         kvaDbGetMsgId(mh, &id_write, &flag);  
@@ -135,6 +158,7 @@ void PED_DETECTOR_CAN_WRITTER::PED_DETECTOR_CALLBACK(const katech_custom_msgs::p
         target_msg_1 = (char*)"Pedestrian_Stat";
         temp_data_1 = {msg.data[0].rel_pos_y, msg.data[0].rel_pos_x, msg.data[0].on_crosswalk, msg.data[0].status, msg.data[0].id, 
                      0, 0, 0, 0, 0};
+        temp_data_1[2] = std::max(temp_data_1[2], rsu_val);   // on_crosswalk_1 = 자체 OR RSU
 
         msg_idx = FIND_MSG_IDX(target_msg_1, &msg_list);
         kvaDbGetMsgByName(dh, target_msg_1, &mh);
@@ -153,6 +177,7 @@ void PED_DETECTOR_CAN_WRITTER::PED_DETECTOR_CALLBACK(const katech_custom_msgs::p
         target_msg_1 = (char*)"Pedestrian_Stat";
         temp_data_1 = {msg.data[0].rel_pos_y, msg.data[0].rel_pos_x, msg.data[0].on_crosswalk, msg.data[0].status, msg.data[0].id, 
                      msg.data[1].rel_pos_y, msg.data[1].rel_pos_x, msg.data[1].on_crosswalk, msg.data[1].status, msg.data[1].id};
+        temp_data_1[2] = std::max(temp_data_1[2], rsu_val);   // on_crosswalk_1 = 자체 OR RSU
 
         msg_idx = FIND_MSG_IDX(target_msg_1, &msg_list);
         kvaDbGetMsgByName(dh, target_msg_1, &mh);
@@ -170,6 +195,7 @@ void PED_DETECTOR_CAN_WRITTER::PED_DETECTOR_CALLBACK(const katech_custom_msgs::p
         target_msg_1 = (char*)"Pedestrian_Stat";
         temp_data_1 = {msg.data[0].rel_pos_y, msg.data[0].rel_pos_x, msg.data[0].on_crosswalk, msg.data[0].status, msg.data[0].id, 
                      msg.data[1].rel_pos_y, msg.data[1].rel_pos_x, msg.data[1].on_crosswalk, msg.data[1].status, msg.data[1].id};
+        temp_data_1[2] = std::max(temp_data_1[2], rsu_val);   // on_crosswalk_1 = 자체 OR RSU
 
         msg_idx = FIND_MSG_IDX(target_msg_1, &msg_list);
         kvaDbGetMsgByName(dh, target_msg_1, &mh);
@@ -202,7 +228,8 @@ void PED_DETECTOR_CAN_WRITTER::PED_DETECTOR_CALLBACK(const katech_custom_msgs::p
         target_msg_1 = (char*)"Pedestrian_Stat";
         temp_data_1 = {msg.data[0].rel_pos_y, msg.data[0].rel_pos_x, msg.data[0].on_crosswalk, msg.data[0].status, msg.data[0].id, 
                      msg.data[1].rel_pos_y, msg.data[1].rel_pos_x, msg.data[1].on_crosswalk, msg.data[1].status, msg.data[1].id};
-    
+        temp_data_1[2] = std::max(temp_data_1[2], rsu_val);   // on_crosswalk_1 = 자체 OR RSU
+
         msg_idx = FIND_MSG_IDX(target_msg_1, &msg_list);
         kvaDbGetMsgByName(dh, target_msg_1, &mh);
         kvaDbGetMsgId(mh, &id_write, &flag);  
@@ -303,7 +330,7 @@ int main(int argc, char **argv)
     std::string relative_path = ros::package::getPath("can");
     char filename[100];
 
-    strcpy(filename, (relative_path + "/dbc/CANdb_IONIQ5_AD_CAN_v6.dbc").c_str());
+    strcpy(filename, (relative_path + "/dbc/CANdb_IONIQ5_AD_CAN_v8.dbc").c_str());
     int channel_num = 0;
     bool init_access_flag = false;
 

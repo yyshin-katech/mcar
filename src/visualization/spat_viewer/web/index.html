@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>SPaT 뷰어 - siheung_dev</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    html, body { height: 100%; margin: 0; padding: 0; background: #1e1e2e; color: #cdd6f4; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 13px; }
+    #map { position: absolute; top: 0; left: 320px; right: 0; bottom: 0; background: #11111b; }
+    #panel { position: absolute; top: 0; left: 0; width: 320px; height: 100%;
+             background: #1e1e2e; color: #cdd6f4; padding: 10px 14px;
+             box-sizing: border-box; overflow-y: auto; border-right: 1px solid #313244; }
+    #panel h1 { font-size: 15px; margin: 4px 0 8px 0; }
+    #panel h2 { font-size: 13px; margin: 12px 0 4px 0; color: #a6adc8; border-bottom: 1px solid #313244; padding-bottom: 2px;}
+    .badge { display: inline-block; padding: 3px 8px; border-radius: 4px;
+             color: #fff; font-weight: bold; margin: 2px 2px 6px 0; font-size: 12px; }
+    .badge-obu { background: #4caf50; }
+    .badge-mqtt { background: #ff9800; }
+    .badge-none { background: #9e9e9e; }
+    .badge-disconn { background: #f44336; }
+    .badge-conn { background: #4caf50; }
+    .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%;
+           margin-right: 6px; vertical-align: middle; border: 1px solid #666; }
+    .legend-row { line-height: 1.6; }
+    .legend-title { font-weight: bold; margin: 6px 0 4px 0; }
+    @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0.25; } }
+    .blink { animation: blink 1s steps(2) infinite; }
+    .ego-marker { background: transparent !important; border: none !important; }
+    .ego-arrow { width: 0; height: 0; border-left: 10px solid transparent;
+                 border-right: 10px solid transparent; border-bottom: 28px solid #2196f3;
+                 transform-origin: center 75%; filter: drop-shadow(0 0 2px #000); }
+    #intersection-list table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    #intersection-list th, #intersection-list td {
+      padding: 2px 4px; border-bottom: 1px solid #313244; text-align: left; }
+    #intersection-list th { color: #89b4fa; font-weight: 500; }
+    #intersection-list tr.target { background: #313244; }
+    #ego-info { font-size: 11px; color: #a6adc8; }
+    .target-pulse { stroke: #fbc02d; stroke-width: 4; fill: none; }
+    .leaflet-popup-content { color: #1e1e2e; font-size: 12px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div id="panel">
+    <h1>SPaT 뷰어</h1>
+    <div id="connection-status" class="badge badge-disconn">WS: 연결 중...</div>
+    <div id="source-badge" class="badge badge-none">SPaT SOURCE: NONE</div>
+
+    <h2>Ego</h2>
+    <div id="ego-info">대기 중 (pose_2d_gps 미수신)</div>
+
+    <h2>Target</h2>
+    <div id="target-info">없음</div>
+
+    <h2>교차로</h2>
+    <div id="intersection-list"></div>
+
+    <h2>신호 phase 범례</h2>
+    <div id="legend">
+      <div class="legend-row"><span class="dot" style="background:#808080"></span> 0 미상</div>
+      <div class="legend-row"><span class="dot" style="background:#303030"></span> 1 OFF</div>
+      <div class="legend-row"><span class="dot blink" style="background:#ff0000"></span> 2 적색 점멸</div>
+      <div class="legend-row"><span class="dot" style="background:#ff0000"></span> 3 적색</div>
+      <div class="legend-row"><span class="dot" style="background:#ff8800"></span> 4 적+황</div>
+      <div class="legend-row"><span class="dot" style="background:#00cc00"></span> 5 녹 (비보호)</div>
+      <div class="legend-row"><span class="dot" style="background:#00ff00"></span> 6 녹 (보호)</div>
+      <div class="legend-row"><span class="dot" style="background:#ffff00"></span> 7 황색</div>
+      <div class="legend-row"><span class="dot" style="background:#ffcc00"></span> 8 황 (보호)</div>
+      <div class="legend-row"><span class="dot blink" style="background:#ffff00"></span> 9 황색 점멸</div>
+      <div class="legend-title">맵</div>
+      <div class="legend-row"><span class="dot" style="background:#fab387;border-radius:1px;width:14px;height:3px"></span> stop_line=1 link</div>
+      <div class="legend-row"><span class="dot" style="background:#4fc3f7;border-radius:1px;width:14px;height:2px"></span> 일반 link</div>
+    </div>
+  </div>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/proj4@2.9.2/dist/proj4.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/roslib@1.4.1/build/roslib.min.js"></script>
+  <script>
+  // ============================================================
+  // SPaT Viewer (siheung_dev) - single-file Leaflet + roslibjs
+  // Spec: _workspace_spat_viewer/01_analyst_spec.md
+  // ============================================================
+
+  // ---- Constants (do not change without coordinated review) ----
+  const URL_PARAMS = new URLSearchParams(location.search);
+  const ROSBRIDGE_PORT = URL_PARAMS.get('port') || '9090';
+  const ROSBRIDGE_URL  = 'ws://' + (location.hostname || 'localhost') + ':' + ROSBRIDGE_PORT;
+  const SPAT_STALE_MS  = 2000;
+  const RENDER_PERIOD_MS = 250;
+  // J2735 movement phase state enum -> hex color (spec sec 3)
+  const PHASE_COLOR = {
+    0: '#808080', 1: '#303030',
+    2: '#ff0000', 3: '#ff0000', 4: '#ff8800',
+    5: '#00cc00', 6: '#00ff00',
+    7: '#ffff00', 8: '#ffcc00', 9: '#ffff00'
+  };
+  const PHASE_BLINK = new Set([2, 9]);
+  const PHASE_LABEL = {
+    0: '미상', 1: 'OFF',
+    2: '적색점멸', 3: '적색', 4: '적+황',
+    5: '비보호녹', 6: '보호녹',
+    7: '황색', 8: '황(보호)', 9: '황색점멸'
+  };
+
+  // ---- State ----
+  let intersectionMarkers = {};      // iid -> L.circleMarker
+  let intersectionMeta    = {};      // iid -> {center:{lat,lon}, signal_groups, source}
+  let cacheObu  = new Map();         // iid -> Map<sg|name, {sg, name, phase, minEnd_ds, recv_ts}>
+  let cacheMqtt = new Map();
+  let lastObuRecv  = 0;
+  let lastMqttRecv = 0;
+  let targetIid   = 0;
+  let targetSg    = 0;
+  let targetMan   = 0;
+  let egoMarker   = null;
+  let egoCentered = false;
+  let targetHighlight = null;
+  let roadLayerGroup = null;
+
+  // ---- Map init ----
+  const map = L.map('map', { preferCanvas: true, zoomControl: true })
+                .setView([37.365, 126.722], 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '(c) OpenStreetMap contributors'
+  }).addTo(map);
+  // EPSG:5179 (Korean TM) for pose_2d_gps live conversion
+  proj4.defs("EPSG:5179",
+    "+proj=tmerc +lat_0=38 +lon_0=127.5 +k=0.9996 +x_0=1000000 +y_0=2000000 "
+    + "+ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
+  );
+  // Custom panes so road links sit below intersection markers
+  map.createPane('roadLinksPane');
+  map.getPane('roadLinksPane').style.zIndex = 350;
+  map.createPane('intersectionsPane');
+  map.getPane('intersectionsPane').style.zIndex = 500;
+
+  // ---- Helpers ----
+  function setBadge(id, text, klass) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text;
+    el.className = 'badge ' + klass;
+  }
+
+  function drawRoadLinks(features) {
+    const group = L.layerGroup().addTo(map);
+    let drawn = 0, stopLines = 0;
+    for (const f of features) {
+      if (!f.coords || f.coords.length < 2) continue;
+      const isStop = f.is_stop_line === 1;
+      const opts = isStop
+        ? { pane: 'roadLinksPane', color: '#fab387', weight: 4, opacity: 0.95 }
+        : { pane: 'roadLinksPane', color: '#4fc3f7', weight: 1, opacity: 0.55 };
+      const tip = isStop
+        ? `link ${f.link_id} (stop_line) → IID ${f.look_at_IntersectionID} SG ${f.look_at_signalGroupID}`
+        : `link ${f.link_id}`;
+      L.polyline(f.coords, opts).bindTooltip(tip, {sticky: true}).addTo(group);
+      drawn++;
+      if (isStop) stopLines++;
+    }
+    console.log('[spat-viewer] road links drawn:', drawn, 'stop_lines:', stopLines);
+    return group;
+  }
+
+  function drawIntersections(items) {
+    const tableRows = [];
+    for (const it of items) {
+      const m = L.circleMarker([it.center.lat, it.center.lon], {
+        pane: 'intersectionsPane',
+        radius: 14,
+        color: '#ffffff',
+        weight: 2,
+        fillColor: PHASE_COLOR[0],
+        fillOpacity: 0.92
+      }).addTo(map);
+      m.bindTooltip('IID ' + it.intersection_id, {
+        permanent: true, direction: 'top', offset: [0, -10], className: 'iid-tooltip'
+      });
+      m.bindPopup('IID ' + it.intersection_id + '<br>(대기)');
+      intersectionMarkers[it.intersection_id] = m;
+      intersectionMeta[it.intersection_id] = {
+        center: it.center,
+        signal_groups: it.signal_groups || [],
+        source: it.source
+      };
+      tableRows.push(it.intersection_id);
+    }
+    renderIntersectionList();
+    console.log('[spat-viewer] intersection markers drawn:', tableRows);
+  }
+
+  function renderIntersectionList() {
+    const ids = Object.keys(intersectionMarkers).map(Number).sort((a, b) => a - b);
+    // SG 컬럼 제거: 신호 컬럼이 라이브 cache 에서 관측된 모든 SG 를 dot+잔여시간으로 표시
+    const rows = ids.map(iid => {
+      return '<tr id="row-iid-' + iid + '"><td>' + iid
+           + '</td><td id="cell-phase-' + iid + '">-</td></tr>';
+    }).join('');
+    document.getElementById('intersection-list').innerHTML =
+      '<table><thead><tr><th>IID</th><th>신호(SG/잔여)</th></tr></thead><tbody>'
+      + rows + '</tbody></table>';
+  }
+
+  // ---- ROS connection ----
+  const ros = new ROSLIB.Ros({ url: ROSBRIDGE_URL });
+  let reconnectScheduled = false;
+  function scheduleReconnect() {
+    if (reconnectScheduled) return;
+    reconnectScheduled = true;
+    setTimeout(() => {
+      reconnectScheduled = false;
+      console.log('[spat-viewer] reconnecting rosbridge ...');
+      try { ros.connect(ROSBRIDGE_URL); } catch (e) { console.warn(e); }
+    }, 2000);
+  }
+  ros.on('connection', () => {
+    setBadge('connection-status', 'WS: 연결됨 (' + ROSBRIDGE_PORT + ')', 'badge-conn');
+    console.log('[spat-viewer] rosbridge connected at', ROSBRIDGE_URL);
+  });
+  ros.on('error', (e) => {
+    setBadge('connection-status', 'WS: 오류', 'badge-disconn');
+    console.warn('[spat-viewer] rosbridge error', e);
+    scheduleReconnect();
+  });
+  ros.on('close', () => {
+    setBadge('connection-status', 'WS: 끊김', 'badge-disconn');
+    console.warn('[spat-viewer] rosbridge closed');
+    scheduleReconnect();
+  });
+
+  // ---- Topic subscriptions (spec sec 2) ----
+  const sub_pose = new ROSLIB.Topic({
+    ros: ros, name: '/localization/pose_2d_gps',
+    messageType: 'mmc_msgs/localization2D_msg',
+    throttle_rate: 100, queue_length: 1, queue_size: 1
+  });
+  const sub_spat_obu = new ROSLIB.Topic({
+    ros: ros, name: '/siheung_spat',
+    messageType: 'v2x_msgs/intersection_array_msg',
+    throttle_rate: 0, queue_length: 1, queue_size: 1
+  });
+  const sub_spat_mqtt = new ROSLIB.Topic({
+    ros: ros, name: '/siheung_v2x/mqtt_spat',
+    messageType: 'v2x_msgs/intersection_array_msg',
+    throttle_rate: 0, queue_length: 1, queue_size: 1
+  });
+  const sub_ctrl = new ROSLIB.Topic({
+    ros: ros, name: '/localization/to_control_team',
+    messageType: 'mmc_msgs/to_control_team_from_local_msg',
+    throttle_rate: 200, queue_length: 1, queue_size: 1
+  });
+
+  // ---- pose_2d_gps (EPSG:5179 -> WGS84 live) ----
+  let posePrintOnce = false;
+  sub_pose.subscribe(msg => {
+    const e = msg.east, n = msg.north;
+    if (!Number.isFinite(e) || !Number.isFinite(n) || (e === 0 && n === 0)) return;
+    // EPSG:5179 (한국 TM) 유효 범위 가드 — GPS 미초기화 시 쓰레기 좌표 차단
+    if (e < 700000 || e > 1500000 || n < 1300000 || n > 2200000) {
+      if (!posePrintOnce) {
+        console.warn('[spat-viewer] pose out of EPSG:5179 range (GPS not initialized?) east,north=', e, n);
+        posePrintOnce = true;
+      }
+      const info = document.getElementById('ego-info');
+      if (info) info.textContent = 'pose 무효 (GPS 미초기화 / 범위 밖) east=' + e.toFixed(0) + ' north=' + n.toFixed(0);
+      return;
+    }
+    const lonlat = proj4("EPSG:5179", "EPSG:4326", [e, n]);
+    const lon = lonlat[0], lat = lonlat[1];
+    if (!posePrintOnce) {
+      console.log('[spat-viewer] first pose_2d_gps EPSG:5179 east,north=', e, n,
+                  '-> WGS84 lat,lon=', lat, lon);
+      posePrintOnce = true;
+    }
+    if (!egoMarker) {
+      const icon = L.divIcon({
+        className: 'ego-marker',
+        html: '<div class="ego-arrow"></div>',
+        iconSize: [32, 32], iconAnchor: [16, 16]
+      });
+      egoMarker = L.marker([lat, lon], { icon: icon, zIndexOffset: 2000 }).addTo(map);
+    }
+    egoMarker.setLatLng([lat, lon]);
+    // ROS yaw is ENU rad (east=0 CCW). Leaflet CSS rotate is CW deg from north.
+    // bearing_deg = 90 - yaw_deg
+    const yaw_deg = (msg.yaw || 0) * 180 / Math.PI;
+    const bearing = ((90 - yaw_deg) % 360 + 360) % 360;
+    const el = egoMarker.getElement();
+    if (el) {
+      const arrow = el.querySelector('.ego-arrow');
+      if (arrow) arrow.style.transform = 'rotate(' + bearing.toFixed(1) + 'deg)';
+    }
+    const v = (msg.v !== undefined) ? (msg.v * 3.6).toFixed(1) : '?';
+    document.getElementById('ego-info').textContent =
+      'lat ' + lat.toFixed(6) + ', lon ' + lon.toFixed(6) +
+      ' | yaw ' + yaw_deg.toFixed(1) + ' deg | v ' + v + ' km/h';
+    // 지도가 차량을 따라가지 않도록 자동 센터링 비활성화 (ego 마커만 갱신)
+  });
+
+  // ---- SPaT ingest (both OBU and MQTT use same v2x_msgs/intersection_array_msg) ----
+  function ingestSpat(msg, source) {
+    const now = Date.now();
+    const cache = (source === 'OBU') ? cacheObu : cacheMqtt;
+    if (source === 'OBU') lastObuRecv = now; else lastMqttRecv = now;
+    if (!msg || !Array.isArray(msg.data)) return;
+    for (const inter of msg.data) {
+      const iid = inter.IntersectionID;
+      if (!iid && iid !== 0) continue;
+      if (!cache.has(iid)) cache.set(iid, new Map());
+      const sgMap = cache.get(iid);
+      // v2x_msgs/intersection_msg.Movements is a sequence (array) of movement_msg
+      const moves = Array.isArray(inter.Movements) ? inter.Movements : [inter.Movements];
+      for (const mv of moves) {
+        if (!mv) continue;
+        const sg = (mv.SignalGroupID !== undefined) ? mv.SignalGroupID : -1;
+        const name = mv.MovementStateName || '?';
+        const phase = (mv.MovementPhaseStatus !== undefined) ? mv.MovementPhaseStatus : 0;
+        const minEnd_ds = (mv.TimeChangeDetails !== undefined) ? mv.TimeChangeDetails : 0;
+        const key = sg + '|' + name;
+        sgMap.set(key, { sg, name, phase, minEnd_ds, recv_ts: now });
+      }
+    }
+  }
+  // MQTT-only 표시 정책: OBU 구독 비활성화
+  // sub_spat_obu.subscribe(msg => ingestSpat(msg, 'OBU'));
+  sub_spat_mqtt.subscribe(msg => ingestSpat(msg, 'MQTT'));
+
+  // ---- to_control_team (target IID/SG highlight) ----
+  sub_ctrl.subscribe(msg => {
+    targetIid = msg.look_at_IntersectionID || 0;
+    targetSg  = msg.look_at_signalGroupID || 0;
+    targetMan = msg.MANUAVER || 0;
+    const tInfo = document.getElementById('target-info');
+    if (tInfo) {
+      tInfo.textContent = targetIid
+        ? ('IID=' + targetIid + ' SG=' + targetSg + ' MAN=' + targetMan)
+        : '없음';
+    }
+    updateTargetHighlight();
+  });
+
+  // ---- target highlight ring ----
+  function updateTargetHighlight() {
+    if (targetHighlight) { map.removeLayer(targetHighlight); targetHighlight = null; }
+    if (!targetIid) return;
+    const meta = intersectionMeta[targetIid];
+    if (!meta) return;
+    targetHighlight = L.circleMarker([meta.center.lat, meta.center.lon], {
+      pane: 'intersectionsPane',
+      radius: 26,
+      color: '#fbc02d',
+      weight: 4,
+      fill: false,
+      className: 'target-pulse'
+    }).addTo(map);
+  }
+
+  // ---- Render loop (4 Hz; spec sec 11.6) ----
+  setInterval(() => {
+    const now = Date.now();
+    let source = 'NONE', cache = null;
+    // MQTT-only 표시 정책 (OBU 무시)
+    if (now - lastMqttRecv < SPAT_STALE_MS)        { source = 'MQTT'; cache = cacheMqtt; }
+    setBadge('source-badge', 'SPaT SOURCE: ' + source,
+             'badge-' + source.toLowerCase());
+
+    const ids = Object.keys(intersectionMarkers);
+    for (const iidStr of ids) {
+      const iid = parseInt(iidStr, 10);
+      const marker = intersectionMarkers[iidStr];
+      const sgMap = cache ? cache.get(iid) : null;
+
+      let primary_phase = 0;
+      const popup_lines = ['<b>IID ' + iid + '</b>'];
+      if (sgMap && sgMap.size > 0) {
+        const entries = Array.from(sgMap.values())
+          .sort((a, b) => (a.sg - b.sg) || a.name.localeCompare(b.name));
+        // pick: matching target (iid AND sg) > first entry
+        const pick = entries.find(e => e.sg === targetSg && iid === targetIid)
+                  || entries[0];
+        primary_phase = pick.phase;
+        for (const e of entries) {
+          const elapsed_ds = Math.floor((now - e.recv_ts) / 100);
+          const remain_ds = Math.max(0, (e.minEnd_ds || 0) - elapsed_ds);
+          const lbl = PHASE_LABEL[e.phase] !== undefined ? PHASE_LABEL[e.phase] : '?';
+          const dotColor = PHASE_COLOR[e.phase] || '#808080';
+          popup_lines.push(
+            '<span style="display:inline-block;width:10px;height:10px;background:'
+            + dotColor + ';border-radius:50%;margin-right:4px;"></span>'
+            + 'SG ' + e.sg + ' (' + e.name + '): ' + lbl
+            + ' ' + (remain_ds / 10).toFixed(1) + 's'
+          );
+        }
+      } else {
+        popup_lines.push('(데이터 없음)');
+      }
+      marker.setStyle({ fillColor: PHASE_COLOR[primary_phase] || '#808080' });
+      const elem = marker.getElement();
+      if (elem) {
+        if (PHASE_BLINK.has(primary_phase)) elem.classList.add('blink');
+        else                                  elem.classList.remove('blink');
+      }
+      marker.setPopupContent(popup_lines.join('<br>'));
+
+      // 마커 영구 tooltip: 모든 SG 를 작은 dot 배열로 요약 (마커 fillColor 는 primary 유지)
+      if (sgMap && sgMap.size > 0) {
+        const dots = Array.from(sgMap.values())
+          .sort((a, b) => a.sg - b.sg)
+          .map(e => '<span class="dot' + (PHASE_BLINK.has(e.phase) ? ' blink' : '')
+                  + '" style="width:9px;height:9px;margin-right:2px;background:'
+                  + (PHASE_COLOR[e.phase] || '#808080') + '"></span>').join('');
+        marker.setTooltipContent('IID ' + iid + '<br>' + dots);
+      } else {
+        marker.setTooltipContent('IID ' + iid);
+      }
+
+      // sidebar table: 해당 IID 의 모든 SG 를 dot+잔여시간(정수초)으로 나열
+      const cell = document.getElementById('cell-phase-' + iid);
+      if (cell) {
+        if (sgMap && sgMap.size > 0) {
+          const parts = Array.from(sgMap.values())
+            .sort((a, b) => (a.sg - b.sg) || a.name.localeCompare(b.name))
+            .map(e => {
+              const elapsed_ds = Math.floor((now - e.recv_ts) / 100);
+              const remain = Math.max(0, (e.minEnd_ds || 0) - elapsed_ds) / 10;
+              const color = PHASE_COLOR[e.phase] || '#808080';
+              const blink = PHASE_BLINK.has(e.phase) ? ' blink' : '';
+              return '<span class="dot' + blink + '" style="width:10px;height:10px;background:'
+                   + color + '"></span>' + e.sg + ' ' + remain.toFixed(0) + 's';
+            });
+          cell.innerHTML = parts.join('<br>');
+        } else {
+          cell.innerHTML = '-';
+        }
+      }
+      // highlight target row
+      const row = document.getElementById('row-iid-' + iid);
+      if (row) {
+        if (iid === targetIid) row.classList.add('target');
+        else                    row.classList.remove('target');
+      }
+    }
+    updateTargetHighlight();
+  }, RENDER_PERIOD_MS);
+
+  // ---- Page load: fetch static map data, draw, then start subs (subs already created) ----
+  Promise.all([
+    fetch('data/road_links.json').then(r => r.json()),
+    fetch('data/intersections.json').then(r => r.json())
+  ]).then(([roadData, interData]) => {
+    roadLayerGroup = drawRoadLinks(roadData.features || []);
+    drawIntersections(interData.intersections || []);
+    // initial bbox view to all intersections
+    const ids = (interData.intersections || []).map(it => it.intersection_id);
+    if (ids.length > 0) {
+      const pts = (interData.intersections || [])
+        .map(it => [it.center.lat, it.center.lon]);
+      try { map.fitBounds(L.latLngBounds(pts).pad(0.3)); }
+      catch (e) { console.warn('fitBounds failed', e); }
+    }
+  }).catch(err => {
+    console.error('[spat-viewer] failed to load map data:', err);
+    document.getElementById('intersection-list').innerHTML =
+      '<div style="color:#f38ba8">지도 데이터 누락 - extract_map_data.py 실행 필요</div>';
+  });
+
+  // ---- expose for debugging ----
+  window.__spat = {
+    ros, intersectionMarkers, intersectionMeta,
+    cacheObu, cacheMqtt,
+    get lastObuRecv() { return lastObuRecv; },
+    get lastMqttRecv() { return lastMqttRecv; }
+  };
+  </script>
+</body>
+</html>

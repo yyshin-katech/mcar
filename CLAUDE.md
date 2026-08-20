@@ -186,3 +186,16 @@ diff -rq /home/yuyeong/.claude/projects/-home-yuyeong-mcar/memory/ /home/yuyeong
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
 | 2026-05-07 | 초기 구성 | agents 4 (launch/bridge/frontend/variant-auditor) + skills/web-hmi-review | 하네스 검토 요청 |
+
+## 하네스: ioniq5-siheung-port
+
+**목표:** siheung_dev(아이오닉 EV) 의 지도·HMI·V2X·보행자검출을 ioniq5_siheung_dev(IONIQ 5 + ublox GPS) 로 이식해, IONIQ 5 가 시흥에서 아이오닉 EV 와 동일 경로·미션을 수행하게 한다.
+
+**트리거:** "ioniq5 포팅", "시흥 이식", "브랜치 포팅", "siheung_v2x 이식", "DBC v8 통일", "포팅 계획/검증", "claude_work_list 작업 시작", "다시 실행/재실행/이어서/CAN만 다시" 요청 시 `ioniq5-siheung-port` 스킬 사용. 단순 조회는 직접 응답.
+
+**단계별 모델 (작업지시서 지정):** 설계=fable / 코딩=sonnet / 검증=opus
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-08-20 | 초기 구성 | agents 5 (port-designer/can-dbc-porter/v2x-porter/percept-porter/port-verifier) + skills/ioniq5-siheung-port | `claude_work_list/ioniq5_job_20260820.md` 작업지시 |

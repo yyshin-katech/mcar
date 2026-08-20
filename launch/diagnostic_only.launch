@@ -32,7 +32,9 @@
 
     <node pkg="can"                    type="diagnostic_CAN_writer"            name="diagnostic_CAN_writer_node"                respawn="true" />    
 
-    <node pkg="gps_system_localizer"                    type="lanelet_marker.py"            name="lane_marker_node"                respawn="true" />
+    <node pkg="gps_system_localizer"                    type="lanelet_marker.py"            name="lane_marker_node"                respawn="true" >
+        <param name="SHP_MAP_PATH" value="$(find gps_system_localizer)/src/shp_map/senario_shp_20260623" />
+    </node>
 
     <!-- 블랙박스: Take_Over_Request 트리거 시 [이전 10s, 이후 2s] 자동 저장 (자율주행 ON 한정) -->
     <!-- 블랙박스 비활성화 (요청에 의해 주석처리)

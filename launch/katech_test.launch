@@ -2,6 +2,10 @@
 <launch>
   <arg name="sweet_home" default="$(optenv HOME)" />
 
+  <!-- MQTT broker 선택: prod = 시흥시 VPN 사설망 실제 서버, test = 인터넷 테스트 서버.
+       siheung.launch 로 그대로 전달. 예) roslaunch launch/katech_test.launch mqtt_server:=prod -->
+  <arg name="mqtt_server" default="prod" />
+
   <param name="EPSG" value="5179" />
 
   <!-- 맵 경로 설정. mat_scenario = to_control_team_demo.py 가 읽는 link_*.mat 셋.
@@ -37,16 +41,24 @@
   <!-- <node name="cpt7_CAN_writer"       type="cpt7_CAN_writer"     pkg="can"  respawn="true" /> -->
 
   <node name="track_CAN_writer_no_grid"       type="track_CAN_writer_no_grid"     pkg="can"  respawn="true" />
-  <node name="DTG_CAN_writer"                type="DTG_CAN_writer"               pkg="can"  respawn="true" />
+  <!-- DTG_CAN_writer(ch3, 2gen-2ch-C_IoniqEV_v2.dbc) 장착 안 된 상태 대비 비활성화 (C-12, Q1=b). 코드/DBC 무변경, 기동만 중단. -->
+  <!-- <node name="DTG_CAN_writer"                type="DTG_CAN_writer"               pkg="can"  respawn="true" /> -->
 
-  <node name="katri_v2x_node"       type="katri_obu_interface_node"     pkg="katri_obu_interface"  respawn="true" />
+  <!-- katri_obu_interface → siheung_v2x 전환 (X-10). 패키지 자체는 삭제하지 않음 (X-11 KEEP). -->
+  <!-- <node name="katri_v2x_node"       type="katri_obu_interface_node"     pkg="katri_obu_interface"  respawn="true" /> -->
   <node name="spat_CAN_writer"       type="spat_CAN_writer"     pkg="can"  respawn="true" />
+
+  <!-- siheung_v2x_node + bsm_tx_node + mqtt 계열 -->
+  <include file="$(dirname)/siheung.launch">
+    <arg name="mqtt_server" value="$(arg mqtt_server)" />
+  </include>
 
   <!-- KATRI에서는 OFF-->
   <!-- <node name="j2735_decode_node"       type="j2735_decode_node"     pkg="j2735_decode"  respawn="true" /> -->
 
-  <node pkg="can"          type="katech_ped_detector.py"          name="katech_ped_detector_node"             respawn="true" />
+  <node pkg="can"          type="katech_ped_detector"          name="katech_ped_detector_node"             respawn="true" />
   <node name="katech_ped_detector_can_writer_node"       type="ped_detector_can_writer"     pkg="can"  respawn="true" />
+  <node pkg="can"          type="crosswalk_ped_fusion.py"          name="crosswalk_ped_fusion_node"            respawn="true" output="screen" />
   <!-- <node  name="my_rviz"  type="rviz"  pkg="rviz"  args="-d $(arg sweet_home)/mcar_v9/workspace_config/perception.rviz"/> -->
 
 </launch>

@@ -257,7 +257,7 @@ void LOCAL_CAN_WRITER::CALLBACK_LOCAL(const mmc_msgs::to_control_team_from_local
         temp_data = {(double)msg.is_stop_line,(double)msg.look_at_signalGroupID,temp_intersection_id_msg,(double)msg.NEXT_LINK_ID,
         (double)msg.LINK_ID, msg.distance_to_lane_end,(double)msg.have_to_LangeChange_left,
         (double)msg.have_to_LangeChange_right,(double)msg.left_LaneChange_avail,
-        (double)msg.right_LaneChange_avail,(double)msg.Speed_Limit};
+        (double)msg.right_LaneChange_avail,(double)msg.Speed_Limit,(double)msg.guard_zone};
       break;
 
       case(1):

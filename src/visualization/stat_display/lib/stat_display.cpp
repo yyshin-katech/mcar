@@ -27,7 +27,10 @@ STAT_DISPLAY::STAT_DISPLAY()
 
     // 신호등 Publisher 추가
     traffic_light_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/traffic_light_stat", 1);
-    
+
+    // GO_AHEAD 블로킹 표시 Publisher 추가 (시스템 popup 과 충돌 방지: 별도 토픽)
+    go_ahead_popup_pub = nh.advertise<jsk_rviz_plugins::OverlayText>("/rviz/jsk/go_ahead_popup", 1);
+
     gps_sub = nh.subscribe("/diagnostic/cpt7_gps", 1, &STAT_DISPLAY::diagnostic_gps_callback, this);
     adcu_sub = nh.subscribe("/diagnostic/adcu", 1, &STAT_DISPLAY::diagnostic_adcu_callback, this);
     lidar_sub = nh.subscribe("/diagnostic/lidar", 1, &STAT_DISPLAY::diagnostic_lidar_callback, this);
@@ -42,8 +45,11 @@ STAT_DISPLAY::STAT_DISPLAY()
     chassis_sub_node = nh.subscribe("/sensors/chassis", 1, &STAT_DISPLAY::chassis_callback_func, this);
 
     // 신호등 Subscriber 추가 (토픽 이름은 실제 사용하는 것으로 변경)
-    traffic_light_sub = nh.subscribe("/katri_v2x_node/katri_spat", 1, &STAT_DISPLAY::traffic_light_callback, this);
-    
+    traffic_light_sub = nh.subscribe("/spat_merged", 1, &STAT_DISPLAY::traffic_light_callback, this);
+
+    // GO_AHEAD 블로킹 표시 Subscriber 추가
+    go_ahead_sub = nh.subscribe("/v2x/tim_message/can_go_status", 1, &STAT_DISPLAY::go_ahead_callback, this);
+
     timer_ = nh.createTimer(ros::Duration(1.0), &STAT_DISPLAY::timerCallback, this);
     diag_timer_ = nh.createTimer(ros::Duration(0.1), &STAT_DISPLAY::diag_timerCallback, this);
 
@@ -62,12 +68,27 @@ STAT_DISPLAY::STAT_DISPLAY()
 
 STAT_DISPLAY::~STAT_DISPLAY()
 {
-    
+
+}
+
+// ego 진행방향(MANUAVER) ↔ movement 방향문자열 매칭.
+// MANUAVER -1=LEFT, 0=STR/STRAIGHT, 1=RIGHT. MQTT 는 약어(STR), OBU 는 풀네임(STRAIGHT) 이라
+// 직진은 두 철자 모두 허용. PED/PEDESTRIAN/BUS/BYC 는 어느 집합에도 없어 자동 배제, empty 는 스킵.
+static bool movement_matches_manuaver(const std::string& mn, int man)
+{
+    if (man == -1) return mn == "LEFT";
+    if (man ==  1) return mn == "RIGHT";
+    return mn == "STR" || mn == "STRAIGHT";   // man == 0 (직진)
 }
 
 void STAT_DISPLAY::traffic_light_callback(const v2x_msgs::intersection_array_msg::ConstPtr& msg)
 {
-    last_spat_time_ = ros::Time::now();  // SPaT 수신 시각 기록 (staleness 판정용)
+    // /spat_merged 는 10 Hz 자유구동 발행이라 콜백 진입만으로는 수신 판정이 되지 않는다.
+    // 실제 SPaT 항목이 실린 경우에만 갱신해야 staleness→TOR 판정이 살아있다.
+    if (!msg->data.empty())
+    {
+        last_spat_time_ = ros::Time::now();  // SPaT 수신 시각 기록 (staleness 판정용)
+    }
 
     uint16_t target_intersection_id = local_msg.look_at_IntersectionID;
     uint8_t target_signal_group_id = local_msg.look_at_signalGroupID;
@@ -88,33 +109,45 @@ void STAT_DISPLAY::traffic_light_callback(const v2x_msgs::intersection_array_msg
             const auto& movement = intersection.Movements;
             
             // SignalGroupID 체크 (0이 아닐 때만)
-            if (target_signal_group_id != 0 && 
+            if (target_signal_group_id != 0 &&
                 movement.SignalGroupID != target_signal_group_id)
             {
                 continue;  // SignalGroupID가 다르면 건너뛰기
             }
-            
+
+            // ego 진행방향과 다른 movement(예: 직진 중 LEFT) 스킵
+            if (!movement_matches_manuaver(movement.MovementStateName,
+                                           (int)local_msg.MANUAVER))
+            {
+                continue;
+            }
+
             // 남은 시간 및 색상 정보 저장
             traffic_light_time = movement.TimeChangeDetails;
-            
+
             switch(movement.MovementPhaseStatus)
             {
                 case 3:  traffic_light_color = 3; break;  // 초록
+                case 5:  traffic_light_color = 1; break;  // 초록 (permissive-Movement-Allowed)
                 case 8:  traffic_light_color = 2; break;  // 주황
+                case 7:  traffic_light_color = 2; break;  // 주황 (permissive-clearance)
                 case 6:  traffic_light_color = 1; break;  // 빨강
                 default: traffic_light_color = 0; break;  // 알 수 없음
             }
-            
+
             // ROS_INFO("🚦 [ID:%d, SG:%d] 색상=%d, 남은시간=%.1f초",
-            //          target_intersection_id, 
+            //          target_intersection_id,
             //          target_signal_group_id,
-            //          traffic_light_color, 
+            //          traffic_light_color,
             //          traffic_light_time / 10.0);
-            
+
             return;  // 찾았으면 종료
         }
     }
 
+    // 방향매칭 실패(ego 방향 신호 없음) → 신호 없음 (직전 값 잔존 금지)
+    traffic_light_time = 0;
+    traffic_light_color = 0;
 }
 
 void STAT_DISPLAY::chassis_callback_func(const mmc_msgs::chassis_msg::ConstPtr& msg)
@@ -164,6 +197,65 @@ void STAT_DISPLAY::POPUP_Text_Clear()
 {
     POPUP_text.action = POPUP_text.DELETE;
     popup_pub.publish(POPUP_text);
+}
+
+void STAT_DISPLAY::go_ahead_callback(const v2x_msgs::v2x_tim_can_go_msg::ConstPtr& msg)
+{
+    if(msg->do_not_go_forward)
+    {
+        can_go_stamp_ = ros::Time::now();
+        can_go_active_ = true;
+    }
+}
+
+void STAT_DISPLAY::GO_AHEAD_Popup_Gen()
+{
+    bool on_link = (local_msg.LINK_ID == 548 ||
+                    local_msg.LINK_ID == 550 ||
+                    local_msg.LINK_ID == 552 ||
+                    local_msg.LINK_ID == 417 ||
+                    local_msg.LINK_ID == 419 ||
+                    local_msg.LINK_ID == 420);
+
+    bool can_go = (can_go_active_ &&
+                   (ros::Time::now() - can_go_stamp_).toSec() < 2.0);
+
+    if(on_link && can_go)
+    {
+        go_ahead_text.text = "전방 직진 주행 금지";
+        std_msgs::ColorRGBA state_color;
+        int32_t width = 20;
+        int32_t height = 80;
+
+        go_ahead_text.action = go_ahead_text.ADD;
+        go_ahead_text.font = "DejaVu Sans Mono";
+        go_ahead_text.text_size = 40;
+        go_ahead_text.width = width*go_ahead_text.text.length();
+        go_ahead_text.height = height;
+        // 시스템 popup(top=300) 과 겹치지 않게 별도 위치
+        go_ahead_text.left = 1280 - 35*go_ahead_text.text.length();
+        go_ahead_text.top = 200;
+
+        // 빨강 글자
+        state_color.r = 1;
+        state_color.g = 0;
+        state_color.b = 0;
+        state_color.a = 1;
+        go_ahead_text.fg_color = state_color;
+
+        state_color.r = 0.4;
+        state_color.g = 0.4;
+        state_color.b = 0.4;
+        state_color.a = 0.7;
+        go_ahead_text.bg_color = state_color;
+
+        go_ahead_popup_pub.publish(go_ahead_text);
+    }
+    else
+    {
+        go_ahead_text.action = go_ahead_text.DELETE;
+        go_ahead_popup_pub.publish(go_ahead_text);
+    }
 }
 
 void STAT_DISPLAY::diagnostic_gps_callback(const katech_diagnostic_msgs::cpt7_gps_diagnostic_msg::ConstPtr& msg)
@@ -240,6 +332,8 @@ void STAT_DISPLAY::diag_timerCallback(const ros::TimerEvent&)
     this->ODD_Text_Gen();
 
     this->GPS_STD_Text_Gen();
+
+    this->GO_AHEAD_Popup_Gen();
 }
 
 void STAT_DISPLAY::timerCallback(const ros::TimerEvent&)
@@ -637,7 +731,7 @@ void STAT_DISPLAY::V2X_Text_Gen()
     V2X_text.left = 20;
     V2X_text.top = 50+30+30+30;
 
-    // SPaT(/katri_v2x_node/katri_spat) 0.5s 이상 미수신 = 데이터 없음
+    // SPaT(/spat_merged) 0.5s 이상 미수신(빈 배열 포함) = 데이터 없음
     bool spat_stale = (now - last_spat_time_).toSec() > 0.5;
     // to_control_team: 현재 링크에서 신호등 정보가 필요한지 (look_at 값이 0이 아니면 필요)
     bool tl_needed = (local_msg.look_at_signalGroupID != 0);

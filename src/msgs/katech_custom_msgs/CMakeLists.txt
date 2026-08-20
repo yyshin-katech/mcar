@@ -14,6 +14,7 @@ add_message_files(
  ioniq5_ad_can_msg.msg
  v_can_msg.msg
  crosswalk_ped_fusion_msg.msg
+ crosswalk_occupancy_msg.msg
 )
 
 ## Generate added messages and services with any dependencies listed here

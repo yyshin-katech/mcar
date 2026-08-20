@@ -15,12 +15,13 @@ find_package(catkin REQUIRED COMPONENTS
   v2x_msgs
   katech_diagnostic_msgs
   katech_custom_msgs
+  perception_ros_msg
 )
 
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS roscpp std_msgs sensor_msgs geometry_msgs mmc_msgs roslib v2x_msgs katech_diagnostic_msgs katech_custom_msgs
+  CATKIN_DEPENDS roscpp std_msgs sensor_msgs geometry_msgs mmc_msgs roslib v2x_msgs katech_diagnostic_msgs katech_custom_msgs perception_ros_msg
 
 )
 
@@ -360,6 +361,18 @@ target_link_libraries(ped_detector_can_writer
 install(TARGETS ${PROJECT_NAME} ped_detector_can_writer
    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+############################################################################################## katech_ped_detector (C++ 포팅)
+# katech_ped_detector.py -> C++. CAN 미접촉 → canlib/kvadblib/${PROJECT_NAME} link 불필요.
+add_executable(katech_ped_detector src/katech_ped_detector.cpp)
+target_compile_options(katech_ped_detector PRIVATE)
+add_dependencies(katech_ped_detector ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(katech_ped_detector
+  ${catkin_LIBRARIES}
+)
+install(TARGETS katech_ped_detector
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
