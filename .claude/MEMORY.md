@@ -70,6 +70,7 @@
 - [mqtt_vpn_setup_harness.md](mqtt_vpn_setup_harness.md) — MQTT V2N 트래픽만 시흥시 VPN split-tunnel. 실환경은 SecuwaySSL, 하네스 사양은 OpenVPN 기준
 - [project_vehicle_tracker.md](project_vehicle_tracker.md) — BSM 기반 차량 위치 관제, EC2 배포 구성
 - [gps_warning_criteria.md](gps_warning_criteria.md) — rviz `/rviz/jsk/gps_stat` 색: 주황=`StatCode!=0x38 || std>5cm`, 빨강=`Network_Status`(ping 8.8.8.8, GPS 무관)
+- [reference_sdsm_bag_data.md](reference_sdsm_bag_data.md) — SDSM(J3224) 수집 데이터는 `~/20251128/sdsm_data/` 가 유일(bag 7개 `/obu/sdsm` 1,890 msgs + pcapng + unified CSV 3,722행). objType 전량 Unknown, RSU sourceID 시나리오별 상이. `~/bag`·`~/bag_data` bag 73개엔 SDSM 없음
 
 ## Project Overview
 - ROS Noetic catkin workspace for autonomous driving (KATECH)
