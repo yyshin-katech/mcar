@@ -69,7 +69,7 @@
               showClouds={showClouds}
               pointSize={pointSize} />
             <window.EgoMesh />
-            <window.CameraController mode={cameraMode} />
+            <window.CameraController mode={cameraMode} onMode={setCameraMode} />
           </window.ThreeScene>
           <window.ControlPanel
             layerVis={layerVis} onLayerVis={onLayerVis}

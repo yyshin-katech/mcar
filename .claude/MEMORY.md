@@ -76,6 +76,7 @@
 - [GPS 경고 판정 기준](gps_warning_criteria.md) — rviz `/rviz/jsk/gps_stat` 색: 주황=`StatCode!=0x38 || std>5cm` / 빨강=`Network_Status`(ping 8.8.8.8 실패, GPS 무관). AliveCnt 검사 무력화(GPS 끊기면 색 동결), rviz `==0x38` vs HMI `<2` 판정 불일치, GPS_Over 죽은 필드(2026-07-27 트리거 제거, msg/CAN 유지)
 - [SDSM(J3224) 수집 데이터](reference_sdsm_bag_data.md) — **`~/20251128/sdsm_data/` 가 유일한 SDSM 소스**: bag 7개(`/obu/sdsm`, `j3224_msgs/sdsm`, 1,890 msgs, 2025-11-28) + pcapng + unified CSV(3,722행) + 디코딩/분석 스크립트. objType 전량 Unknown, sourceID(RSU) 시나리오별 상이. `~/bag`(261GB)·`~/bag_data`(109GB) bag 73개엔 SDSM 없음(SPaT/BSM/TIM/pedes_assist 만)
 - [SDSM web_hmi 표출](project_sdsm_web_hmi.md) — `/obu/sdsm` → `/hmi/threejs/sdsm`(절대 5179) → `SdsmObjects.jsx`. dm+부호반전+헤딩 220° 변환(원천 `~/노바코스GPS변환.txt`), 도로망 정합 1.49m·yaw 91.4%. rviz_filter 변환 오류는 의도적 미수정. web_hmi yaw 규약(+East CCW)
+- [web_hmi 카메라/orbit](project_web_hmi_camera.md) — CameraController.jsx iso/top/**orbit** (rviz OrbitViewController 동등, 0.005 rad/px). vendor three **r160 UMD → OrbitControls 조달 불가**(r148 examples/js 삭제) 라 자체 구현 유지. 카메라는 월드 공간(`worldZ=-north`), `lookAt()` 은 쿼터니언만 갱신 → 축은 `matrixWorld` 에서. 헤드리스 검증 레시피(swiftshader 플래그)
 
 ## 피드백 메모리
 - [일본어 사용 금지](feedback_no_japanese.md) — 응답에 일본어(한자) 금지, 한국어만 사용

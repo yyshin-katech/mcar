@@ -233,7 +233,7 @@ function ThreejsF1Screen() {
                            nearestOnly={nearestOnly} nearestN={NEAREST_N} />
         {window.SdsmObjects && <window.SdsmObjects showSdsm={showSdsm} />}
         <window.EgoMesh />
-        <window.CameraController mode={cameraMode} />
+        <window.CameraController mode={cameraMode} onMode={setCameraMode} />
       </window.ThreeScene>
       <window.BlockBanner />
       <window.CrosswalkPedBanner />

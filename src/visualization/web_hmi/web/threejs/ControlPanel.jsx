@@ -88,6 +88,19 @@ function ControlPanel({
                onChange={() => onCameraMode('top')} />
         Top (bird's-eye)
       </label>
+      <label>
+        <input type="radio" name="cammode" value="orbit"
+               checked={cameraMode === 'orbit'}
+               onChange={() => onCameraMode('orbit')} />
+        Orbit (free look)
+      </label>
+      <div style={{ color: '#7a8492', fontSize: 10, lineHeight: 1.6,
+                    margin: '2px 0 0 18px' }}>
+        drag rotate · wheel dolly<br />
+        middle / shift-drag pan<br />
+        right / ctrl-drag dolly<br />
+        double-click reset
+      </div>
 
       <h3>Map layers</h3>
       {layerNames.map((name) => {
