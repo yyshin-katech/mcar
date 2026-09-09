@@ -43,6 +43,11 @@ try:
 except ImportError:
     to_control_team_from_local_msg = None
 
+try:
+    from j3224_msgs.msg import sdsm as SdsmMsg
+except ImportError:
+    SdsmMsg = None
+
 # /percept_topic carries object metadata + cloud_indices, but its lidarframe.
 # scan_pointcloud is empty on this bag (has_pointcloud=False). The actual
 # point cloud lives on /fusion_lidar_points (sensor_msgs/PointCloud2, ~1.5 Hz,
@@ -69,6 +74,32 @@ def percept_type_str(type_int):
 # Source CRS for K_CITY_2025 (.prj says WGS_1984_UTM_Zone_52N).
 SRC_EPSG = "EPSG:32652"
 DST_EPSG = "EPSG:5179"
+WGS84_EPSG = "EPSG:4326"
+
+# ── SDSM (SAE J3224) 오브젝트 좌표 변환 ────────────────────────────────────
+# 원천: ~/노바코스GPS변환.txt (RSU 송신측 코드)
+#
+#     noffX = gpsX * -10           # x point dm 변환
+#     noffY = data.info.y_point*10 # y point dm 변환
+#
+# 즉 수신되는 offsetX/offsetY 는 (rviz_filter 가 가정한) cm 가 아니라
+# dm(0.1 m) 이고, offsetX 는 부호가 반전되어 실려온다:
+#
+#     gpsX(m)    = -offsetX * 0.1      ← 센서 로컬 x (설치각 보정 후)
+#     y_point(m) =  offsetY * 0.1      ← 센서 로컬 y (전방, 항상 양수)
+#
+# 로컬(gpsX, y_point) → 지도 ENU 는 RSU 설치 방위각 h 회전으로 얻는다.
+# 방위각은 메시지에 실려오지 않는 사이트 상수라 파라미터(~sdsm_heading_deg)
+# 로 노출한다. 기본 220°(남서) 는 SDSM_coordinate_analysis_report(2026-02-02)
+# 값이며, ~/20251128/sdsm_data 7개 데이터셋(3,722 샘플)으로 재검증했다:
+# A2_LINK 도로망 대비 위치 중앙오차 1.39 m, 링크 진행방향 일치 78.6% /
+# 역주행 6.1% (218~222° 밖으로 벗어나면 급격히 무너짐).
+SDSM_OFFSET_SCALE = 0.1            # dm → m
+SDSM_HEADING_DEG_DEFAULT = 220.0   # RSU 설치 방위 (북=0°, 시계방향)
+# speed 필드도 J2735 표준(0.02 m/s)이 아니라 km/h 로 실려온다. 연속 프레임
+# 변위 대비 검증: dm+km/h 조합만 비율 1.021 (dm+0.02m/s 는 14.19).
+SDSM_YAW_MIN_STEP_M = 0.3          # 이보다 작은 변위면 직전 yaw 유지
+SDSM_TRACK_TTL_S = 5.0             # yaw 추정용 이전 위치 캐시 보관 시간
 
 # Layer name -> kind. HDMap_Oido_New (MOLIT HD맵 11 표준 레이어, EPSG:32652).
 # shape kinds verified via pyshp on /shp_map/HDMap_Oido_New/.
@@ -97,6 +128,19 @@ class WebHmiThreejsBridge:
         self._pub_route = rospy.Publisher(
             "/hmi/threejs/route", String, queue_size=1, latch=True,
         )
+        # V2X SDSM(J3224) 오브젝트 — 절대 EPSG:5179 좌표로 발행. 프런트
+        # (SdsmObjects.jsx) 가 map origin 으로 시프트한다. 추가-온리:
+        # rviz_filter 의 SDSM 마커 경로는 건드리지 않는다.
+        self._pub_sdsm = rospy.Publisher(
+            "/hmi/threejs/sdsm", String, queue_size=2,
+        )
+        self._sdsm_heading = math.radians(float(rospy.get_param(
+            "~sdsm_heading_deg", SDSM_HEADING_DEG_DEFAULT)))
+        self._sdsm_cos = math.cos(self._sdsm_heading)
+        self._sdsm_sin = math.sin(self._sdsm_heading)
+        self._sdsm_tx = None          # WGS84 → EPSG:5179 (lazily built below)
+        self._sdsm_prev = {}          # objectID → (east, north, yaw, t)
+        self._sdsm_msgs = 0
         # Track publishing is owned by web_hmi_threejs_tracks_cpp when this
         # param is false (default). The C++ node is faster on the percept hot
         # path; keeping Python's advertiser around would create a dual
@@ -136,6 +180,7 @@ class WebHmiThreejsBridge:
         self._last_ego = None  # (east, north, yaw) or None until first cb
         self._publish_map_once()
         self._publish_route_once()
+        self._start_sdsm()
 
         if self._publish_tracks:
             if to_control_team_from_local_msg is not None:
@@ -165,6 +210,121 @@ class WebHmiThreejsBridge:
                 "web_hmi_threejs_bridge: ~publish_tracks=false — "
                 "/hmi/threejs/tracks is owned by web_hmi_threejs_tracks_cpp"
             )
+
+    # ── SDSM (J3224) ─────────────────────────────────────────────────────
+    def _start_sdsm(self):
+        """Subscribe /obu/sdsm → /hmi/threejs/sdsm (absolute EPSG:5179)."""
+        if SdsmMsg is None:
+            rospy.logwarn("web_hmi_threejs_bridge: j3224_msgs unavailable; "
+                          "/hmi/threejs/sdsm disabled")
+            return
+        if Transformer is None:
+            rospy.logwarn("web_hmi_threejs_bridge: pyproj unavailable; "
+                          "/hmi/threejs/sdsm disabled")
+            return
+        self._sdsm_tx = Transformer.from_crs(WGS84_EPSG, DST_EPSG,
+                                             always_xy=True)
+        self._sub_sdsm = rospy.Subscriber(
+            "/obu/sdsm", SdsmMsg, self._on_sdsm, queue_size=4,
+        )
+        rospy.Timer(rospy.Duration(10.0), self._log_sdsm_rate)
+        rospy.loginfo(
+            "web_hmi_threejs_bridge: /obu/sdsm → /hmi/threejs/sdsm "
+            "(sensor heading %.1f deg, offsets in dm)",
+            math.degrees(self._sdsm_heading),
+        )
+
+    def _sdsm_local_to_map(self, off_x, off_y):
+        """(offsetX, offsetY) raw dm → (dEast, dNorth) meters.
+
+        노바코스 규약: gpsX = -offsetX*0.1, y_point = offsetY*0.1.
+        설치 방위각 h(북=0, 시계방향) 회전으로 ENU 로 옮긴다.
+        """
+        lx = -off_x * SDSM_OFFSET_SCALE
+        ly = off_y * SDSM_OFFSET_SCALE
+        c, s = self._sdsm_cos, self._sdsm_sin
+        return lx * c + ly * s, -lx * s + ly * c
+
+    def _on_sdsm(self, msg):
+        try:
+            lat = msg.refPos.latitude * 1e-7
+            lon = msg.refPos.longitude * 1e-7
+        except AttributeError:
+            return
+        # refPos 미확정(0,0) 프레임은 지도 원점으로 튀므로 버린다.
+        if abs(lat) < 1e-6 and abs(lon) < 1e-6:
+            return
+        ref_e, ref_n = self._sdsm_tx.transform(lon, lat)
+
+        now = rospy.get_time()
+        objects = []
+        for det in msg.objects:
+            try:
+                o = det.detObjCommon
+                oid = int(o.objectID)
+                de, dn = self._sdsm_local_to_map(float(o.offsetX),
+                                                 float(o.offsetY))
+            except AttributeError:
+                continue
+            east, north = ref_e + de, ref_n + dn
+            objects.append({
+                "id":    oid,
+                "type":  int(o.objType),
+                "east":  round(east, 2),
+                "north": round(north, 2),
+                # speed 필드는 km/h (표준 0.02 m/s 아님 — 상단 주석 참조)
+                "speed": round(float(o.speed), 1),
+                "yaw":   round(self._sdsm_yaw(oid, east, north, now), 4),
+                "conf":  int(o.objTypeCfd),
+            })
+
+        self._sdsm_prune(now)
+        self._sdsm_msgs += 1
+        body = {
+            "stamp": now,
+            "src": self._sdsm_source_id(msg),
+            "heading_deg": round(math.degrees(self._sdsm_heading), 1),
+            "ref": {"east": round(ref_e, 2), "north": round(ref_n, 2),
+                    "lat": round(lat, 7), "lon": round(lon, 7)},
+            "objects": objects,
+        }
+        self._pub_sdsm.publish(String(data=json.dumps(
+            body, ensure_ascii=False, separators=(",", ":"))))
+
+    def _sdsm_yaw(self, oid, east, north, now):
+        """헤딩 추정: SDSM heading 필드는 이 RSU 에서 항상 ~0(무의미)이라
+        직전 위치와의 변위로 구한다. 변위가 작으면 마지막 값을 유지."""
+        prev = self._sdsm_prev.get(oid)
+        yaw = prev[2] if prev else 0.0
+        if prev is not None:
+            dx, dy = east - prev[0], north - prev[1]
+            if math.hypot(dx, dy) >= SDSM_YAW_MIN_STEP_M:
+                yaw = math.atan2(dy, dx)   # +X=east 기준 CCW (TrackBoxes 규약)
+        self._sdsm_prev[oid] = (east, north, yaw, now)
+        return yaw
+
+    def _sdsm_prune(self, now):
+        stale = [k for k, v in self._sdsm_prev.items()
+                 if now - v[3] > SDSM_TRACK_TTL_S]
+        for k in stale:
+            del self._sdsm_prev[k]
+
+    @staticmethod
+    def _sdsm_source_id(msg):
+        try:
+            sid = msg.sourceID
+        except AttributeError:
+            return ""
+        if isinstance(sid, (bytes, bytearray)):
+            return "-".join(str(b) for b in sid)
+        return "-".join(str(int(b)) for b in sid)
+
+    def _log_sdsm_rate(self, _evt):
+        if self._sdsm_msgs == 0:
+            return
+        rospy.loginfo("web_hmi_threejs_bridge: %d SDSM msgs last 10s, "
+                      "%d tracked ids", self._sdsm_msgs, len(self._sdsm_prev))
+        self._sdsm_msgs = 0
 
     def _on_local(self, msg):
         self._last_ego = (

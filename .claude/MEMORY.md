@@ -51,6 +51,7 @@
 - stat_display GPS 색상 / 경고 기준 상세 → [gps_warning_criteria.md](gps_warning_criteria.md) (빨강은 GPS 아닌 ping 8.8.8.8 실패)
 
 ## 추가 메모리 파일 (작업 이력 상세 = 각 토픽 파일)
+- [ioniq5_siheung_dev ← siheung_release 포팅](project_ioniq5_siheung_port.md) — web_hmi + senario 맵(293링크 417~3877 비연속) + to_control_team_demo.py 정렬. K-City 하드코딩 제거로 `else: Speed_Limit=30` 맵값 파괴 버그 해소. msg int8→int32 + MANUAVER, **DBC v8 LOCAL_MAP_INFO 12bit 전체 repack(제어팀 동기화 필요)**
 - [Project Build & Branch Status](project_build.md) — 빌드 경로, **브랜치 계열=차량 플랫폼(siheung_*=아이오닉 EV / ioniq5_*=IONIQ 5)**, 2026-08-07 리네임 이력 / 브랜치 전환 직후 첫 빌드 msg 헤더 경합 실패(재빌드로 해소)
 - [User Communication Style](user_style.md) — 한국어 짧은 명령 선호, 간결 응답
 - [siheung_dev 활성 맵](siheung_map_senario3.md) — shp_map 루트 두 .shp(POLYLINEZ 1770 + POLYGONZ 372), EPSG:32652→5179 변환
@@ -71,6 +72,7 @@
 - [perception ObjectType](perception_object_type.md) — RS perception class enum `1=CONE,2=PED,3=BIC,4=CAR,5=TRUCK_BUS,6=ULTRA`. object_msg.status=class(type). 코드 1=보행자 오분류 5곳 정정(PED+BIC 보행자), main_window.py 대기
 - [ped-detector-cpp 검출 포팅](ped_detector_cpp.md) — Python on_crosswalk 검출→C++(`katech_ped_detector.cpp`) + 크기(≤2m)·방향(PCA 길이축 vs 절대속도) 게이트, 순서 타입→크기→멤버십→방향. 객체 vx,vy=ego-상대(절대=R(yaw)·v+v_ego). 하네스 ped-detector-cpp
 - [GPS 경고 판정 기준](gps_warning_criteria.md) — rviz `/rviz/jsk/gps_stat` 색: 주황=`StatCode!=0x38 || std>5cm` / 빨강=`Network_Status`(ping 8.8.8.8 실패, GPS 무관). AliveCnt 검사 무력화(GPS 끊기면 색 동결), rviz `==0x38` vs HMI `<2` 판정 불일치, GPS_Over 죽은 필드(2026-07-27 트리거 제거, msg/CAN 유지)
+- [SDSM(J3224) 수집 데이터](reference_sdsm_bag_data.md) — **`~/20251128/sdsm_data/` 가 유일한 SDSM 소스**: bag 7개(`/obu/sdsm`, `j3224_msgs/sdsm`, 1,890 msgs, 2025-11-28) + pcapng + unified CSV(3,722행) + 디코딩/분석 스크립트. objType 전량 Unknown, sourceID(RSU) 시나리오별 상이. `~/bag`(261GB)·`~/bag_data`(109GB) bag 73개엔 SDSM 없음(SPaT/BSM/TIM/pedes_assist 만)
 
 ## 피드백 메모리
 - [일본어 사용 금지](feedback_no_japanese.md) — 응답에 일본어(한자) 금지, 한국어만 사용

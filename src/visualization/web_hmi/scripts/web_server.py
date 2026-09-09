@@ -29,7 +29,19 @@ def main():
         rospy.logfatal("web_hmi_server: web_dir does not exist: %s", web_dir)
         sys.exit(2)
 
-    handler = partial(SimpleHTTPRequestHandler, directory=web_dir)
+    # 개발용 정적 서버: HTML/JSX 를 고치면 즉시 반영돼야 한다. 기본
+    # SimpleHTTPRequestHandler 는 Cache-Control 을 안 붙여서 브라우저가
+    # 휴리스틱 캐싱으로 구 index_*.html 을 재사용할 수 있는데, 그러면
+    # 새로 추가된 <script> 태그가 빠진 채 새 JSX 만 로드돼 React 가
+    # "element type is invalid" 로 트리 전체를 못 그린다 (지도까지 사라짐).
+    class NoCacheHandler(SimpleHTTPRequestHandler):
+        def end_headers(self):
+            self.send_header('Cache-Control', 'no-store, must-revalidate')
+            self.send_header('Pragma', 'no-cache')
+            self.send_header('Expires', '0')
+            SimpleHTTPRequestHandler.end_headers(self)
+
+    handler = partial(NoCacheHandler, directory=web_dir)
     server = ThreadingHTTPServer(('0.0.0.0', port), handler)
 
     url = "http://localhost:%d/%s" % (port, page) if page else "http://localhost:%d" % port

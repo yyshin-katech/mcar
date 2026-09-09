@@ -46,6 +46,7 @@ function ControlPanel({
   showClouds, onShowClouds,
   pointSize, onPointSize,
   nearestOnly, onNearestOnly, nearestN,
+  showSdsm, onShowSdsm,
   cameraMode, onCameraMode,
 }) {
   const layerStyles = window.LAYER_STYLE || {};
@@ -60,6 +61,10 @@ function ControlPanel({
       {onNearestOnly && (
         <Toggle label={`Nearest ${nearestN || 5} only`}
                 checked={nearestOnly} onChange={onNearestOnly} />
+      )}
+      {onShowSdsm && (
+        <Toggle label="V2X SDSM objects"
+                checked={showSdsm} onChange={onShowSdsm} />
       )}
       <label>
         Point size&nbsp;

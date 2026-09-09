@@ -194,6 +194,8 @@ function ThreejsF1Screen() {
   const [pointSize,   setPointSize]   = React.useState(0.08);
   const [cameraMode,  setCameraMode]  = React.useState('iso');
   const [nearestOnly, setNearestOnly] = React.useState(false);
+  // V2X SDSM(J3224) 오브젝트 표시 — 자차 인지와 별개 소스라 기본 on.
+  const [showSdsm,    setShowSdsm]    = React.useState(true);
   const NEAREST_N = 5;
 
   // ROSBAG: include LiDAR/perception topics in the next recording (default on).
@@ -229,11 +231,13 @@ function ThreejsF1Screen() {
                            nearestOnly={nearestOnly} nearestN={NEAREST_N} />
         <window.TrackPointClouds showClouds={showClouds} pointSize={pointSize}
                            nearestOnly={nearestOnly} nearestN={NEAREST_N} />
+        {window.SdsmObjects && <window.SdsmObjects showSdsm={showSdsm} />}
         <window.EgoMesh />
         <window.CameraController mode={cameraMode} />
       </window.ThreeScene>
       <window.BlockBanner />
       <window.CrosswalkPedBanner />
+      {window.SdsmStatus && <window.SdsmStatus showSdsm={showSdsm} />}
       <div style={{
         position: "absolute", top: 140, right: 8, width: 240, maxHeight: "calc(92% - 140px)",
         zIndex: 10, overflowY: "auto",
@@ -250,6 +254,7 @@ function ThreejsF1Screen() {
           showClouds={showClouds} onShowClouds={setShowClouds}
           pointSize={pointSize} onPointSize={setPointSize}
           nearestOnly={nearestOnly} onNearestOnly={setNearestOnly} nearestN={NEAREST_N}
+          showSdsm={showSdsm} onShowSdsm={setShowSdsm}
           cameraMode={cameraMode} onCameraMode={setCameraMode} />
       </div>
     </div>

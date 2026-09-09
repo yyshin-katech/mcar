@@ -25,6 +25,10 @@
   <arg name="map_shp"      default="$(find gps_system_localizer)/src/shp_map/senario_shp_20260623/A2_LINK.shp"/>
   <!-- threejs variant: K_CITY_2025 shapefile dir (UTM52N → EPSG:5179 inside the bridge). -->
   <arg name="threejs_mapdir" default="$(find gps_system_localizer)/src/shp_map/senario_shp_20260623"/>
+  <!-- V2X SDSM(J3224): RSU 설치 방위각(북=0, 시계방향). 메시지에 실려오지 않는
+       사이트 상수라 launch 로 노출한다. 220 = 시흥 오이도 RSU (수집 데이터
+       3,722 샘플 도로망 정합으로 검증). -->
+  <arg name="sdsm_heading_deg" default="220.0"/>
 
   <!-- 1. rosbridge WebSocket server -->
   <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch">
@@ -56,6 +60,8 @@
     <!-- global_nav_hmi: pre-extracted planned-route JSON (latched on /hmi/threejs/route). -->
     <param name="route_json" value="$(find web_hmi)/scripts/route_senario_20260623.json"/>
     <param name="publish_tracks" value="false"/>
+    <!-- /obu/sdsm → /hmi/threejs/sdsm (절대 EPSG:5179). -->
+    <param name="sdsm_heading_deg" value="$(arg sdsm_heading_deg)"/>
   </node>
 
   <!-- 2c. Three.js tracks (C++) — percept → /hmi/threejs/tracks at 10 Hz. -->
