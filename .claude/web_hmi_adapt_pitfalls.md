@@ -1,9 +1,9 @@
 ---
 name: web_hmi 어댑트 알려진 함정
-description: web_hmi 어댑트 시 ROS 측 패치만으로 화면이 안 나오는 함정 (LAYER_STYLE 동기화 / polyline alpha 무시 / bag /hmi/* 충돌)
+description: web_hmi 화면이 안 나올 때의 함정 모음 (LAYER_STYLE 동기화 / polyline alpha 무시 / bag /hmi/* 충돌 / 캐시된 구 HTML → React #130 / ego_pose JSON 깨짐 → 카메라 이탈)
 type: feedback
 originSessionId: 3ea36247-9ca8-4af1-aa8b-d69a44426fbf
-modified: 2026-07-27T05:16:19.559Z
+modified: 2026-09-09T00:00:00.000Z
 ---
 web_hmi 어댑트는 ROS 측 LAYERS_ALL/launch만 패치하면 화면이 안 나온다. 두 가지 추가 검증 필수:
 
@@ -40,3 +40,36 @@ bag 파일에 `/hmi/map`, `/hmi/threejs/map` (등 다른 `/hmi/*`) 토픽이 함
 - 권장 옵션: `rosbag play <bag> /hmi/map:=/dev/null/hmi_map /hmi/threejs/map:=/dev/null/threejs_map` (output 토픽 remap으로 bag publish 무력화).
 - 더 깨끗한 옵션: `rosbag play --topics <입력 토픽만>` (예: `/siheung_spat /sensors/v_can /sensors/ioniq5_ad_can /ublox/navpvt /percept_topic /track_Multi_RS /fusion_lidar_points`).
 - adapt-verifier가 publisher 목록 검사를 검증 항목에 포함하면 이 함정 자동 감지 가능.
+
+## 3. 새 JSX 컴포넌트 추가 + 캐시된 구 HTML → React #130 으로 **트리 전체 사망**
+
+`index_threejs_*.html` 에 `<script>` 태그를 추가하고 화면 JSX 에서 `window.NewComp` 를 마운트했는데
+브라우저가 **구 HTML 을 캐시**하고 있으면, 스크립트 태그 없이 새 JSX 만 로드돼 `window.NewComp === undefined`.
+결과는 그 컴포넌트만 빠지는 게 아니라 `Minified React error #130 (element type is invalid ... got: undefined)` 로
+**렌더 트리 전체가 죽는다 — 지도까지 통째로 사라진다.** 증상이 "지도 shp 로딩 안 된 것 같다" 로 보여서 백엔드를 엉뚱하게 파게 된다.
+
+**Why:** `web_server.py` 가 `SimpleHTTPRequestHandler` 라 `Cache-Control` 을 안 붙였고, HTML 에 cache-busting 쿼리스트링도 없어
+브라우저 휴리스틱 캐싱이 걸린다. JSX 는 `text/babel` 로 매번 새로 받는데 HTML 만 옛것이라 **조합이 어긋난다**.
+
+**How to apply:**
+- 2026-09-09 근본 조치 2건 적용됨(commit afc8377): `web_server.py` 응답에 `Cache-Control: no-store` 추가,
+  `ThreejsF1Screen.jsx` 의 신규 마운트를 `{window.NewComp && <window.NewComp ... />}` 존재 가드로 감쌈.
+- **앞으로 `window.*` 컴포넌트를 마운트할 때는 항상 존재 가드를 붙일 것.** 한 컴포넌트 누락이 화면 전체를 끄는 걸 막는다.
+- 진단법: 헤드리스로 `--dump-dom` 떠서 DOM 크기를 정상본과 비교(죽으면 눈에 띄게 작다) + console 에 `#130` 있는지 확인.
+- `web_dir` 은 `$(find web_hmi)/web` = **소스 디렉토리**이고 `devel/lib/web_hmi/*.py` 는 소스를 exec 하는 릴레이 스텁이라,
+  HTML/JSX/파이썬 스크립트 수정에 catkin 빌드는 불필요하다(노드 재기동만).
+
+## 4. `/hmi/ego_pose` JSON 이 깨져도 **조용히 무시** → ego (0,0) → 카메라가 지도에서 2,000 km 밖
+
+`ros_bridge.jsx:143 useJsonTopic` 은 `JSON.parse` 실패를 `catch {}` 로 삼킨다. 그래서 페이로드가 깨지면
+에러 없이 기본값 `{east:0, north:0, yaw:0}` 이 유지되고, 맵 원점은 `[931291.7, 1929703.19]` 이라
+**카메라가 지도에서 약 2,000 km 떨어진 곳을 본다. 지도도 오브젝트도 화면 밖 = 아무것도 안 보인다.**
+
+실제 사고: 수동 테스트 시 쉘 이스케이프가 깨져 `{\east":931307.1,...}` 가 발행됨(여는 따옴표 소실).
+
+**How to apply:**
+- 수동 ego 주입은 작은따옴표로 전체를 감쌀 것:
+  `rostopic pub -r 50 /hmi/ego_pose std_msgs/String 'data: "{\"east\": 931307.1, \"north\": 1931256.8, \"yaw\": -2.1293}"'`
+- 발행 후 **반드시 `rostopic echo -n1 /hmi/ego_pose` 로 `\"east\"` 가 온전한지 눈으로 확인.**
+- 화면이 비면 백엔드 의심 전에 `/hmi/ego_pose` 페이로드부터 볼 것. `/hmi/threejs/map` 바이트 수(정상 약 2 MB)가 나오면 백엔드는 무죄다.
+- yaw 규약은 정동 기준 CCW 라디안 → [[project-sdsm-web-hmi]] 참조.

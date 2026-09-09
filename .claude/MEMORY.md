@@ -39,6 +39,8 @@
 - **crosswalk 좌표/CAN/게이팅**: katech_ped_detector.py `crosswalk_data`=EPSG:5179 폴리곤(오프라인 pyproj 4326→5179 리터럴). 검출 `/katech_msg/crosswalk_detection` → `katech_ped_detector_can_writer` CAN `Pedestrian_Stat`(528/529) `on_crosswalk=1`(crosswalk_id 없음·객체 4 cap). **검출을 ego LINK_ID(`CW_LINKS`, detector cpp·py·fusion 공유)로 게이팅 → 접근 크로스워크만**. occupancy_msg `uint8[] occupied_ids` 추가, fusion active(own=occupied_ids, obu #1·#2만). **크로스워크 1~18**(2026-07-27, 10~18 은 md 링크표 없어 mat `is_stop_line`+선행 20m 규칙으로 도출; #15/#16 만 접근링크 661/662 공유). web_hmi CrosswalkZones=[E,N] 1~18 점멸, mat 뷰어 var CROSSWALK=[lat,lon]. **CAN writer 는 자체 검출 외에 `/katech_msg/crosswalk_ped_fusion` 추가 구독 → RSU present(source 2/3) 시 `on_crosswalk_1 = max(자체, RSU)` 로 OR(2s staleness). 자체=0 이어도 RSU=1 이면 CAN on_crosswalk=1 (2026-08-05).**
 - **perception ObjectType(RS)**: enum `0=UNKNOW,1=CONE,2=PED,3=BIC,4=CAR,5=TRUCK_BUS,6=ULTRA_VEHICLE`. `/track_Multi_RS` object_msg.**status = class(type)**(트래킹상태 아님, `lidar_object_publisher_v2.py:282`). ⚠️ **실데이터에선 type3(BIC) 이 ≈5m 차량크기** → {2,3}=보행자로 두면 web_hmi 가 차량을 사람으로 표시. 그래서 **차량/사람 분류는 이전버전 `type==1`→보행자 로 원복(2026-07-21)**. 상세 [perception ObjectType](perception_object_type.md).
 - **객체 속도 vx,vy = ego-상대**(perception object_msg, flat 구조). 절대 이동방향 = `R(host_yaw)·(vx,vy) + v_ego_map`(ego 가산 필수; to_control_team 에 host 속도 없어 위치 유한차분). 횡단보도 보행자 검출(on_crosswalk)은 C++ `katech_ped_detector.cpp`(Python 대체, katech_test.launch line57) — 게이트 **타입{1,2}(이전버전)→멤버십(LINK)→방향**(크로스워크 PCA 길이축 사이각≤40°, 정지 스킵). **크기 게이트는 제거됨**(사용자: 진행방향만 고려). 상세 [ped-detector-cpp](ped_detector_cpp.md).
+- **SDSM(J3224) 좌표 변환**: `offsetX/Y` 단위 = **dm(0.1m), offsetX 는 부호반전** (`local=(-offX*0.1, offY*0.1)`), 헤딩 = 메시지에 없는 **사이트 상수 220°**(launch `sdsm_heading_deg`), speed = **km/h 그대로**, heading 필드는 ~0 무의미 → 변위로 yaw 추정. 원천은 RSU 벤더 송신코드 `~/노바코스GPS변환.txt` 뿐. **`rviz_filter.cpp:344` 의 `*0.01 cm to m`+`ref_heading=0` 은 틀렸으나 의도적 보존**(rviz 미사용). 상세 [project-sdsm-web-hmi](project_sdsm_web_hmi.md).
+- **web_hmi `yaw` 규약 = 정동(+East) 기준 CCW 라디안**(나침반 방위각 아님). `yaw = radians(90 − 방위각)`, 예 방위각 212° → −2.1293. 원천 `host_yaw`, 근거 `to_control_team_demo.py:351 arctan2(dy_ds,dx_ds)` / `CameraController.jsx:55`.
 
 ## Diagnostic 구조
 | 토픽 | 메시지 타입 | 소스 노드 | 판단 기준 |
@@ -73,9 +75,10 @@
 - [ped-detector-cpp 검출 포팅](ped_detector_cpp.md) — Python on_crosswalk 검출→C++(`katech_ped_detector.cpp`) + 크기(≤2m)·방향(PCA 길이축 vs 절대속도) 게이트, 순서 타입→크기→멤버십→방향. 객체 vx,vy=ego-상대(절대=R(yaw)·v+v_ego). 하네스 ped-detector-cpp
 - [GPS 경고 판정 기준](gps_warning_criteria.md) — rviz `/rviz/jsk/gps_stat` 색: 주황=`StatCode!=0x38 || std>5cm` / 빨강=`Network_Status`(ping 8.8.8.8 실패, GPS 무관). AliveCnt 검사 무력화(GPS 끊기면 색 동결), rviz `==0x38` vs HMI `<2` 판정 불일치, GPS_Over 죽은 필드(2026-07-27 트리거 제거, msg/CAN 유지)
 - [SDSM(J3224) 수집 데이터](reference_sdsm_bag_data.md) — **`~/20251128/sdsm_data/` 가 유일한 SDSM 소스**: bag 7개(`/obu/sdsm`, `j3224_msgs/sdsm`, 1,890 msgs, 2025-11-28) + pcapng + unified CSV(3,722행) + 디코딩/분석 스크립트. objType 전량 Unknown, sourceID(RSU) 시나리오별 상이. `~/bag`(261GB)·`~/bag_data`(109GB) bag 73개엔 SDSM 없음(SPaT/BSM/TIM/pedes_assist 만)
+- [SDSM web_hmi 표출](project_sdsm_web_hmi.md) — `/obu/sdsm` → `/hmi/threejs/sdsm`(절대 5179) → `SdsmObjects.jsx`. dm+부호반전+헤딩 220° 변환(원천 `~/노바코스GPS변환.txt`), 도로망 정합 1.49m·yaw 91.4%. rviz_filter 변환 오류는 의도적 미수정. web_hmi yaw 규약(+East CCW)
 
 ## 피드백 메모리
 - [일본어 사용 금지](feedback_no_japanese.md) — 응답에 일본어(한자) 금지, 한국어만 사용
 - [존댓말만 사용](feedback_honorific.md) — 응답 종결은 "~합니다/입니다" 존댓말로 통일, 반말 금지
-- [web_hmi 어댑트 함정](web_hmi_adapt_pitfalls.md) — LAYER_STYLE 동기화 누락 / polyline `alpha` 무시(buildPolyline 패치로 지원, A2_LINK 0.2) / bag /hmi/* 충돌 (ROS만 패치하면 화면 안 나옴)
+- [web_hmi 어댑트 함정](web_hmi_adapt_pitfalls.md) — LAYER_STYLE 동기화 누락 / polyline `alpha` 무시(buildPolyline 패치로 지원, A2_LINK 0.2) / bag /hmi/* 충돌 (ROS만 패치하면 화면 안 나옴) / **캐시된 구 HTML + 신규 `window.*` 컴포넌트 → React #130 으로 트리 전체 사망(지도까지 사라짐)** / `/hmi/ego_pose` JSON 깨짐은 조용히 무시 → ego (0,0) → 카메라 2,000km 이탈
 - [CAN 완전 동결 additive](feedback_can_frozen_additive.md) — 차량 CAN-feeding 토픽은 수정 말고 additive 신규 토픽으로 우회(무변경 증명 git diff ∅/sha256). tim-pedes-display 에서 /katech_msg/crosswalk_occupancy 신설
