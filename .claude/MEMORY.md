@@ -66,7 +66,7 @@
 - [spat-merge OBU+MQTT](spat_merge_obu_mqtt.md) — `spat_merge_node` 교차로(IID) 단위 OBU 우선 병합(/spat_merged). MQTT-only 교차로 302 를 HMI/CAN 에 전달. 링크 417→IID 302/SG 70/MANUAVER -1(LEFT)
 - [SPaT 방향 매칭](spat_dir_match.md) — MANUAVER -1/0/1 ↔ MovementStateName(LEFT/{STR,STRAIGHT}/RIGHT). HMI 방향필터 부재로 병합 알파벳순 LEFT 오선택 버그. spat_CAN_writer/hmi_state.py/stat_display 수정, 하네스 spat-dir-match
 - [spat_viewer 실행](spat_viewer_run.md) — MQTT/OBU SPaT ① 라이브 Leaflet 뷰어(`roslaunch spat_viewer spat_viewer.launch` + `:8080/`) ② offline bag 리플레이 뷰어(`extract_spat_replay.py`→`replay.html`, ego 방향매칭 신호등 재생/스크럽)
-- [tim-pedes bag 재생](reference_tim_pedes_bag_replay.md) — `web_hmi_replay.launch`(bag→web_hmi threejs_f1, /hmi/* remap 토글). 구 bag 으론 퓨전 own 경로 검증 불가(occupancy/track_Multi_RS 없음 → OBU 경로만 간헐)
+- [tim-pedes bag 재생](reference_tim_pedes_bag_replay.md) — `web_hmi_replay.launch`(bag→web_hmi threejs_f1, /hmi/* remap 토글). **⚠️ bag 끝의 녹화된 `/hmi/cmd/bag_toggle` 재생 시 live 브리지가 새 녹화 시작 → remap 필수(launch 미차단)**. 여러 split 연속 재생 레시피. 구 bag 으론 퓨전 own 경로 검증 불가(occupancy/track_Multi_RS 없음 → OBU 경로만 간헐)
 - [A2_LINK shp 구조](reference_a2_link_shp.md) — senario_shp_20260623 A2_LINK, UTM52N(32652)→5179, 좌/중/우 3차선(중앙=R·L 양쪽), ITSLinkID 1:N, ToNode→FromNode 위상. web_hmi 지도/경로 원천
 - [mat 정지선 연장/트림](stopline_adj.md) — senario mat 링크를 B2_SURFACELINEMARK 정지선까지 연장 + 다음 링크 트림(L=L+N[1:k+1]+P / N=P+N[k+1:], station 재계산, 공유정점). mat=5179/shp=32652. 뷰어 var DATA 6 feature 패치. 하네스 stopline-adj
 - [global-nav-hmi 경로표시](project_global_nav_hmi.md) — web_hmi 주행 예정 경로 중앙차선 리본 + TIM(`on_block_link&&do_not_go_forward`) 트리거 old→new latch 전환. 오프라인 route JSON. 795117 절단(후반 ITS 미구현)
@@ -77,6 +77,7 @@
 - [SDSM(J3224) 수집 데이터](reference_sdsm_bag_data.md) — **`~/20251128/sdsm_data/` 가 유일한 SDSM 소스**: bag 7개(`/obu/sdsm`, `j3224_msgs/sdsm`, 1,890 msgs, 2025-11-28) + pcapng + unified CSV(3,722행) + 디코딩/분석 스크립트. objType 전량 Unknown, sourceID(RSU) 시나리오별 상이. `~/bag`(261GB)·`~/bag_data`(109GB) bag 73개엔 SDSM 없음(SPaT/BSM/TIM/pedes_assist 만)
 - [SDSM web_hmi 표출](project_sdsm_web_hmi.md) — `/obu/sdsm` → `/hmi/threejs/sdsm`(절대 5179) → `SdsmObjects.jsx`. dm+부호반전+헤딩 220° 변환(원천 `~/노바코스GPS변환.txt`), 도로망 정합 1.49m·yaw 91.4%. rviz_filter 변환 오류는 의도적 미수정. web_hmi yaw 규약(+East CCW)
 - [web_hmi 카메라/orbit](project_web_hmi_camera.md) — CameraController.jsx iso/top/**orbit** (rviz OrbitViewController 동등, 0.005 rad/px). vendor three **r160 UMD → OrbitControls 조달 불가**(r148 examples/js 삭제) 라 자체 구현 유지. 카메라는 월드 공간(`worldZ=-north`), `lookAt()` 은 쿼터니언만 갱신 → 축은 `matrixWorld` 에서. 헤드리스 검증 레시피(swiftshader 플래그)
+- [web_hmi Tailscale 원격 확인](reference_web_hmi_tailscale_remote.md) — 원격 PC 브라우저에서 `http://100.113.210.119:8088/index_threejs_f1.html` 로 코드 수정 없이 동작(2026-09-23 확인). SSH 실행 시 `open_browser:=false` + tmux
 
 ## 피드백 메모리
 - [일본어 사용 금지](feedback_no_japanese.md) — 응답에 일본어(한자) 금지, 한국어만 사용

@@ -2,10 +2,16 @@
 name: reference-tim-pedes-bag-replay
 description: web_hmi_replay.launch 로 bag→web_hmi 재생. tim-pedes 퓨전 own 경로는 구 bag(occupancy/track_Multi_RS 없음)으론 검증 불가 — OBU 경로만 동작
 metadata:
+  node_type: memory
   type: reference
+  originSessionId: a5af4f3e-ba4d-4955-905f-6d2a2505203f
+  modified: 2026-09-23T14:18:49.560Z
 ---
 
 `src/visualization/web_hmi/launch/web_hmi_replay.launch` = web_hmi(threejs_f1) + `~/bag_data` bag 재생 원샷. args: `bag:=<파일명>`(필수, bag_dir 안), `bag_dir`/`rate`/`open_browser`/`run_fusion`. 기본 동작 = bag 녹화 `/hmi/*` 를 브라우저에 **직접 재생**(녹화 HMI 재현), `/hmi/bag`(REC 플래그)·`/client_count` 만 `/sink` 로 remap. `<node>` 안 `/hmi/*` remap 주석 해제 시 = bag `/hmi/*` 전부 `/sink` 로 빼고 live 브리지 재생성분만 보는 검증 모드. ([[project_bag_replay_hmi]] 수동 remap 레시피를 이 launch 가 대체)
+
+**⚠️ `/hmi/cmd/bag_toggle` 재생 함정 (2026-09-23 확인):** HMI REC 버튼으로 녹화한 bag 은 마지막 split 끝에 **녹화 종료 버튼 입력(`/hmi/cmd/bag_toggle`, std_msgs/Empty) 1건**이 들어 있다(예: `~/bag/20260508/*_4.bag` 11:29:22.504). 재생하면 live `web_hmi_bridge` → `hmi_state.py toggle_bag()` → `rosbag record -a --split -o ~/bag_data/<ts>` **새 녹화 시작**. `web_hmi_replay.launch` 는 이 토픽을 remap 하지 않음(미수정) → 재생 시 `/hmi/cmd/bag_toggle:=/sink/...` 필수. `/hmi/cmd/*` 전부 차단이 안전.
+- 여러 split(연속) 재생: launch 는 `bag` 1개만 받음 → `web_hmi.launch open_browser:=false` + 별도 `rosbag play --clock <dir>/*.bag /hmi/cmd/bag_toggle:=/sink/hmi_cmd_bag_toggle /hmi/bag:=/sink/hmi_bag /client_count:=/sink/client_count /hmi/map:=/sink/hmi_map /hmi/threejs/map:=/sink/hmi_threejs_map`. 여러 파일은 타임스탬프 순 병합 재생. 구 bag 의 녹화 `/hmi/threejs/map` 은 현재 지도를 덮어쓸 수 있어 뺌.
 
 **tim-pedes 퓨전(`/katech_msg/crosswalk_ped_fusion`)을 bag 으로 검증할 때 함정 (own 경로 안 뜸):**
 - 퓨전 own 경로는 `/katech_msg/crosswalk_occupancy` 를 구독 → 이 토픽은 **라이브 `katech_ped_detector.py`(입력 `/track_Multi_RS`)만** 발행.
